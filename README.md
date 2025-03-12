@@ -1,3 +1,7 @@
+## Do not use!
+
+This software is in development stage, do not use it!
+
 ## Installation
 
 1. [Download](https://github.com/jgieseler/multi_sc_plots/archive/refs/heads/main.zip) & extract repository
