@@ -1,0 +1,2 @@
+git+https://github.com/jgieseler/SEPpy
+git+https://github.com/jgieseler/solo-epd-loader
