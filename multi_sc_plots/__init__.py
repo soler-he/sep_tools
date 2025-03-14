@@ -56,14 +56,14 @@ plt.rcParams['axes.linewidth'] = 2.0
 class Event:
 
     def __init__(self):
-        self.e_instruments = ['Parker Solar Probe/EPIHI-HET e', 'Parker Solar Probe/EPILO PE e', 'SOHO/EPHIN e', 'Solar Orbiter/EPT e', 'Solar Orbiter/HET e', 'STEREO-A/HET e', 'STEREO-A/SEPT e', 'WIND/3DP e']
-        self.p_instruments = ['Parker Solar Probe/EPIHI-HET p', 'SOHO/ERNE-HED p', 'Solar Orbiter/EPT p', 'Solar Orbiter/HET p', 'STEREO-A/SEPT p', 'STEREO-A/HET p', 'WIND/3DP p']
+        self.e_instruments = ['Parker Solar Probe/EPI-Hi HET e', 'Parker Solar Probe/EPI-Lo PE e', 'SOHO/EPHIN e', 'Solar Orbiter/EPT e', 'Solar Orbiter/HET e', 'STEREO-A/HET e', 'STEREO-A/SEPT e', 'WIND/3DP e']
+        self.p_instruments = ['Parker Solar Probe/EPI-Hi HET p', 'SOHO/ERNE-HED p', 'Solar Orbiter/EPT p', 'Solar Orbiter/HET p', 'STEREO-A/SEPT p', 'STEREO-A/HET p', 'WIND/3DP p']
 
         # define default energy channels (lowest at the moment)
         self.channels_e = {}
         self.channels_e['BepiColombo/SIXS e'] = 0
-        self.channels_e['Parker Solar Probe/EPIHI-HET e'] = 0
-        self.channels_e['Parker Solar Probe/EPILO PE e'] = 0
+        self.channels_e['Parker Solar Probe/EPI-Hi HET e'] = 0
+        self.channels_e['Parker Solar Probe/EPI-Lo PE e'] = 0
         self.channels_e['SOHO/EPHIN e'] = 0
         self.channels_e['Solar Orbiter/EPT e'] = 0
         self.channels_e['Solar Orbiter/HET e'] = 0
@@ -73,7 +73,7 @@ class Event:
         #
         self.channels_p = {}
         self.channels_p['BepiColombo/SIXS p'] = 0
-        self.channels_p['Parker Solar Probe/EPIHI-HET p'] = 0
+        self.channels_p['Parker Solar Probe/EPI-Hi HET p'] = 0
         self.channels_p['SOHO/ERNE-HED p'] = 0
         self.channels_p['Solar Orbiter/EPT p'] = 0
         self.channels_p['Solar Orbiter/HET p'] = 0
@@ -84,8 +84,8 @@ class Event:
         # define default plot colors
         self.plot_colors = {}
         # self.plot_colors['BepiColombo/SIXS'] = 'orange'
-        self.plot_colors['Parker Solar Probe/EPIHI-HET'] = 'blueviolet'
-        self.plot_colors['Parker Solar Probe/EPILO PE'] = 'blueviolet'
+        self.plot_colors['Parker Solar Probe/EPI-Hi HET'] = 'blueviolet'
+        self.plot_colors['Parker Solar Probe/EPI-Lo PE'] = 'blueviolet'
         self.plot_colors['SOHO/EPHIN'] = 'k'
         self.plot_colors['SOHO/ERNE-HED'] = 'k'
         self.plot_colors['Solar Orbiter/EPT'] = seaborn_colorblind[5]
@@ -104,8 +104,8 @@ class Event:
         # define default viewings and instrument channels
         self.viewing = {}
         # self.viewing['BepiColombo/SIXS'] = 2
-        self.viewing['Parker Solar Probe/EPIHI-HET'] = 'A'
-        self.viewing['Parker Solar Probe/EPILO PE'] = 3
+        self.viewing['Parker Solar Probe/EPI-Hi HET'] = 'A'
+        self.viewing['Parker Solar Probe/EPI-Lo PE'] = 3
         self.viewing['Solar Orbiter/EPT'] = 'sun'
         self.viewing['Solar Orbiter/HET'] = 'sun'
         # self.viewing['STEREO-A/LET'] = 
@@ -219,29 +219,29 @@ class Event:
             self.erne_chstring = ['13-16 MeV', '16-20 MeV', '20-25 MeV', '25-32 MeV', '32-40 MeV', '40-50 MeV', '50-64 MeV', '64-80 MeV', '80-100 MeV', '100-130 MeV']
             self.soho_erne_org, self.erne_energies = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=self.startdate, enddate=self.enddate, path=soho_path, resample=None, max_conn=1)
 
-        if 'Parker Solar Probe/EPIHI-HET e' in self.instruments or 'Parker Solar Probe/EPIHI-HET p' in self.instruments:
-            # print('loading PSP/EPIHI-HET data')
+        if 'Parker Solar Probe/EPI-Hi HET e' in self.instruments or 'Parker Solar Probe/EPI-Hi HET p' in self.instruments:
+            # print('loading PSP/EPI-Hi HET data')
             self.psp_het, self.psp_het_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-HET-RATES60', startdate=self.startdate, enddate=self.enddate, path=psp_path, resample=None)
             # psp_let1, psp_let1_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-LET1-RATES60', startdate, enddate, path=psp_path, resample=psp_resample)
             if len(self.psp_het) == 0:
-                print(f'No PSP/EPIHI-HET 60s data found for {self.startdate.date()} - {self.enddate.date()}. Trying 3600s data.')
+                print(f'No PSP/EPI-Hi HET 60s data found for {self.startdate.date()} - {self.enddate.date()}. Trying 3600s data.')
                 self.psp_het, self.psp_het_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-HET-RATES3600', startdate=self.startdate, enddate=self.enddate, path=psp_path, resample=None)
                 self.psp_3600 = True
                 # self.psp_het_resample = None
 
-        if 'Parker Solar Probe/EPILO PE e' in self.instruments:
-            # print('loading PSP/EPILO PE data')
+        if 'Parker Solar Probe/EPI-Lo PE e' in self.instruments:
+            # print('loading PSP/EPI-Lo PE data')
             self.psp_epilo, self.psp_epilo_energies = psp_isois_load('PSP_ISOIS-EPILO_L2-PE',
                                                             startdate=self.startdate, enddate=self.enddate,
                                                             epilo_channel=self.psp_epilo_channel,
                                                             epilo_threshold=psp_epilo_threshold,
                                                             path=psp_path, resample=None)
             if len(self.psp_epilo) == 0:
-                print(f'No PSP/EPILO PE data for {self.startdate.date()} - {self.enddate.date()}')
+                print(f'No PSP/EPI-Lo PE data for {self.startdate.date()} - {self.enddate.date()}')
 
-        # if 'Parker Solar Probe/EPILO IC p' in self.instruments:
+        # if 'Parker Solar Probe/EPI-Lo IC p' in self.instruments:
         # if add_psp_conta_ch:
-        # #     print('loading PSP/EPILO IC proton data')
+        # #     print('loading PSP/EPI-Lo IC proton data')
         #     psp_epilo_p, psp_epilo_p_energies = psp_isois_load('PSP_ISOIS-EPILO_L2-IC',
         #                                                        startdate, enddate,
         #                                                        epilo_channel=psp_epilo_channel_p,
@@ -299,14 +299,14 @@ class Event:
             self.energies_e = pd.DataFrame()
             # if 'BepiColombo/SIXS_e' in self.instruments:
             #     print(self.sixs_meta)  # TODO:
-            if 'Parker Solar Probe/EPIHI-HET e' in self.instruments:
-                self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'Parker Solar Probe/EPIHI-HET e': self.psp_het_energies['Electrons_ENERGY_LABL']})], axis=1)
-            if 'Parker Solar Probe/EPILO PE e' in self.instruments:
+            if 'Parker Solar Probe/EPI-Hi HET e' in self.instruments:
+                self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'Parker Solar Probe/EPI-Hi HET e': self.psp_het_energies['Electrons_ENERGY_LABL']})], axis=1)
+            if 'Parker Solar Probe/EPI-Lo PE e' in self.instruments:
                 epilo_low =  self.psp_epilo_energies['Electron_ChanF_Energy'].filter(like='_P0').values-self.psp_epilo_energies['Electron_ChanF_Energy_DELTAMINUS'].filter(like='_P0').values
                 epilo_high = self.psp_epilo_energies['Electron_ChanF_Energy'].filter(like='_P0').values+self.psp_epilo_energies['Electron_ChanF_Energy_DELTAPLUS'].filter(like='_P0').values 
                 epilo_low = epilo_low[~np.isnan(epilo_low)]
                 epilo_high = epilo_high[~np.isnan(epilo_high)]
-                self.energies_e = pd.concat([self.energies_e, pd.DataFrame([f'{epilo_low[i]:.2f} - {epilo_high[i]:.2f} keV' for i in range(len(epilo_low))], columns=['Parker Solar Probe/EPILO PE e'])], axis=1)
+                self.energies_e = pd.concat([self.energies_e, pd.DataFrame([f'{epilo_low[i]:.2f} - {epilo_high[i]:.2f} keV' for i in range(len(epilo_low))], columns=['Parker Solar Probe/EPI-Lo PE e'])], axis=1)
             if 'SOHO/EPHIN e' in self.instruments:
                 self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'SOHO/EPHIN e': [self.ephin_energies[chan] for chan in ['E150', 'E300', 'E1300', 'E3000']]})], axis=1)
             if 'Solar Orbiter/EPT e' in self.instruments:
@@ -333,8 +333,8 @@ class Event:
             self.energies_p = pd.DataFrame()
             # if 'BepiColombo/SIXS p' in self.instruments:
             #     print(self.sixs_meta)  # TODO:
-            if 'Parker Solar Probe/EPIHI-HET p' in self.instruments:
-                self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'Parker Solar Probe/EPIHI-HET p': self.psp_het_energies['H_ENERGY_LABL']})], axis=1)
+            if 'Parker Solar Probe/EPI-Hi HET p' in self.instruments:
+                self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'Parker Solar Probe/EPI-Hi HET p': self.psp_het_energies['H_ENERGY_LABL']})], axis=1)
             # if 'SOHO/EPHIN p' in self.instruments:
             #     print(self.ephin_energies)
             if 'SOHO/ERNE-HED p' in self.instruments:
@@ -434,36 +434,36 @@ class Event:
                     sixs_df_e1 = resample_df(sixs_df_e1, sixs_resample)
                     sixs_df_p25 = resample_df(sixs_df_p25, sixs_resample)
 
-        if 'Parker Solar Probe/EPIHI-HET e' in plot_instruments or 'Parker Solar Probe/EPIHI-HET p' in plot_instruments:
+        if 'Parker Solar Probe/EPI-Hi HET e' in plot_instruments or 'Parker Solar Probe/EPI-Hi HET p' in plot_instruments:
             if len(self.psp_het) > 0:
-                if 'Parker Solar Probe/EPIHI-HET e' in plot_instruments:
+                if 'Parker Solar Probe/EPI-Hi HET e' in plot_instruments:
                     # print('calc_av_en_flux_PSP_EPIHI e 1 MeV')
-                    self.df_psp_het_e, self.psp_het_chstring_e = calc_av_en_flux_PSP_EPIHI(self.psp_het, self.psp_het_energies, self.channels_e['Parker Solar Probe/EPIHI-HET e'], 'e', 'het', self.viewing['Parker Solar Probe/EPIHI-HET'])
+                    self.df_psp_het_e, self.psp_het_chstring_e = calc_av_en_flux_PSP_EPIHI(self.psp_het, self.psp_het_energies, self.channels_e['Parker Solar Probe/EPI-Hi HET e'], 'e', 'het', self.viewing['Parker Solar Probe/EPI-Hi HET'])
                     if isinstance(self.psp_het_resample, str):
                         self.df_psp_het_e = resample_df(self.df_psp_het_e, self.psp_het_resample)
-                if 'Parker Solar Probe/EPIHI-HET p' in plot_instruments:
+                if 'Parker Solar Probe/EPI-Hi HET p' in plot_instruments:
                     # print('calc_av_en_flux_PSP_EPIHI p')
-                    self.df_psp_het_p, self.psp_het_chstring_p = calc_av_en_flux_PSP_EPIHI(self.psp_het, self.psp_het_energies, self.channels_p['Parker Solar Probe/EPIHI-HET p'], 'p', 'het', self.viewing['Parker Solar Probe/EPIHI-HET'])
+                    self.df_psp_het_p, self.psp_het_chstring_p = calc_av_en_flux_PSP_EPIHI(self.psp_het, self.psp_het_energies, self.channels_p['Parker Solar Probe/EPI-Hi HET p'], 'p', 'het', self.viewing['Parker Solar Probe/EPI-Hi HET'])
                     if isinstance(self.psp_het_resample, str):
                         self.df_psp_het_p = resample_df(self.df_psp_het_p, self.psp_het_resample)
 
-        if 'Parker Solar Probe/EPILO PE e' in plot_instruments:
+        if 'Parker Solar Probe/EPI-Lo PE e' in plot_instruments:
             if len(self.psp_epilo) > 0:
                 # if plot_e_100:
-                # print('calc_av_en_flux_PSP_EPILO e 100 keV')
+                # print('calc_av_en_flux_PSP_EPI-Lo e 100 keV')
                 self.df_psp_epilo_e, self.psp_epilo_chstring_e = calc_av_en_flux_PSP_EPILO(self.psp_epilo,
                                                                                     self.psp_epilo_energies,
-                                                                                    self.channels_e['Parker Solar Probe/EPILO PE e'],
+                                                                                    self.channels_e['Parker Solar Probe/EPI-Lo PE e'],
                                                                                     species='e',
                                                                                     mode='pe',
                                                                                     chan=self.psp_epilo_channel,
-                                                                                    viewing=self.viewing['Parker Solar Probe/EPILO PE'])
+                                                                                    viewing=self.viewing['Parker Solar Probe/EPI-Lo PE'])
 
                 # select energy channel
                 # TODO: introduce calc_av_en_flux_PSP_EPILO(). ATM, if list of channels, only first one is selected
-                # if type(self.channels_e['Parker Solar Probe/EPILO PE e']) is list:
-                #     self.channels_e['Parker Solar Probe/EPILO PE e'] = self.channels_e['Parker Solar Probe/EPILO PE e'][0]
-                # df_psp_epilo_e = df_psp_epilo_e.filter(like=f'_E{self.channels_e['Parker Solar Probe/EPILO PE e']}_')
+                # if type(self.channels_e['Parker Solar Probe/EPI-Lo PE e']) is list:
+                #     self.channels_e['Parker Solar Probe/EPI-Lo PE e'] = self.channels_e['Parker Solar Probe/EPI-Lo PE e'][0]
+                # df_psp_epilo_e = df_psp_epilo_e.filter(like=f'_E{self.channels_e['Parker Solar Probe/EPI-Lo PE e']}_')
 
                 # energy = en_dict['Electron_ChanF_Energy'].filter(like=f'_E{en_channel}_P{viewing}').values[0]
                 # energy_low = energy - en_dict['Electron_ChanF_Energy_DELTAMINUS'].filter(like=f'_E{en_channel}_P{viewing}').values[0]
@@ -640,18 +640,18 @@ class Event:
                 if len(sixs_df) > 0:
                     ax.plot(sixs_df_e1.index, sixs_df_e1, color=self.plot_colors['BepiColombo/SIXS'], linewidth=linewidth,
                             label=f'BepiColombo/SIXS side {self.viewing['BepiColombo/SIXS']} '+sixs_e1_en_channel_string, drawstyle='steps-mid')
-            if 'Parker Solar Probe/EPIHI-HET e' in plot_instruments:
+            if 'Parker Solar Probe/EPI-Hi HET e' in plot_instruments:
                 if len(self.psp_het) > 0:
-                    # ax.plot(psp_het.index, psp_het[f'A_Electrons_Rate_{self.channels_e['Parker Solar Probe/EPIHI-HET e']}'], color=self.plot_colors['Parker Solar Probe/EPIHI-HET'], linewidth=linewidth,
-                    #         label='PSP '+r"$\bf{(count\ rates)}$"+'\nISOIS-EPIHI-HET '+psp_het_energies['Electrons_ENERGY_LABL'][self.channels_e['Parker Solar Probe/EPIHI-HET e']][0].replace(' ', '').replace('-', ' - ').replace('MeV', ' MeV')+'\nA (sun)',
+                    # ax.plot(psp_het.index, psp_het[f'A_Electrons_Rate_{self.channels_e['Parker Solar Probe/EPI-Hi HET e']}'], color=self.plot_colors['Parker Solar Probe/EPI-Hi HET'], linewidth=linewidth,
+                    #         label='PSP '+r"$\bf{(count\ rates)}$"+'\nISOIS-EPI-Hi HET '+psp_het_energies['Electrons_ENERGY_LABL'][self.channels_e['Parker Solar Probe/EPI-Hi HET e']][0].replace(' ', '').replace('-', ' - ').replace('MeV', ' MeV')+'\nA (sun)',
                     #         drawstyle='steps-mid')
-                    ax.plot(self.df_psp_het_e.index, self.df_psp_het_e*self.psp_epihi_e_scaling, color=self.plot_colors['Parker Solar Probe/EPIHI-HET'], linewidth=linewidth,
-                            label=f'PSP ISOIS-EPIHI-HET {self.viewing['Parker Solar Probe/EPIHI-HET']} ({psp_het_viewing_dict[self.viewing['Parker Solar Probe/EPIHI-HET']]})\n'+self.psp_het_chstring_e+r" $\bf{(count\ rate)}$",  #+f' *{self.psp_epihi_e_scaling}',
+                    ax.plot(self.df_psp_het_e.index, self.df_psp_het_e*self.psp_epihi_e_scaling, color=self.plot_colors['Parker Solar Probe/EPI-Hi HET'], linewidth=linewidth,
+                            label=f'PSP/ISOIS EPI-Hi HET {self.viewing['Parker Solar Probe/EPI-Hi HET']} ({psp_het_viewing_dict[self.viewing['Parker Solar Probe/EPI-Hi HET']]})\n'+self.psp_het_chstring_e+r" $\bf{(count\ rate)}$",  #+f' *{self.psp_epihi_e_scaling}',
                             drawstyle='steps-mid')
-            if 'Parker Solar Probe/EPILO PE e' in plot_instruments:
+            if 'Parker Solar Probe/EPI-Lo PE e' in plot_instruments:
                 if len(self.psp_epilo) > 0:
-                    ax.plot(self.df_psp_epilo_e.index, self.df_psp_epilo_e*self.psp_epilo_e_scaling, color=self.plot_colors['Parker Solar Probe/EPILO PE'], linewidth=linewidth,
-                            label=f'PSP ISOIS-EPILO F (W{self.viewing['Parker Solar Probe/EPILO PE']})\n'+self.psp_epilo_chstring_e+r" $\bf{(count\ rate)}$",  # +f' *{self.psp_epilo_e_scaling}',
+                    ax.plot(self.df_psp_epilo_e.index, self.df_psp_epilo_e*self.psp_epilo_e_scaling, color=self.plot_colors['Parker Solar Probe/EPI-Lo PE'], linewidth=linewidth,
+                            label=f'PSP/ISOIS EPI-Lo F (W{self.viewing['Parker Solar Probe/EPI-Lo PE']})\n'+self.psp_epilo_chstring_e+r" $\bf{(count\ rate)}$",  # +f' *{self.psp_epilo_e_scaling}',
                             drawstyle='steps-mid')
             if 'SOHO/EPHIN e' in plot_instruments:
                 # ax.plot(ephin['date'], ephin[ephin_ch_e][0]*ephin_e_intercal, color=self.plot_colors['SOHO/EPHIN'], linewidth=linewidth, label='SOHO/EPHIN '+ephin[ephin_ch_e][1]+f'/{ephin_e_intercal}', drawstyle='steps-mid')
@@ -704,14 +704,14 @@ class Event:
                 # ax.plot(sixs_p.index, sixs_p[self.channels_p['BepiColombo/SIXS p']], color='orange', linewidth=linewidth, label='BepiColombo/SIXS '+sixs_chstrings[self.channels_p['BepiColombo/SIXS p']]+f' side {self.sixs_side_p}', drawstyle='steps-mid')
                 if len(sixs_df) > 0:
                     ax.plot(sixs_df_p25.index, sixs_df_p25, color=self.plot_colors['BepiColombo/SIXS'], linewidth=linewidth, label=f'BepiColombo/SIXS side {self.viewing['BepiColombo/SIXS']} '+sixs_p25_en_channel_string, drawstyle='steps-mid')
-            if 'Parker Solar Probe/EPIHI-HET p' in plot_instruments:
+            if 'Parker Solar Probe/EPI-Hi HET p' in plot_instruments:
                 if len(self.psp_het) > 0:
-                    # ax.plot(psp_het.index, psp_het[f'A_H_Flux_{self.channels_p['Parker Solar Probe/EPIHI-HET p']}'], color=self.plot_colors['Parker Solar Probe/EPIHI-HET'], linewidth=linewidth,
-                    #         label='PSP '+r"$\bf{(count\ rates)}$"+'\nISOIS-EPIHI-HET '+psp_het_energies['H_ENERGY_LABL'][self.channels_p['Parker Solar Probe/EPIHI-HET p']][0].replace(' ', '').replace('-', ' - ').replace('MeV', ' MeV')+'\nA (sun)',
+                    # ax.plot(psp_het.index, psp_het[f'A_H_Flux_{self.channels_p['Parker Solar Probe/EPI-Hi HET p']}'], color=self.plot_colors['Parker Solar Probe/EPI-Hi HET'], linewidth=linewidth,
+                    #         label='PSP '+r"$\bf{(count\ rates)}$"+'\nISOIS-EPI-Hi HET '+psp_het_energies['H_ENERGY_LABL'][self.channels_p['Parker Solar Probe/EPI-Hi HET p']][0].replace(' ', '').replace('-', ' - ').replace('MeV', ' MeV')+'\nA (sun)',
                     #         drawstyle='steps-mid')
-                    ax.plot(self.df_psp_het_p.index, self.df_psp_het_p, color=self.plot_colors['Parker Solar Probe/EPIHI-HET'], linewidth=linewidth,
-                            # label='PSP '+'\nISOIS-EPIHI-HET '+psp_het_chstring_p+'\nA (sun)',
-                            label=f'PSP ISOIS-EPIHI-HET {self.viewing['Parker Solar Probe/EPIHI-HET']} ({psp_het_viewing_dict[self.viewing['Parker Solar Probe/EPIHI-HET']]})\n'+self.psp_het_chstring_p,
+                    ax.plot(self.df_psp_het_p.index, self.df_psp_het_p, color=self.plot_colors['Parker Solar Probe/EPI-Hi HET'], linewidth=linewidth,
+                            # label='PSP '+'\nISOIS-EPI-Hi HET '+psp_het_chstring_p+'\nA (sun)',
+                            label=f'PSP/ISOIS EPI-Hi HET {self.viewing['Parker Solar Probe/EPI-Hi HET']} ({psp_het_viewing_dict[self.viewing['Parker Solar Probe/EPI-Hi HET']]})\n'+self.psp_het_chstring_p,
                             drawstyle='steps-mid')
             if 'SOHO/ERNE-HED p' in plot_instruments:
                 if type(self.channels_p['SOHO/ERNE-HED p']) is list and len(self.soho_erne) > 0:
