@@ -1,3 +1,10 @@
+lmfit
+numba
+numpy
+pandas
+pyspedas
+scipy
 git+https://github.com/jgieseler/SEPpy
 solarmach
 git+https://github.com/jgieseler/solo-epd-loader
+sunpy
