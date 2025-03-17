@@ -145,7 +145,7 @@ def run_background_analysis_all_binwise(bg_times,bg_I_data,bg_I_unc_data,plot_re
             ax.set_ylabel("$I$")
             ax.set_xlabel("Unix time (s)")
             ax.set_yscale("log")
-            ax.set_title(label=f"{res.model.name}: $\chi^2_\\nu$ = {res.redchi:.2f}", fontdict={'fontsize': 9.5}, color=f"C{str(i)}")
+            ax.set_title(label=f"{res.model.name}: $\\chi^2_\\nu$ = {res.redchi:.2f}", fontdict={'fontsize': 9.5}, color=f"C{str(i)}")
         redchis.append(res.redchi)
         aics.append(res.aic)
         bics.append(res.bic)
@@ -199,7 +199,7 @@ def run_background_analysis_equal_decay_binwise(mean_decay,bg_times,bg_I_data,bg
             ax.set_ylabel("$I$")
             ax.set_xlabel("Unix time (s)")
             ax.set_yscale("log")
-            ax.set_title(label=f"{res1.model.name}: $\chi^2_\\nu$ = {res1.redchi:.2f}\n{res3.model.name}: $\chi^2_\\nu$ = {res3.redchi:.2f}", fontdict={'fontsize': 9.5},color=f"C{str(i)}")
+            ax.set_title(label=f"{res1.model.name}: $\\chi^2_\\nu$ = {res1.redchi:.2f}\n{res3.model.name}: $\\chi^2_\\nu$ = {res3.redchi:.2f}", fontdict={'fontsize': 9.5},color=f"C{str(i)}")
     return best_models_const,best_models_exp
 
 def run_background_analysis_binwise(bg_times,bg_I_data,bg_I_unc_data,plot_results=False,plot_uncertainty=False,minutes=None):
@@ -249,7 +249,7 @@ def run_background_analysis_binwise(bg_times,bg_I_data,bg_I_unc_data,plot_result
             ax.set_ylabel("$I$")
             ax.set_yscale("log")
             ax.set_xlabel("Unix time (s)")
-            ax.set_title(label=f"{best_model.model.name}: $\chi^2_\\nu$ = {best_model.redchi:.2f}", fontdict={'fontsize': 9.5},color=f"C{str(i)}")
+            ax.set_title(label=f"{best_model.model.name}: $\\chi^2_\\nu$ = {best_model.redchi:.2f}", fontdict={'fontsize': 9.5},color=f"C{str(i)}")
         if plot_uncertainty:
             ax=axarr2.flatten()[i]
             ax.scatter(x,y,s=2)
@@ -261,7 +261,7 @@ def run_background_analysis_binwise(bg_times,bg_I_data,bg_I_unc_data,plot_result
             ax.set_ylabel("$I$")
             ax.set_xlabel("Unix time (s)")
             ax.set_yscale("log")
-            ax.set_title(label=f"{best_model.model.name}: $\chi^2_\\nu^2=${best_model.redchi:.2f}", fontdict={'fontsize': 9.5},color=f"C{str(i)}")
+            ax.set_title(label=f"{best_model.model.name}: $\\chi^2_\\nu^2=${best_model.redchi:.2f}", fontdict={'fontsize': 9.5},color=f"C{str(i)}")
     return best_models, decays
 
 def evaluate_background(I_times,I_data,models,mu_groups,mu_data,x_start=None,x_end=None):
@@ -311,7 +311,7 @@ def run_background_analysis(n_groups,bg_times,bg_I_data,bg_I_unc_data,bg_mu_data
     bg_times_arr = np.column_stack(arr)
     if plot_bins: 
         fig, axarr = plt.subplots(1,2,figsize=[7,1.5],sharex=True,constrained_layout=True,num=10,clear=True)
-        ax = axarr[0]; ax.set_xlabel("$\mu$"); ax.set_ylabel("Weight"); ax.set_yscale("log");ax.set_ylim(ymin=1e-3);ax = axarr[1]; ax.set_ylabel("Weight");ax.set_xlim(-1,1)
+        ax = axarr[0]; ax.set_xlabel("$\\mu$"); ax.set_ylabel("Weight"); ax.set_yscale("log");ax.set_ylim(ymin=1e-3);ax = axarr[1]; ax.set_ylabel("Weight");ax.set_xlim(-1,1)
         for mu in mu_groups: mu_vals = np.linspace(-1,1,100);axarr[0].plot(mu_vals,scipy.stats.norm.pdf(mu_vals, loc=mu, scale=mu_std)); axarr[1].plot(mu_vals,scipy.stats.norm.pdf(mu_vals, loc=mu, scale=mu_std)); 
     if plot_results:
         nrow = int(np.ceil(n_groups/3))
@@ -368,7 +368,7 @@ def run_background_analysis(n_groups,bg_times,bg_I_data,bg_I_unc_data,bg_mu_data
             ax.set_ylabel("$I$")
             ax.set_yscale("log")
             ax.set_xlabel("Unix time (s)")
-            ax.set_title(label=f"{best_model.model.name}: $\chi^2_\\nu$ = {best_model.redchi:.2f}", fontdict={'fontsize': 9.5},color=f"C{str(i)}")
+            ax.set_title(label=f"{best_model.model.name}: $\\chi^2_\\nu$ = {best_model.redchi:.2f}", fontdict={'fontsize': 9.5},color=f"C{str(i)}")
         if plot_uncertainty:
             ax=axarr2.flatten()[i]
             ax.scatter(x,y,s=2)
@@ -380,7 +380,7 @@ def run_background_analysis(n_groups,bg_times,bg_I_data,bg_I_unc_data,bg_mu_data
             ax.set_ylabel("$I$")
             ax.set_xlabel("Unix time (s)")
             ax.set_yscale("log")
-            ax.set_title(label=f"{best_model.model.name}: $\chi^2_\\nu^2=${best_model.redchi:.2f}", fontdict={'fontsize': 9.5},color=f"C{str(i)}")
+            ax.set_title(label=f"{best_model.model.name}: $\\chi^2_\\nu^2=${best_model.redchi:.2f}", fontdict={'fontsize': 9.5},color=f"C{str(i)}")
     return best_models, decays
 
 def run_background_analysis_equal_decay(mean_decay,n_groups,bg_times,bg_I_data,bg_I_unc_data,bg_mu_data,plot_bins=False,plot_results=False,mu_std = 0.1,minutes=None):
@@ -394,7 +394,7 @@ def run_background_analysis_equal_decay(mean_decay,n_groups,bg_times,bg_I_data,b
     bg_times_arr = np.column_stack(arr)
     if plot_bins: 
         fig, axarr = plt.subplots(1,2,figsize=[7,1.5],sharex=True,constrained_layout=True,num=13,clear=True)
-        ax = axarr[0]; ax.set_xlabel("$\mu$"); ax.set_ylabel("Weight"); ax.set_yscale("log");ax.set_ylim(ymin=1e-3);ax = axarr[1]; ax.set_ylabel("Weight");ax.set_xlim(-1,1)
+        ax = axarr[0]; ax.set_xlabel("$\\mu$"); ax.set_ylabel("Weight"); ax.set_yscale("log");ax.set_ylim(ymin=1e-3);ax = axarr[1]; ax.set_ylabel("Weight");ax.set_xlim(-1,1)
         for mu in mu_groups: mu_vals = np.linspace(-1,1,100);axarr[0].plot(mu_vals,scipy.stats.norm.pdf(mu_vals, loc=mu, scale=mu_std)); axarr[1].plot(mu_vals,scipy.stats.norm.pdf(mu_vals, loc=mu, scale=mu_std)); 
     if plot_results:
         nrow = int(np.ceil(n_groups/3))
@@ -453,7 +453,7 @@ def run_background_analysis_equal_decay(mean_decay,n_groups,bg_times,bg_I_data,b
             ax.set_ylabel("$I$")
             ax.set_xlabel("Unix time (s)")
             ax.set_yscale("log")
-            ax.set_title(label=f"{res1.model.name}: $\chi^2_\\nu$ = {res1.redchi:.2f}\n{res3.model.name}: $\chi^2_\\nu$ = {res3.redchi:.2f}", fontdict={'fontsize': 9.5},color=f"C{str(i)}")
+            ax.set_title(label=f"{res1.model.name}: $\\chi^2_\\nu$ = {res1.redchi:.2f}\n{res3.model.name}: $\\chi^2_\\nu$ = {res3.redchi:.2f}", fontdict={'fontsize': 9.5},color=f"C{str(i)}")
     return best_models_const,best_models_exp
 
 def run_background_analysis_all(n_groups,bg_times,bg_I_data,bg_I_unc_data,bg_mu_data,plot_bins=False,plot_results=False,mu_std = 0.1,minutes=None):
@@ -465,7 +465,7 @@ def run_background_analysis_all(n_groups,bg_times,bg_I_data,bg_I_unc_data,bg_mu_
     bg_times_arr = np.column_stack(arr)
     if plot_bins: 
         fig, axarr = plt.subplots(1,2,figsize=[7,1.5],sharex=True,constrained_layout=True,num=15,clear=True)
-        ax = axarr[0]; ax.set_xlabel("$\mu$"); ax.set_ylabel("Weight"); ax.set_yscale("log");ax.set_ylim(ymin=1e-3);ax = axarr[1]; ax.set_ylabel("Weight");ax.set_xlim(-1,1)
+        ax = axarr[0]; ax.set_xlabel("$\\mu$"); ax.set_ylabel("Weight"); ax.set_yscale("log");ax.set_ylim(ymin=1e-3);ax = axarr[1]; ax.set_ylabel("Weight");ax.set_xlim(-1,1)
         for mu in mu_groups: mu_vals = np.linspace(-1,1,100);axarr[0].plot(mu_vals,scipy.stats.norm.pdf(mu_vals, loc=mu, scale=mu_std)); axarr[1].plot(mu_vals,scipy.stats.norm.pdf(mu_vals, loc=mu, scale=mu_std)); 
     if plot_results:
         nrow = int(np.ceil(n_groups/3))
@@ -545,7 +545,7 @@ def run_background_analysis_all(n_groups,bg_times,bg_I_data,bg_I_unc_data,bg_mu_
             ax.set_ylabel("$I$")
             ax.set_xlabel("Unix time (s)")
             ax.set_yscale("log")
-            ax.set_title(label=f"{res.model.name}: $\chi^2_\\nu$ = {res.redchi:.2f}", fontdict={'fontsize': 9.5},color=f"C{str(i)}")
+            ax.set_title(label=f"{res.model.name}: $\\chi^2_\\nu$ = {res.redchi:.2f}", fontdict={'fontsize': 9.5},color=f"C{str(i)}")
         redchis.append(res.redchi)
         aics.append(res.aic)
         bics.append(res.bic)
