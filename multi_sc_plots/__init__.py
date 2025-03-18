@@ -1,4 +1,3 @@
-import datetime as dt
 import os
 import warnings
 
@@ -131,7 +130,6 @@ class Event:
         e_checkboxes.update(p_checkboxes)
         return e_checkboxes
 
-
     def load_data(self, startdate, enddate, dict_instruments, data_path=None):
 
         self.startdate = parse_time(startdate).to_datetime()
@@ -152,14 +150,13 @@ class Event:
 
         if not data_path:
             data_path = os.getcwd()+os.sep+'data'+os.sep
-        else:
-            # sixs_path = data_path+os.sep+'bepi'+os.sep
-            sixs_path = '/Users/jagies/data/bepi/bc_mpo_sixs/data_csv/cruise/sixs-p/raw'  # TODO: update
-            soho_path = data_path+os.sep+'soho'+os.sep
-            solo_path = data_path+os.sep+'solo'+os.sep
-            stereo_path = data_path+os.sep+'stereo'+os.sep
-            wind_path = data_path+os.sep+'wind'+os.sep
-            psp_path = data_path+os.sep+'psp'+os.sep
+
+        # sixs_path = data_path
+        soho_path = data_path
+        solo_path = data_path
+        stereo_path = data_path
+        wind_path = data_path
+        psp_path = data_path
 
         # catch alternative writings of 'asun'
         for key in self.viewing.keys():
@@ -171,8 +168,6 @@ class Event:
 
         self.psp_3600 = False  # don't change this!
 
-
-        # LOAD DATA
         ##################################################################
 
         if 'WIND/3DP e' in self.instruments:
@@ -189,11 +184,11 @@ class Event:
             self.sta_het_p_labels = ['13.6-15.1 MeV', '14.9-17.1 MeV', '17.0-19.3 MeV', '20.8-23.8 MeV', '23.8-26.4 MeV', '26.3-29.7 MeV', '29.5-33.4 MeV', '33.4-35.8 MeV', '35.5-40.5 MeV', '40.0-60.0 MeV']
             self.sta_het_df_org, self.sta_het_meta = stereo_load(instrument='het', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', resample=None, path=stereo_path, max_conn=1)
 
-        if 'STEREO-A/LET e' in self.instruments or 'STEREO-A/LET p' in self.instruments:
-            # print('loading stereo/let')
-            # for H and He4:
-            self.let_chstring = ['1.8-2.2 MeV', '2.2-2.7 MeV', '2.7-3.2 MeV', '3.2-3.6 MeV', '3.6-4.0 MeV', '4.0-4.5 MeV', '4.5-5.0 MeV', '5.0-6.0 MeV', '6.0-8.0 MeV', '8.0-10.0 MeV', '10.0-12.0 MeV', '12.0-15.0 MeV']
-            self.sta_let_df_org, self.sta_let_meta = stereo_load(instrument='let', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', resample=sta_let_resample, path=stereo_path, max_conn=1)
+        # if 'STEREO-A/LET e' in self.instruments or 'STEREO-A/LET p' in self.instruments:
+        #     # print('loading stereo/let')
+        #     # for H and He4:
+        #     self.let_chstring = ['1.8-2.2 MeV', '2.2-2.7 MeV', '2.7-3.2 MeV', '3.2-3.6 MeV', '3.6-4.0 MeV', '4.0-4.5 MeV', '4.5-5.0 MeV', '5.0-6.0 MeV', '6.0-8.0 MeV', '8.0-10.0 MeV', '10.0-12.0 MeV', '12.0-15.0 MeV']
+        #     self.sta_let_df_org, self.sta_let_meta = stereo_load(instrument='let', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', resample=sta_let_resample, path=stereo_path, max_conn=1)
 
         if 'STEREO-A/SEPT e' in self.instruments:
             # print('loading stereo/sept e')
@@ -206,11 +201,11 @@ class Event:
         if 'SOHO/EPHIN e' in self.instruments or 'SOHO/EPHIN p' in self.instruments:
             # print('loading soho/ephin')
             self.soho_ephin_org, self.ephin_energies = soho_load(dataset="SOHO_COSTEP-EPHIN_L2-1MIN",
-                                                    startdate=self.startdate,
-                                                    enddate=self.enddate,
-                                                    path=soho_path,
-                                                    resample=None,
-                                                    pos_timestamp='center')
+                                                                 startdate=self.startdate,
+                                                                 enddate=self.enddate,
+                                                                 path=soho_path,
+                                                                 resample=None,
+                                                                 pos_timestamp='center')
 
         if 'SOHO/ERNE-HED p' in self.instruments:
             # print('loading soho/erne')
@@ -230,10 +225,10 @@ class Event:
         if 'Parker Solar Probe/EPI-Lo PE e' in self.instruments:
             # print('loading PSP/EPI-Lo PE data')
             self.psp_epilo, self.psp_epilo_energies = psp_isois_load('PSP_ISOIS-EPILO_L2-PE',
-                                                            startdate=self.startdate, enddate=self.enddate,
-                                                            epilo_channel=self.psp_epilo_channel,
-                                                            epilo_threshold=psp_epilo_threshold,
-                                                            path=psp_path, resample=None)
+                                                                     startdate=self.startdate, enddate=self.enddate,
+                                                                     epilo_channel=self.psp_epilo_channel,
+                                                                     epilo_threshold=psp_epilo_threshold,
+                                                                     path=psp_path, resample=None)
             if len(self.psp_epilo) == 0:
                 print(f'No PSP/EPI-Lo PE data for {self.startdate.date()} - {self.enddate.date()}')
 
@@ -250,9 +245,9 @@ class Event:
             # print('loading solo/ept e & p')
             try:
                 result = epd_load(sensor='EPT', viewing=self.viewing['Solar Orbiter/EPT'], level=self.ept_data_product, startdate=self.startdate, enddate=self.enddate, path=solo_path, autodownload=True)
-                if self.ept_data_product=='l2':
+                if self.ept_data_product == 'l2':
                     self.ept_p, self.ept_e, self.ept_energies = result
-                if self.ept_data_product=='l3':
+                if self.ept_data_product == 'l3':
                     self.ept, self.ept_rtn, self.ept_hci, self.ept_energies, self.ept_metadata = result
             except (Exception):
                 print(f'No SOLO/EPT {self.ept_data_product} data for {self.startdate.date()} - {self.enddate.date()}')
@@ -268,15 +263,15 @@ class Event:
                 self.het_e = []
                 self.het_p = []
 
-        if 'BepiColombo/SIXS e' in self.instruments or 'BepiColombo/SIXS p' in self.instruments:
-            # print('loading Bepi/SIXS')
-            sixs_df, self.sixs_meta = bepi_sixs_load(startdate=self.startdate,
-                                                     enddate=self.enddate,
-                                                     side=self.viewing['BepiColombo/SIXS'],
-                                                     path=sixs_path)
-            if len(sixs_df) > 0:
-                self.sixs_df_p = sixs_df[[f"P{i}" for i in range(1, 10)]]
-                self.sixs_df_e = sixs_df[[f"E{i}" for i in range(1, 8)]]
+        # if 'BepiColombo/SIXS e' in self.instruments or 'BepiColombo/SIXS p' in self.instruments:
+        #     # print('loading Bepi/SIXS')
+        #     sixs_df, self.sixs_meta = bepi_sixs_load(startdate=self.startdate,
+        #                                              enddate=self.enddate,
+        #                                              side=self.viewing['BepiColombo/SIXS'],
+        #                                              path=sixs_path)
+        #     if len(sixs_df) > 0:
+        #         self.sixs_df_p = sixs_df[[f"P{i}" for i in range(1, 10)]]
+        #         self.sixs_df_e = sixs_df[[f"E{i}" for i in range(1, 8)]]
 
     def print_energies(self):
         #
@@ -491,7 +486,7 @@ class Event:
             if self.ept_data_product == 'l2':
                 if len(self.ept_e) > 0:
                     self.df_ept_e = self.ept_e['Electron_Flux']
-                    ept_en_str_e = self.ept_energies['Electron_Bins_Text'][:]
+                    # ept_en_str_e = self.ept_energies['Electron_Bins_Text'][:]
 
                     if ept_use_corr_e:
                         ept_e2 = self.ept_e
