@@ -1,9 +1,10 @@
 import numpy as np
+import os
 import pandas as pd
 from seppy.loader.wind import wind3dp_load
 # from pandas.tseries.frequencies import to_offset
 # from numba import njit, prange
-import pyspedas
+# import pyspedas
 # import datetime as dt
 from anisotropy.polarity_plotting import polarity_gse  # wind_polarity_preparation
 from sunpy.coordinates import get_horizons_coord, HeliographicStonyhurst
@@ -32,7 +33,7 @@ def wind_download_and_prepare(instrument, startdate, enddate, path, averaging, s
     df_omni = df_omni.loc[(df_omni.index >= startdate) & (df_omni.index <= enddate)]
     df_angle = df_angle.loc[(df_angle.index >= startdate) & (df_angle.index <= enddate)]
 
-    mag_gse = wind_mag_gse(startdate, enddate)
+    mag_gse = wind_mag_gse(startdate, enddate, path)
     pol, phi_relative, pol_times = wind_polarity_preparation(mag_gse, V=400)
     mag_gse["b"] = np.linalg.norm(mag_gse[["bx_gse", "by_gse", "bz_gse"]].values, axis=1)
     mag_data_coord = "GSE"
@@ -95,7 +96,11 @@ def calc_mu_coverage(df_angle):
     return coverage, mu
 
 
-def wind_mag_gse(startdate, enddate):
+def wind_mag_gse(startdate, enddate, path=None):
+    if path:
+        os.environ['WIND_DATA_DIR'] = path
+        # pyspedas.wind.config.CONFIG['local_data_dir'] = path
+    import pyspedas
     mfi_vars = pyspedas.wind.mfi(trange=[startdate.strftime('%Y-%m-%d %H:%M:%S.%f'), enddate.strftime('%Y-%m-%d %H:%M:%S.%f')], datatype="h0", notplot=True, time_clip=True)
     mag_gse = pd.DataFrame(data=mfi_vars["BGSE"]["y"], index=mfi_vars["BGSE"]["x"], columns=["bx_gse", "by_gse", "bz_gse"])
     return mag_gse
