@@ -43,7 +43,7 @@ def format_tick_labels(x):
 
 class SEPevent: 
   
-    def __init__(self, event_id,path,plot_folder,spacecraft,instrument,species,channels,starttime,endtime,averaging,av_min,solo_ept_ion_contamination_correction):
+    def __init__(self, event_id, path, plot_folder, spacecraft, instrument, species, channels, starttime, endtime, averaging, av_min, solo_ept_ion_contamination_correction):
         self.event_id = event_id
         self.path = path+os.sep
         self.plot_folder = plot_folder+os.sep
@@ -65,10 +65,10 @@ class SEPevent:
             else:
                 self.solo_ept_ion_contamination_correction = False
 
-        self.check_start_end_format(starttime,endtime)
+        self.check_start_end_format(starttime, endtime)
         
         if av_min is not None:
-            #Do not average if the averaging window is equal or lower than the cadence.
+            # Do not average if the averaging window is equal or lower than the cadence.
             if ("STEREO" in spacecraft) and (instrument == "SEPT") and (av_min <= 1):
                 print("Changing averaging from {} to None.".format(averaging))
                 self.averaging = None
@@ -78,24 +78,22 @@ class SEPevent:
                 self.averaging = None
                 self.av_min = None
         
-    
-    def check_start_end_format(self,starttime,endtime):
-        if isinstance(starttime,dt.date):
-            if not isinstance(starttime,dt.datetime):
+    def check_start_end_format(self, starttime, endtime):
+        if isinstance(starttime, dt.date):
+            if not isinstance(starttime, dt.datetime):
                 starttime = dt.datetime.combine(starttime, dt.time.min)
-        if isinstance(endtime,dt.date):
-            if not isinstance(endtime,dt.datetime):
+        if isinstance(endtime, dt.date):
+            if not isinstance(endtime, dt.datetime):
                 endtime = dt.datetime.combine(endtime, dt.time.max)
         self.start_time = starttime
         self.end_time = endtime
         
-
-    def check_background_window(self,bg_start,bg_end,corr_window_end=None):
-        #If invalid, use a nominal window of 5 h
+    def check_background_window(self, bg_start, bg_end, corr_window_end=None):
+        # If invalid, use a nominal window of 5 h
         if (bg_start is None) or (bg_end is None):
             self.bg_start = self.start_time
-            self.bg_end = self.start_time + pd.Timedelta(5,unit="h")
-        elif (bg_start >= bg_end) or (bg_end<self.start_time) or (bg_start > self.end_time):
+            self.bg_end = self.start_time + pd.Timedelta(5, unit="h")
+        elif (bg_start >= bg_end) or (bg_end < self.start_time) or (bg_start > self.end_time):
             print("Invalid background window. Setting to default.")
             self.bg_start = self.start_time
             self.bg_end = self.start_time + pd.Timedelta(5,unit="h")
@@ -176,7 +174,7 @@ class SEPevent:
         self.mag_data_coord = mag_data_coord
         self.coverage = coverage
 
-    def pickle_event(self,save_folder):
+    def pickle_event(self, save_folder):
         event_id = self.event_id
         species = self.species
         en_channel = self.channels
@@ -186,22 +184,22 @@ class SEPevent:
         except:
             filename = f"{event_id}_{instrument}_{species}_ch{en_channel}"
 
-        with open(os.path.join(save_folder,filename), 'wb') as outp:
+        with open(os.path.join(save_folder, filename), 'wb') as outp:
             pickle.dump(self, outp, pickle.HIGHEST_PROTOCOL)
 
     def wind_min_intensity(self):
-        #Estimate intensity from 1 count, as that can be used
-        #to estimate GF*dE*dT, which is needed for converting
-        #intensities to counts.
-        gf = 0.33 #cm^2 sr, for Wind 3DP SST foil for 25-400 keV electrons
+        # Estimate intensity from 1 count, as that can be used
+        # to estimate GF*dE*dT, which is needed for converting
+        # intensities to counts.
+        gf = 0.33  # cm^2 sr, for Wind 3DP SST foil for 25-400 keV electrons
         dE = np.sum(self.delta_E)
         cadence = np.median(np.diff(self.I_times))/np.timedelta64(1,"s")
         I0 = 1/(0.33*dE*cadence)
         I_data = self.I_data
-        I_zero = np.min((I0,np.min(I_data[I_data>0])))
+        I_zero = np.min((I0, np.min(I_data[I_data > 0])))
         self.I_zero = I_zero
 
-    def wind_peak_removal(self,factor=10,I_zero=None,n_lim=2):
+    def wind_peak_removal(self, factor=10, I_zero=None, n_lim=2):
         I_data = self.I_data
         log_I_data = np.log10(I_data)
         log_factor = np.log10(factor)
@@ -229,8 +227,7 @@ class SEPevent:
                     
         self.I_data = I_data
 
-
-    def overview_plot(self,end_str=None,plot_onset=False, savefig=False):
+    def overview_plot(self, end_str=None, plot_onset=False, savefig=False):
         font_size = plt.rcParams["font.size"]
         legend_font = plt.rcParams["font.size"] - 2
         fig, axes = plt.subplots(3, figsize=(8,5), sharex=True,gridspec_kw={'height_ratios': [1.6,1.6,2.2]},num=1,clear=True)
@@ -921,7 +918,7 @@ class SEPevent:
         ax.yaxis.set_label_coords(-0.08,1.0)
         bbox = ax.get_position()
         cax = fig.add_axes([bbox.xmax*1.005, bbox.ymin, bbox.height*0.1, bbox.height])
-        cbar = fig.colorbar(pcm, cax=cax, orientation='vertical', aspect=40)#, ticks = LogLocator(subs=range(10)))
+        cbar = fig.colorbar(pcm, cax=cax, orientation='vertical', aspect=40)  #, ticks = LogLocator(subs=range(10)))
         cax.yaxis.set_ticks_position('right')
         cax.yaxis.set_label_position('right')
         if pad_norm == None: cax.set_ylabel(intensity_label,fontsize=legend_font)#, labelpad=-75)
