@@ -255,3 +255,9 @@ asv_results
 html
 results
 result_images
+
+# Data folder
+data/
+
+# Plot output folder
+plots/
