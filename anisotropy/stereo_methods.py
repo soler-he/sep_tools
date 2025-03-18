@@ -464,7 +464,7 @@ def calc_sept_pa_coverage(sc, species, mag_data):
 
 
 def stereo_mag_preparation(startdate, enddate, sc, path, averaging=None):
-    downloadpath = f'{path}l1/mag/'
+    # downloadpath = f'{path}l1/mag/'
 
     # MAG for PA coverage calculations
     print('Loading MAG...')
@@ -478,12 +478,12 @@ def stereo_mag_preparation(startdate, enddate, sc, path, averaging=None):
 
     if averaging is None:
         averaging = "1s"  # make faster
-    mag_sc, metadata_sc = stereo_load('MAG', msdate, medate, mag_coord='SC', spacecraft=sc_str, path=downloadpath, resample=averaging)
+    mag_sc, metadata_sc = stereo_load('MAG', msdate, medate, mag_coord='SC', spacecraft=sc_str, path=path, resample=averaging)
     mag_sc = mag_sc[['BFIELD_0', 'BFIELD_1', 'BFIELD_2', 'BFIELD_3']].rename({'BFIELD_0': 'Bx', 'BFIELD_1': 'By', 'BFIELD_2': 'Bz', 'BFIELD_3': 'B'}, axis=1)
 
     # L1 MAG RTN data set
-    downloadpath = f'{path}l1/mag/'
-    mag_rtn, metadata_rtn = stereo_load('MAG', msdate, medate, mag_coord='RTN', spacecraft=sc_str, resample=averaging)
+    # downloadpath = f'{path}l1/mag/'
+    mag_rtn, metadata_rtn = stereo_load('MAG', msdate, medate, mag_coord='RTN', spacecraft=sc_str, path=path, resample=averaging)
     mag_rtn = mag_rtn.rename({'BFIELD_0': 'Br', 'BFIELD_1': 'Bt', 'BFIELD_2': 'Bn', 'BFIELD_3': 'B'}, axis=1)
     return mag_sc, mag_rtn
 
