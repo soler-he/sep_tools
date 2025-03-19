@@ -2,6 +2,7 @@ lmfit
 numba
 numpy
 pandas
+piecewise_regression
 pyspedas
 scipy
 git+https://github.com/jgieseler/SEPpy
