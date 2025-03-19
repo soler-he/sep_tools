@@ -12,3 +12,4 @@ solarmach
 git+https://github.com/jgieseler/solo-epd-loader
 stixdcpy
 sunpy
+sunpy_soar
