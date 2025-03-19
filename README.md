@@ -8,7 +8,6 @@ This software is in development stage, do not use it!
 2. Open designated conda/python environment in terminal
 3. Go to extracted folder
 4. Run `pip install -r requirements.txt`
-5. Run `pip install jupyter` (if not already installed)
 
 ## Usage
 
