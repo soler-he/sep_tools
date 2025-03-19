@@ -1,3 +1,5 @@
+ipympl
+jupyter
 lmfit
 numba
 numpy
@@ -8,4 +10,5 @@ scipy
 git+https://github.com/jgieseler/SEPpy
 solarmach
 git+https://github.com/jgieseler/solo-epd-loader
+stixdcpy
 sunpy
