@@ -14,6 +14,5 @@ This software is in development stage, do not use it!
 
 From the designated conda/python environment in the terminal, run `jupyter-lab`, which will open the default web-browser. There, open the ipynb file of the wanted tool:
 
-- multi_sc_plots.ipynb: SEP Multi-Spacecraft-Plot tool
-- SEP_PAD_Ani_Tool.ipynb: SEP PADs-and-Anisotropy tool
-   
+- SEP_Multi-Spacecraft-Plot.ipynb: SEP Multi-Spacecraft-Plot tool
+- SEP_PADs-and-Anisotropy.ipynb: SEP PADs-and-Anisotropy tool
