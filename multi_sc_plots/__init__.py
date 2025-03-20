@@ -17,7 +17,7 @@ from seppy.loader.stereo import calc_av_en_flux_HET as calc_av_en_flux_ST_HET
 from seppy.loader.stereo import calc_av_en_flux_SEPT, stereo_load
 from seppy.loader.wind import wind3dp_load
 from seppy.util import resample_df
-from seppy.util import calc_av_en_flux_sixs  # bepi_sixs_load
+# from seppy.util import calc_av_en_flux_sixs  # bepi_sixs_load
 from solo_epd_loader import combine_channels as calc_av_en_flux_EPD
 from solo_epd_loader import epd_load, calc_ept_corrected_e
 from sunpy.time import parse_time
@@ -423,20 +423,20 @@ class Event:
         ########## AVERAGE ENERGY CHANNELS & RESAMPLING ##########
         #############################################
         """
-        if 'BepiColombo/SIXS e' in plot_instruments or 'BepiColombo/SIXS p' in plot_instruments:
-            if len(sixs_df) > 0:
-                # 1 MeV electrons:
-                sixs_df_e1, sixs_e1_en_channel_string = calc_av_en_flux_sixs(sixs_df_e, self.channels_e['BepiColombo/SIXS e'], 'e')
-                # >25 MeV protons:
-                sixs_df_p25, sixs_p25_en_channel_string = calc_av_en_flux_sixs(sixs_df_p, self.channels_p['BepiColombo/SIXS p'], 'p')
-                # 100 keV electrons withouth averaging:
-                # sixs_df_e100 = sixs_df_e[f'E{sixs_ch_e100}']
-                # sixs_e100_en_channel_string = sixs_meta['Energy_Bin_str'][f'E{sixs_ch_e100}']
+        # if 'BepiColombo/SIXS e' in plot_instruments or 'BepiColombo/SIXS p' in plot_instruments:
+        #     if len(sixs_df) > 0:
+        #         # 1 MeV electrons:
+        #         sixs_df_e1, sixs_e1_en_channel_string = calc_av_en_flux_sixs(sixs_df_e, self.channels_e['BepiColombo/SIXS e'], 'e')
+        #         # >25 MeV protons:
+        #         sixs_df_p25, sixs_p25_en_channel_string = calc_av_en_flux_sixs(sixs_df_p, self.channels_p['BepiColombo/SIXS p'], 'p')
+        #         # 100 keV electrons withouth averaging:
+        #         # sixs_df_e100 = sixs_df_e[f'E{sixs_ch_e100}']
+        #         # sixs_e100_en_channel_string = sixs_meta['Energy_Bin_str'][f'E{sixs_ch_e100}']
 
-                if isinstance(sixs_resample, str):
-                    sixs_df_e100 = resample_df(sixs_df_e100, sixs_resample)
-                    sixs_df_e1 = resample_df(sixs_df_e1, sixs_resample)
-                    sixs_df_p25 = resample_df(sixs_df_p25, sixs_resample)
+        #         if isinstance(sixs_resample, str):
+        #             sixs_df_e100 = resample_df(sixs_df_e100, sixs_resample)
+        #             sixs_df_e1 = resample_df(sixs_df_e1, sixs_resample)
+        #             sixs_df_p25 = resample_df(sixs_df_p25, sixs_resample)
 
         if 'Parker Solar Probe/EPI-Hi HET e' in plot_instruments or 'Parker Solar Probe/EPI-Hi HET p' in plot_instruments:
             if len(self.psp_het) > 0:
