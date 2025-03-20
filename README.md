@@ -41,3 +41,4 @@ This tool is developed within the SOLER (*Energetic Solar Eruptions: Data and An
 
 The tool reflects only the authors’ view and the European Commission is not responsible for any use that may be made of the information it contains.
 
+hthyt
