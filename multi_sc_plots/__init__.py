@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import sunpy
+from IPython.display import display
 from matplotlib.ticker import AutoMinorLocator
 # from matplotlib.transforms import blended_transform_factory
 from PIL import Image

@@ -7,6 +7,7 @@ from anisotropy.SEPevent import SEPevent
 from anisotropy.solo_methods import solo_specieschannels
 from anisotropy.stereo_methods import stereo_specieschannels
 from anisotropy.wind_methods import wind_specieschannels
+from IPython.display import display
 from sunpy import log
 
 
