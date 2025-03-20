@@ -9,13 +9,14 @@ import pandas as pd
 import sunpy
 from matplotlib.ticker import AutoMinorLocator
 # from matplotlib.transforms import blended_transform_factory
+from PIL import Image
 from seppy.loader.psp import calc_av_en_flux_PSP_EPIHI, calc_av_en_flux_PSP_EPILO, psp_isois_load
 from seppy.loader.soho import calc_av_en_flux_ERNE, soho_load
 from seppy.loader.stereo import calc_av_en_flux_HET as calc_av_en_flux_ST_HET
 from seppy.loader.stereo import calc_av_en_flux_SEPT, stereo_load
 from seppy.loader.wind import wind3dp_load
 from seppy.util import resample_df
-from seppy.util import bepi_sixs_load, calc_av_en_flux_sixs
+from seppy.util import calc_av_en_flux_sixs  # bepi_sixs_load
 from solo_epd_loader import combine_channels as calc_av_en_flux_EPD
 from solo_epd_loader import epd_load, calc_ept_corrected_e
 from sunpy.time import parse_time
@@ -50,6 +51,18 @@ plt.rcParams['ytick.major.width'] = 2
 plt.rcParams['ytick.minor.size'] = 5
 plt.rcParams['ytick.minor.width'] = 1
 plt.rcParams['axes.linewidth'] = 2.0
+
+
+def add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=1.0, y=0.0):
+    logo = Image.open(f'multi_sc_plots{os.sep}soler.png')
+    new_size = (np.array(logo.size) * scaling).astype(int)
+    logo_s = logo.resize(new_size, Image.Resampling.LANCZOS)
+    # x_offset = int((fig.bbox.xmax - pad*logo_s.size[0]) * 1.0)
+    # y_offset = int((fig.bbox.ymax - pad*logo_s.size[1]) * 0.0)
+    x_offset = int(fig.bbox.xmax * x)
+    y_offset = int(fig.bbox.ymax * y)
+
+    fig.figimage(logo_s, x_offset, y_offset, alpha=alpha, zorder=zorder)
 
 
 class Event:
@@ -747,6 +760,7 @@ class Event:
         ax.set_xlabel(f"Time (UTC) / Date in {self.startdate.year}")
         plt.tight_layout()
         fig.subplots_adjust(hspace=0.1)
+        add_watermark(fig, scaling=0.7, alpha=0.5, zorder=-1, x=0.92)
         plt.show()
 
         if sum([plot_e, plot_p]) == 1:
