@@ -650,12 +650,12 @@ class Event:
                     #         label='PSP '+r"$\bf{(count\ rates)}$"+'\nISOIS-EPI-Hi HET '+psp_het_energies['Electrons_ENERGY_LABL'][self.channels_e['Parker Solar Probe/EPI-Hi HET e']][0].replace(' ', '').replace('-', ' - ').replace('MeV', ' MeV')+'\nA (sun)',
                     #         drawstyle='steps-mid')
                     ax.plot(self.df_psp_het_e.index, self.df_psp_het_e*self.psp_epihi_e_scaling, color=self.plot_colors['Parker Solar Probe/EPI-Hi HET'], linewidth=linewidth,
-                            label=f'PSP/ISOIS EPI-Hi HET {self.viewing['Parker Solar Probe/EPI-Hi HET']} ({psp_het_viewing_dict[self.viewing['Parker Solar Probe/EPI-Hi HET']]})\n'+self.psp_het_chstring_e+r" $\bf{(count\ rate)}$",  # +f' *{self.psp_epihi_e_scaling}',
+                            label=f'PSP/ISOIS EPI-Hi HET {self.viewing["Parker Solar Probe/EPI-Hi HET"]} ({psp_het_viewing_dict[self.viewing["Parker Solar Probe/EPI-Hi HET"]]})\n'+self.psp_het_chstring_e+r" $\bf{(count\ rate)}$",  # +f' *{self.psp_epihi_e_scaling}',
                             drawstyle='steps-mid')
             if 'Parker Solar Probe/EPI-Lo PE e' in plot_instruments:
                 if len(self.psp_epilo) > 0:
                     ax.plot(self.df_psp_epilo_e.index, self.df_psp_epilo_e*self.psp_epilo_e_scaling, color=self.plot_colors['Parker Solar Probe/EPI-Lo PE'], linewidth=linewidth,
-                            label=f'PSP/ISOIS EPI-Lo F (W{self.viewing['Parker Solar Probe/EPI-Lo PE']})\n'+self.psp_epilo_chstring_e+r" $\bf{(count\ rate)}$",  # +f' *{self.psp_epilo_e_scaling}',
+                            label=f'PSP/ISOIS EPI-Lo F (W{self.viewing["Parker Solar Probe/EPI-Lo PE"]})\n'+self.psp_epilo_chstring_e+r" $\bf{(count\ rate)}$",  # +f' *{self.psp_epilo_e_scaling}',
                             drawstyle='steps-mid')
             if 'SOHO/EPHIN e' in plot_instruments:
                 # ax.plot(ephin['date'], ephin[ephin_ch_e][0]*ephin_e_intercal, color=self.plot_colors['SOHO/EPHIN'], linewidth=linewidth, label='SOHO/EPHIN '+ephin[ephin_ch_e][1]+f'/{ephin_e_intercal}', drawstyle='steps-mid')
