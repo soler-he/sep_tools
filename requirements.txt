@@ -1,4 +1,5 @@
 ipympl
+IPython>=7.23.1
 jupyter
 lmfit
 numba
