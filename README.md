@@ -20,7 +20,7 @@ This repository contains multiple Python tools for the analysis of Solar Energet
 1. These tools require a recent Python (>=3.10) installation. [Following SunPy's approach, we recommend installing Python via miniforge (click for instructions).](https://docs.sunpy.org/en/stable/tutorial/installation.html#installing-python)
 2. [Download this file](https://github.com/soler-he/sep_tools/archive/refs/heads/main.zip) and extract to a folder of your choice (or clone the repository [https://github.com/soler-he/sep_tools](https://github.com/soler-he/sep_tools) if you know how to use `git`).
 3. Open a terminal or the miniforge prompt and move to the directory where the code is.
-4. Create a new virtual environment (e.g., `conda create --name sep_tools`, or `python -m venv venv_sep_tools` if you don't use miniforge/conda).
+4. Create a new virtual environment (e.g., `conda create --name sep_tools python=3.12`, or `python -m venv venv_sep_tools` if you don't use miniforge/conda).
 5. Activate the just created virtual environment (e.g., `conda activate sep_tools`, or `source venv_sep_tools/bin/activate` if you don't use miniforge/conda).
 6. Install the Python dependencies from the *requirements.txt* file with `pip install -r requirements.txt`
 
