@@ -32,7 +32,7 @@ def select_sc_inst():
     return spacecraft_instrument
 
 
-def run_SEPevent(path, plot_folder, spacecraft_instrument, starttime, endtime, bg_start=None, bg_end=None, species=None, channels=None, specieschannel=None, averaging=None, corr_window_end=None, solo_ept_ion_contamination_correction=False):
+def run_SEPevent(path, spacecraft_instrument, starttime, endtime, bg_start=None, bg_end=None, species=None, channels=None, specieschannel=None, averaging=None, corr_window_end=None, solo_ept_ion_contamination_correction=False, plot_folder=None):
     if spacecraft_instrument in ['Solar Orbiter EPT', 'Solar Orbiter HET', 'STEREO-A SEPT', 'STEREO-B SEPT', 'Wind 3DP']:
         if spacecraft_instrument == 'Solar Orbiter EPT':
             spacecraft = 'Solar Orbiter'
@@ -69,7 +69,7 @@ def run_SEPevent(path, plot_folder, spacecraft_instrument, starttime, endtime, b
         solo_ept_ion_contamination_correction = False
 
     event_id = f'{spacecraft}_{instrument}'  # used for the output plot filenames
-    event = SEPevent(event_id, path, plot_folder, sc, instrument, species, channels, starttime, endtime, averaging, av_min, solo_ept_ion_contamination_correction)
+    event = SEPevent(event_id, path, sc, instrument, species, channels, starttime, endtime, averaging, av_min, solo_ept_ion_contamination_correction, plot_folder=plot_folder)
     event.check_background_window(bg_start, bg_end, corr_window_end)
     event.download_and_prepare()
     if instrument != 'HET':

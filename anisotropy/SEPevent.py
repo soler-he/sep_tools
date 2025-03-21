@@ -57,9 +57,11 @@ def add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=1.0, y=0.0):
 
 class SEPevent: 
   
-    def __init__(self, event_id, path, plot_folder, spacecraft, instrument, species, channels, starttime, endtime, averaging, av_min, solo_ept_ion_contamination_correction):
+    def __init__(self, event_id, path, spacecraft, instrument, species, channels, starttime, endtime, averaging, av_min, solo_ept_ion_contamination_correction, plot_folder=None):
         self.event_id = event_id
         self.path = path+os.sep
+        if not plot_folder:
+            plot_folder = os.getcwd()
         self.plot_folder = plot_folder+os.sep
         # create folders if not existing yet
         for p in [self.path, self.plot_folder]:
@@ -434,7 +436,8 @@ class SEPevent:
                 filename = f"{event_id}_{instrument}_{startdate.year}-{startdate.month}-{startdate.day}_{enddate.month}-{enddate.day}_{species}_ch{en_channel}.png"
             else:
                 filename = f"{event_id}_{instrument}_{startdate.year}-{startdate.month}-{startdate.day}_{enddate.month}-{enddate.day}_{species}_ch{en_channel}_{end_str}.png"
-        add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=0.96)
+        if not savefig:
+            add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=0.96)
         if savefig:
             fig.savefig(fname=os.path.join(plot_folder, filename), format='png', dpi=300, bbox_inches='tight')
         return fig, axes
@@ -989,7 +992,8 @@ class SEPevent:
         ax3.set_xticklabels(format_tick_labels(x))
         ax3.tick_params(axis='x', which='major', pad=15, direction="in")
 
-        add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=0.95)
+        if not savefig:
+            add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=0.95)
 
         try:
             filename = f"{event_id}_{instrument}_{startdate.year}-{startdate.month}-{startdate.day}_{enddate.month}-{enddate.day}_{species}_ch{en_channel[0]}-{en_channel[1]}_bgsub.png"
@@ -1387,7 +1391,7 @@ class SEPevent:
         fig.savefig(fname=os.path.join(plot_folder,filename),format='png',dpi=300, bbox_inches = 'tight')
         return fig, axes
 
-    def anisotropy_plot(self, ani_method='weighted_sum_bootstrap', savefig=True):
+    def anisotropy_plot(self, ani_method='weighted_sum_bootstrap', savefig=False):
         if (ani_method == 'weighted_sum_bootstrap') and (self.spacecraft == 'Wind'):
             ani_method = 'weighted_sum'
 
@@ -1621,7 +1625,8 @@ class SEPevent:
         ax3.set_xticklabels(format_tick_labels(x))
         ax3.tick_params(axis='x', which='major', pad=15, direction="in")
 
-        add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=0.97)
+        if not savefig:
+            add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=0.97)
 
         try:
             filename = f"{event_id}_{instrument}_{startdate.year}-{startdate.month}-{startdate.day}_{enddate.month}-{enddate.day}_{species}_ch{en_channel[0]}-{en_channel[1]}_ani_bgsub{ani_method_str}.png"
