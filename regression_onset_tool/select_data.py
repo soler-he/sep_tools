@@ -25,7 +25,7 @@ data_file0 = widgets.Select(
 
 data_file = widgets.ToggleButtons(
                 options=OPTIONS,
-                value=OPTIONS[0],
+                value=OPTIONS[1],
                 description=HANDLE_NAME,
                 button_style=BUTTON_STYLES[3],
                 tooltips=TOGGLEBUTTON_TOOLTIPS,
