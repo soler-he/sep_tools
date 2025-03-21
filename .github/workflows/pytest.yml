@@ -48,4 +48,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.python-version }}-pytest-mpl-report-artifact
-        path: "/home/runner/work/sep_tools/multi_sc_plots/tests/report/"
+        path: "/home/runner/work/sep_tools/tests_report/"
