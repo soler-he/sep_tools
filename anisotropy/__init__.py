@@ -12,7 +12,7 @@ from sunpy import log
 
 
 # omit some warnings
-warnings.simplefilter(action='once', category=pd.errors.PerformanceWarning)
+warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 warnings.filterwarnings(action='ignore', message='All-NaN slice encountered', category=RuntimeWarning)
 warnings.filterwarnings(action='ignore', message='invalid value encountered in divide', category=RuntimeWarning)
 warnings.filterwarnings(action='ignore', message='No units provided for variable', category=sunpy.util.SunpyUserWarning, module='sunpy.io._cdf')
