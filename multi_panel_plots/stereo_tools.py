@@ -147,8 +147,6 @@ def load_data(options):
     global plot_het_p
     global plot_polarity
 
-    global path
-
     startdate = options.startdate.value
     enddate = options.enddate.value
 

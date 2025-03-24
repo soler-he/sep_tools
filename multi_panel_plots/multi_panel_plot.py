@@ -1,18 +1,19 @@
 import datetime as dt
 import ipywidgets as w
+import os
 
-
+from IPython.display import display
 from multi_panel_plots import stereo_tools as stereo
 from multi_panel_plots import psp_tools as psp
 from multi_panel_plots import l1_tools as l1
-#from multi_sc_plots import tools.solo_tools as solo
+from multi_panel_plots import solo_tools as solo
 
 
 style = {'description_width' : '50%'} 
 
 common_attrs = ["spacecraft", "startdate", "enddate", "resample", "resample_mag", "radio_cmap", "legends_inside"] # , "resample_pol"
 
-variable_attrs = ['radio', 'mag', 'mag_angles', 'polarity', 'Vsw', 'N', 'T', 'p_dyn', 'pad', "stix"] 
+variable_attrs = ['radio', 'mag', 'mag_angles', 'polarity', 'Vsw', 'N', 'T', 'p_dyn', "stix", "stix_ltc"] # ,'pad'
 
 psp_attrs = ['psp_epilo_e', 'psp_epilo_p', 'psp_epihi_e',
              'psp_epihi_p', 'psp_het_viewing', 'psp_epilo_viewing',
@@ -23,7 +24,7 @@ stereo_attrs = ['ster_sc', 'ster_sept_e', 'ster_sept_p', 'ster_het_e', 'ster_het
 
 l1_attrs = ['l1_wind_e', 'l1_wind_p', 'l1_ephin', 'l1_erne', 'l1_ch_eph_e', 'l1_ch_eph_p', 'l1_intercal', 'l1_av_sep', 'l1_av_erne']
 
-solo_attrs = ['stix']
+solo_attrs = ['solo_electrons', 'solo_protons', 'solo_viewing', 'solo_ch_ept_e', 'solo_ch_ept_p', 'solo_ch_het_e', 'solo_ch_het_p', 'solo_resample_particles']
 
 class Options:
     def __init__(self):
@@ -39,20 +40,21 @@ class Options:
         #self.resample_pol = w.BoundedIntText(value=1, min=0, max=30, step=1, description='Polarity resampling (min):', disabled=False, style=style)
         self.radio_cmap = w.Dropdown(options=['jet'], value='jet', description='Radio colormap', style=style)
         self.pos_timestamp = 'center' #w.Dropdown(options=['center', 'start', 'original'], description='Timestamp position', style=style)
-        self.legends_inside = w.Checkbox(value=False, description='Legends inside', disabled=True)  # 20.3.2025: L1 doesn't have this option
+        self.legends_inside = w.Checkbox(value=False, description='Legends inside') 
 
         self.radio = w.Checkbox(value=True, description="Radio")
-        self.pad = w.Checkbox(value=False, description="Pitch angle distribution", disabled=True)    # TODO: remove disabled keyword after implementation
+        #self.pad = w.Checkbox(value=True, description="Pitch angle distribution")    # TODO: remove disabled keyword after implementation
         self.mag = w.Checkbox(value=True, description="MAG")
         self.mag_angles = w.Checkbox(value=True, description="MAG angles")
         self.polarity = w.Checkbox(value=True, description="Polarity")
         self.Vsw = w.Checkbox(value=True, description="V_sw")
         self.N = w.Checkbox(value=True, description="N")
         self.T = w.Checkbox(value=True, description="T")
-        self.p_dyn = w.Checkbox(value=False, description="p_dyn", disabled=True)
-        self.stix = w.Checkbox(value=False, description="SolO/STIX", disabled=True)
+        self.p_dyn = w.Checkbox(value=True, description="p_dyn")
+        self.stix = w.Checkbox(value=True, description="SolO/STIX")
+        self.stix_ltc = w.Checkbox(value=True, description="SolO/STIX lightcurves")
         
-        self.path = None
+        self.path = f"{os.getcwd()}{os.sep}data"
         self.plot_range = None
 
         self.psp_epilo_e = w.Checkbox(description="EPI-Lo electrons", value=True)
@@ -70,6 +72,14 @@ class Options:
         self.psp_ch_epilo_e =  w.SelectMultiple(description="EPI-Lo e channels", options=range(3,8+1), value=tuple(range(3,8+1,1)), rows=10, style=style)
         self.psp_ch_epilo_ic = w.SelectMultiple(description="EPI-Lo ic channels", options=range(0,31+1), value=tuple(range(0,31+1,4)), rows=10, style=style)
         
+        self.solo_electrons = w.Checkbox(value=True, description="HET+EPT electrons")
+        self.solo_protons = w.Checkbox(value=True, description="HET+EPT ions")
+        self.solo_viewing = w.Dropdown(options=['sun', 'asun', 'north', 'south'], value='sun', style=style, description="HET+EPT viewing:")
+        self.solo_resample_particles = w.BoundedIntText(value=5, min=0, max=30, description="HET+EPT averaging:", style=style)
+        self.solo_ch_ept_e = w.SelectMultiple(description="EPT e channels", options=range(0,15+1), value=tuple(range(0,15+1,2)), rows=10, style=style)
+        self.solo_ch_het_e = w.SelectMultiple(description="HET e channels", options=range(0,3+1), value=tuple(range(0,3+1,1)), rows=10, style=style)
+        self.solo_ch_ept_p = w.SelectMultiple(description="EPT ion channels", options=range(0,30+1), value=tuple(range(0,30+1,5)), rows=10, style=style)
+        self.solo_ch_het_p = w.SelectMultiple(description="HET ion channels", options=range(0,35+1), value=tuple(range(0,35+1,5)), rows=10, style=style)
 
         self.l1_wind_e =  w.Checkbox(value=True, description="Wind/3DP electrons")
         self.l1_wind_p = w.Checkbox(value=True, description="Wind/3DP protons")
@@ -81,7 +91,6 @@ class Options:
         self.l1_av_sep = w.BoundedIntText(value=20, min=0, max=30, description="3DP+EPHIN averaging:", style=style)
         self.l1_av_erne = w.BoundedIntText(value=10, min=0, max=30, description="ERNE averaging:", style=style)
         
-
         self.ster_sc = w.Dropdown(description="STEREO A/B:", options=["A", "B"], style=style)
         self.ster_sept_e = w.Checkbox(description="SEPT electrons", value=True)
         self.ster_sept_p = w.Checkbox(description="SEPT protons", value=True)
@@ -114,7 +123,7 @@ class Options:
                     display(self.psp_box)
 
                 if change.new == "SolO":
-                    display(w.HTML("Work in progress!"))    # display(self.solo_vbox)
+                    display(self.solo_box)    # display(self.solo_vbox)
 
                 if change.new == "L1 (Wind/SOHO)":
                     display(self.l1_box)
@@ -238,8 +247,10 @@ def load_data():
         psp.load_data(options)
         load_flag = True
 
-    # if options.spacecraft.value == "SolO":
-    #     solo.load_data(options)
+    if options.spacecraft.value == "SolO":
+        solo.load_data(options)
+        load_flag = True
+
     if options.spacecraft.value == "L1 (Wind/SOHO)":
         l1.load_data(options)
         load_flag = True
@@ -258,8 +269,8 @@ def make_plot():
     if options.spacecraft.value == "PSP":
         return psp.make_plot(options)
     
-    # if options.spacecraft.value == "SolO":
-    #     return solo.make_plot(options)
+    if options.spacecraft.value == "SolO":
+        return solo.make_plot(options)
 
     if options.spacecraft.value == "L1 (Wind/SOHO)":
         return l1.make_plot(options)

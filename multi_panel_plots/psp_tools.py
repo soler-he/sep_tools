@@ -17,7 +17,7 @@ import matplotlib.dates as mdates
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from seppy.loader.psp import calc_av_en_flux_PSP_EPIHI, psp_isois_load
 from seppy.tools import resample_df
-#from stixdcpy.quicklook import LightCurves # https://github.com/i4Ds/stixdcpy
+from stixdcpy.quicklook import LightCurves # https://github.com/i4Ds/stixdcpy
 from sunpy.coordinates import frames, get_horizons_coord
 
 from multi_panel_plots.polarity_plotting import polarity_rtn
@@ -26,7 +26,7 @@ from multi_panel_plots.polarity_plotting import polarity_rtn
 os.environ['SPEASY_CORE_DISABLED_PROVIDERS'] = "sscweb,archive,csa"
 import speasy as spz
 
-from IPython.core.display import display
+from IPython.display import display
 
 # omit Pandas' PerformanceWarning
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
@@ -75,7 +75,7 @@ def load_data(options):
     list of dataframes
 
     """
-    
+    # TODO figure out where speasy caches data
 
     #####################################################################
     ######## Data loading ###############################################
@@ -131,6 +131,7 @@ def load_data(options):
     plot_epilo_p = options.psp_epilo_p.value
     plot_epihi_p = options.psp_epihi_p.value
     plot_stix = options.stix.value
+    stix_ltc = options.stix_ltc.value
     plot_radio = options.radio.value
     plot_mag = options.mag.value
     plot_mag_angles = options.mag_angles.value
@@ -142,20 +143,19 @@ def load_data(options):
     
     epilo_ic_channel = options.psp_epilo_ic_channel.value
     epilo_channel = options.psp_epilo_channel.value
-    #stix_ltc = options.stix_ltc.value
+    stix_ltc = options.stix_ltc.value
 
 
     plot_electrons = plot_epilo_e or plot_epihi_e
     plot_protons = plot_epilo_p or plot_epihi_p
 
 
-    # if plot_stix:
-        
-    #     if enddate-startdate > dt.timedelta(days=7):
-    #         print('WARNING: STIX loading for more than 7 days not supported at the moment!')
-    #         print('')
-    #     lc = LightCurves.from_sdc(start_utc=startdate, end_utc=enddate, ltc=stix_ltc)
-    #     stix_orig = lc.to_pandas()
+    if plot_stix:
+        if enddate-startdate > dt.timedelta(days=7):
+            print('WARNING: STIX loading for more than 7 days not supported at the moment!')
+            print('')
+        lc = LightCurves.from_sdc(start_utc=startdate, end_utc=enddate, ltc=stix_ltc)
+        stix_orig = lc.to_pandas()
     
     try:    
         if plot_epihi_p or plot_epihi_e:
@@ -438,10 +438,10 @@ def make_plot(options):
         panel_ratios[0] = 2
 
     if plot_electrons and plot_protons:
-        panel_ratios[0+1*plot_radio] = 2
-        panel_ratios[1+1*plot_radio] = 2
+        panel_ratios[0+1*plot_stix+1*plot_radio] = 2
+        panel_ratios[1+1*plot_stix+1*plot_radio] = 2
     if plot_electrons or plot_protons:    
-        panel_ratios[0+1*plot_radio] = 2
+        panel_ratios[0+1*plot_stix+1*plot_radio] = 2
 
     font_ylabel = 20
     font_legend = 10
@@ -492,6 +492,8 @@ def make_plot(options):
         axs[i].set_ylabel('Counts', fontsize=font_ylabel)
         axs[i].set_yscale('log')
         i +=1  
+
+        
     
     
     color_offset = 4 

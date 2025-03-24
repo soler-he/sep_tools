@@ -272,7 +272,7 @@ def load_data(options):
     global plot_radio
     global plot_electrons
     global plot_protons
-    global plot_pad
+    #global plot_pad
     global plot_mag_angles
     global plot_mag
     global plot_Vsw
@@ -312,7 +312,7 @@ def load_data(options):
     wind_flux_thres = None
 
     plot_radio = options.radio.value
-    plot_pad = options.pad.value
+    #plot_pad = options.pad.value
     plot_mag = options.mag.value
     plot_mag_angles = options.mag_angles.value
     plot_Vsw = options.Vsw.value
@@ -334,28 +334,28 @@ def load_data(options):
                             enddate=enddate,
                             resample=0,
                             multi_index=True,
-                            path=None,
+                            path=path,
                             threshold=wind_flux_thres)
         pdic_, meta_p = wind3dp_load(dataset="WI_SOSP_3DP",
                             startdate=startdate,
                             enddate=enddate,
                             resample=0,
                             multi_index=True,
-                            path=None,
+                            path=path,
                             threshold=wind_flux_thres)
         
     if plot_radio:
-        df_wind_wav_rad2 = load_waves_rad(dataset="RAD2", startdate=startdate, enddate=enddate, file_path=None)
-        df_wind_wav_rad1 = load_waves_rad(dataset="RAD1", startdate=startdate, enddate=enddate, file_path=None)
+        df_wind_wav_rad2 = load_waves_rad(dataset="RAD2", startdate=startdate, enddate=enddate, file_path=path)
+        df_wind_wav_rad1 = load_waves_rad(dataset="RAD1", startdate=startdate, enddate=enddate, file_path=path)
 
 
     if plot_ephin:
         ephin_, meta_ephin = soho_load(dataset="SOHO_COSTEP-EPHIN_L2-1MIN", startdate=startdate, enddate=enddate,
-                        path=None, resample=None)
+                        path=path, resample=None)
 
     if plot_erne:
         erne_p_, meta_erne = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=startdate, enddate=enddate,
-                            path=None, resample=None)
+                            path=path, resample=None)
         
 
     if plot_mag or plot_mag_angles:
@@ -373,7 +373,7 @@ def load_data(options):
 
             time = a.Time(startdate, enddate)
             result = Fido.search(time & product)
-            files = Fido.fetch(result, path=None)
+            files = Fido.fetch(result, path=path)
             sw_data = TimeSeries(files, concatenate=True)
             df_solwind = sw_data.to_dataframe()
             df_solwind['vsw'] = np.sqrt(df_solwind['ion_vel_0']**2 + df_solwind['ion_vel_1']**2 + df_solwind['ion_vel_2']**2)
@@ -400,6 +400,8 @@ def make_plot(options):
     global av_sep
     global av_mag
     global av_erne
+
+    legends_inside = options.legends_inside.value
 
     av_sep = str(options.l1_av_sep.value) + "min"
     av_mag =  str(options.resample_mag.value) + "min"
@@ -452,7 +454,7 @@ def make_plot(options):
     font_ylabel = 20
     font_legend = 10
 
-    panels = 1*plot_radio + 1*plot_electrons + 1*plot_protons + 1*plot_pad + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T
+    panels = 1*plot_radio + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T # + 1*plot_pad 
 
     panel_ratios = list(np.zeros(panels)+1)
     if plot_radio:
@@ -513,7 +515,12 @@ def make_plot(options):
         if plot_ephin:
             ax.plot(ephin.index, ephin[l1_ch_eph_e]*intercal, '-k', label='SOHO/EPHIN '+meta_ephin[l1_ch_eph_e]+f' / {intercal}', drawstyle='steps-mid')
         # ax.set_ylim(1e0, 1e4)
-        ax.legend(title='Electrons', loc='center left', bbox_to_anchor=(1, 0.5), fontsize=font_legend)
+        if legends_inside:
+            axs[i].legend(loc='upper right', borderaxespad=0., 
+                    title=f'Electrons', fontsize=font_legend)
+        else:
+            axs[i].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., 
+                    title=f'Electrons', fontsize=font_legend)
         ax.set_yscale('log')
         ax.set_ylabel(intensity_label, fontsize=font_ylabel)
         i += 1
@@ -537,7 +544,10 @@ def make_plot(options):
             for ch in np.arange(0, 10):
                 ax.plot(erne_p.index, erne_p[f'PH_{ch}'], label='SOHO/ERNE/HED '+meta_erne['channels_dict_df_p']['ch_strings'][ch], 
                             drawstyle='steps-mid')
-        ax.legend(title='Protons', loc='center left', bbox_to_anchor=(1, 0.5), fontsize=font_legend)
+        if legends_inside:
+            ax.legend(title='Protons', loc="upper right", fontsize=font_legend)
+        else:
+            ax.legend(title='Protons', loc='center left', bbox_to_anchor=(1, 0.5), fontsize=font_legend)
         ax.set_yscale('log')
         i += 1
 
@@ -549,9 +559,13 @@ def make_plot(options):
         ax.plot(df_mag.index, df_mag.BRTN_1.values, label='Bt', color='limegreen', linewidth=1)
         ax.plot(df_mag.index, df_mag.BRTN_2.values, label='Bn', color='deeppink', linewidth=1)
         ax.axhline(y=0, color='gray', linewidth=0.8, linestyle='--')
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize=font_legend)#, title='RTN')#, bbox_to_anchor=(1, 0.5))
+        if legends_inside:
+            ax.legend(title='Protons', loc="upper right", fontsize=font_legend)
+        else:
+            ax.legend(title='Protons', loc='center left', bbox_to_anchor=(1, 0.5), fontsize=font_legend)#, title='RTN')#, bbox_to_anchor=(1, 0.5))
         ax.set_ylabel('B [nT]', fontsize=font_ylabel)
         ax.tick_params(axis="x",direction="in", which='both') #, pad=-15
+        
         i += 1
         
         if plot_polarity:
