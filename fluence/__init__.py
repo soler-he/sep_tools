@@ -36,6 +36,7 @@ class Event:
         self.startdate = startdate
         self.enddate = enddate
         self.viewing = viewing
+
         if self.spacecraft.lower() in ['wind']:
             self.viewing = 'omni'
             self.instrument = '3DP SST'
@@ -67,7 +68,7 @@ class Event:
             if self.spacecraft.lower() in ['stereo b', 'stereo-b']:
                 sc = 'behind'
             self.df, self.meta = stereo_load(instrument=self.instrument, startdate=self.startdate, enddate=self.enddate, spacecraft=sc,
-                                             sept_species=self.species, sept_viewing=self.viewing, path=data_path, resample=resample)
+                                             sept_species=self.species[0], sept_viewing=self.viewing, path=data_path, resample=resample)
 
         if self.spacecraft.lower() in ['wind']:  # !! only omni data implemented for now
             # !!! remove lowest energy channels (noisy)?
