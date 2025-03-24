@@ -1,0 +1,47 @@
+{
+    "description": "<p>This repository contains multiple Python tools for the analysis of Solar Energetic Particles (SEP) developed by the <a href=\"https://soler-horizon.eu\">SOLER (Energetic Solar Eruptions: Data and Analysis Tools)</a> project. They are provided as Jupyter Notebooks that act as an interface to the actual software and also provide the necessary documentation.</p>",
+    "license": "BSD-3-Clause", 
+    "title": "SOLER SEP Tools", 
+    "grants": [
+        {
+            "id": "10.13039/501100000780::101134999"
+        }
+    ], 
+    "upload_type": "software", 
+    "creators": [
+        {
+            "orcid": "0000-0003-1848-7067", 
+            "affiliation": "University of Turku", 
+            "name": "Gieseler,  Jan"
+        }, 
+        {
+            "orcid": "0000-0003-3903-4649", 
+            "affiliation": "University of Turku", 
+            "name": "Dresing, Nina"
+        }, 
+        {
+            "orcid": "0000-0002-0606-7172", 
+            "affiliation": "University of Turku", 
+            "name": "Jebaraj, Immanuel C."
+        }, 
+        {
+            "affiliation": "University of Turku", 
+            "name": "Kanto, Silja"
+        }, 
+        {
+            "orcid": "0000-0002-7778-5454", 
+            "affiliation": "University of Turku", 
+            "name": "Palmroos, Christian"
+        },
+        {
+            "affiliation": "University of Turku", 
+            "name": "Santala, Otso"
+        }, 
+        {
+            "orcid": "0000-0002-2238-109X", 
+            "affiliation": "Queen Mary University of London", 
+            "name": "Vuorinen, Laura"
+        }
+    ], 
+    "access_right": "open"
+}

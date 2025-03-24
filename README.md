@@ -1,3 +1,9 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15058294.svg)](https://doi.org/10.5281/zenodo.15058293)
+[![Python versions](https://img.shields.io/badge/python-3.10_--_3.13-blue)]()
+[![pytest](https://github.com/soler-he/sep_tools/actions/workflows/pytest.yml/badge.svg?branch=main)](https://github.com/soler-he/sep_tools/actions/workflows/pytest.yml)
+[![codecov](https://codecov.io/gh/soler-he/sep_tools/graph/badge.svg?token=YW5I35VUIC)](https://codecov.io/gh/soler-he/sep_tools)
+[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+
 # SOLER SEP Tools
 
 - [About](#about)
@@ -15,7 +21,7 @@ This repository contains multiple Python tools for the analysis of Solar Energet
 1. These tools require a recent Python (>=3.10) installation. [Following SunPy's approach, we recommend installing Python via miniforge (click for instructions).](https://docs.sunpy.org/en/stable/tutorial/installation.html#installing-python)
 2. [Download this file](https://github.com/soler-he/sep_tools/archive/refs/heads/main.zip) and extract to a folder of your choice (or clone the repository [https://github.com/soler-he/sep_tools](https://github.com/soler-he/sep_tools) if you know how to use `git`).
 3. Open a terminal or the miniforge prompt and move to the directory where the code is.
-4. Create a new virtual environment (e.g., `conda create --name sep_tools`, or `python -m venv venv_sep_tools` if you don't use miniforge/conda).
+4. Create a new virtual environment (e.g., `conda create --name sep_tools python=3.12`, or `python -m venv venv_sep_tools` if you don't use miniforge/conda).
 5. Activate the just created virtual environment (e.g., `conda activate sep_tools`, or `source venv_sep_tools/bin/activate` if you don't use miniforge/conda).
 6. Install the Python dependencies from the *requirements.txt* file with `pip install -r requirements.txt`
 

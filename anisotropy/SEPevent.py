@@ -11,6 +11,7 @@ import matplotlib as mpl
 from matplotlib import cm
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.colors import LogNorm
+from PIL import Image
 import matplotlib.dates as mdates
 import os
 import datetime as dt
@@ -18,6 +19,7 @@ from anisotropy.background_analysis_updated import run_background_analysis, run_
 from anisotropy.anisotropy_functions_updated import anisotropy_weighted_sum, bootstrap_anisotropy, anisotropy_prepare, anisotropy_legendre_fit
 import pickle
 import scipy
+
 plt.rcParams["font.size"] = 12
 # plt.rcParams["font.family"] = "Arial"
 # plt.rcParams['mathtext.rm'] = 'Arial'
@@ -41,11 +43,25 @@ def format_tick_labels(x):
     return lbl
 
 
+def add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=1.0, y=0.0):
+    logo = Image.open(f'multi_sc_plots{os.sep}soler.png')
+    new_size = (np.array(logo.size) * scaling).astype(int)
+    logo_s = logo.resize(new_size, Image.Resampling.LANCZOS)
+    # x_offset = int((fig.bbox.xmax - pad*logo_s.size[0]) * 1.0)
+    # y_offset = int((fig.bbox.ymax - pad*logo_s.size[1]) * 0.0)
+    x_offset = int(fig.bbox.xmax * x)
+    y_offset = int(fig.bbox.ymax * y)
+
+    fig.figimage(logo_s, x_offset, y_offset, alpha=alpha, zorder=zorder)
+
+
 class SEPevent: 
   
-    def __init__(self, event_id, path, plot_folder, spacecraft, instrument, species, channels, starttime, endtime, averaging, av_min, solo_ept_ion_contamination_correction):
+    def __init__(self, event_id, path, spacecraft, instrument, species, channels, starttime, endtime, averaging, av_min, solo_ept_ion_contamination_correction, plot_folder=None):
         self.event_id = event_id
         self.path = path+os.sep
+        if not plot_folder:
+            plot_folder = os.getcwd()
         self.plot_folder = plot_folder+os.sep
         # create folders if not existing yet
         for p in [self.path, self.plot_folder]:
@@ -105,8 +121,6 @@ class SEPevent:
             self.corr_window_end = self.bg_end + pd.Timedelta(hours=3)
         else:
             self.corr_window_end = corr_window_end
-
-
 
     def set_background_window(self,bg_start,bg_end,corr_window_end=None):
         if bg_start is None:
@@ -422,10 +436,11 @@ class SEPevent:
                 filename = f"{event_id}_{instrument}_{startdate.year}-{startdate.month}-{startdate.day}_{enddate.month}-{enddate.day}_{species}_ch{en_channel}.png"
             else:
                 filename = f"{event_id}_{instrument}_{startdate.year}-{startdate.month}-{startdate.day}_{enddate.month}-{enddate.day}_{species}_ch{en_channel}_{end_str}.png"
+        if not savefig:
+            add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=0.96)
         if savefig:
-            fig.savefig(fname=os.path.join(plot_folder,filename),format='png',dpi=300, bbox_inches = 'tight')
+            fig.savefig(fname=os.path.join(plot_folder, filename), format='png', dpi=300, bbox_inches='tight')
         return fig, axes
-
 
     def en_channel_string_to_keV(self):
         string = self.en_channel_string
@@ -435,7 +450,6 @@ class SEPevent:
             high = float(split_string[1].split(" MeV")[0])*1000
             en_channel_string = "{:.1f} - {:.1f} keV".format(low,high)
             self.en_channel_string = en_channel_string
-
 
     def background_analysis_simpleaverage(self,c_perc=50):
         bg_times = self.bg_times
@@ -768,7 +782,6 @@ class SEPevent:
         self.bg_I_fit_err = bg_I_fit_err
         self.bg_downcorrection_factor = c
 
-
     def overview_plot_bgsub(self,plot_onset=False, savefig=False):
         font_size = plt.rcParams["font.size"]
         legend_font = plt.rcParams["font.size"] - 2
@@ -978,7 +991,10 @@ class SEPevent:
         ax3.set_xticks(x)
         ax3.set_xticklabels(format_tick_labels(x))
         ax3.tick_params(axis='x', which='major', pad=15, direction="in")
-        
+
+        if not savefig:
+            add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=0.95)
+
         try:
             filename = f"{event_id}_{instrument}_{startdate.year}-{startdate.month}-{startdate.day}_{enddate.month}-{enddate.day}_{species}_ch{en_channel[0]}-{en_channel[1]}_bgsub.png"
         except:
@@ -987,7 +1003,6 @@ class SEPevent:
             fig.savefig(fname=os.path.join(plot_folder,filename),format='png',dpi=300, bbox_inches = 'tight')
         return fig, axes
     
-
     def calculate_anisotropy(self, ani_method='weighted_sum_bootstrap'):
         """_summary_
 
@@ -1060,7 +1075,6 @@ class SEPevent:
         else:
             self.ani_weighted_sum_bgsub = anisotropy_weighted_sum(I_bgsub,self.mu_data,self.mu_weights)
 
-
     def anisotropy_fit(self):
         if not hasattr(self, 'mu_weights'):
             weights, max_ani, min_ani = anisotropy_prepare(self.coverage,self.I_data)
@@ -1080,8 +1094,7 @@ class SEPevent:
             if len(y[~np.isnan(y)])>=4:
                 model, ani_fit[i] = anisotropy_legendre_fit(y[~np.isnan(y)],x[~np.isnan(y)],y_err[~np.isnan(y)])
         self.ani_fit = ani_fit
-        
-        
+
     def anisotropy_fit_bgsub(self):
         if not hasattr(self, 'mu_weights'):
             weights, max_ani, min_ani = anisotropy_prepare(self.coverage,self.I_data)
@@ -1112,7 +1125,6 @@ class SEPevent:
         self.ani_fit = ani_fit
         self.ani_fit_bgsub = ani_fit_bgsub
 
-        
     def anisotropy_weighted_sum_bootstrap(self,n_boot=1000):
         if not hasattr(self, 'mu_weights'):
             weights, max_ani, min_ani = anisotropy_prepare(self.coverage,self.I_data)
@@ -1379,7 +1391,7 @@ class SEPevent:
         fig.savefig(fname=os.path.join(plot_folder,filename),format='png',dpi=300, bbox_inches = 'tight')
         return fig, axes
 
-    def anisotropy_plot(self, ani_method='weighted_sum_bootstrap', savefig=True):
+    def anisotropy_plot(self, ani_method='weighted_sum_bootstrap', savefig=False):
         if (ani_method == 'weighted_sum_bootstrap') and (self.spacecraft == 'Wind'):
             ani_method = 'weighted_sum'
 
@@ -1587,16 +1599,16 @@ class SEPevent:
         else:
             ax.plot(I_times,Ani,label="w/o background substraction",color="black", linewidth=1)
             ax.plot(I_times[(I_times>=bg_end) & (I_times <= corr_window_end)],Ani_bgsub[(I_times>=bg_end) & (I_times <= corr_window_end)],label="with background substraction",color="magenta", linewidth=1)
-        
+
         ax.text(0.02, 0.92, "background subtracted", color="magenta",horizontalalignment='left', verticalalignment='top', transform = ax.transAxes,fontsize=font_size-1)
         ax.set_ylabel("$A_1$")
         ax.axhline(0,ls=":",color="gray",zorder=1)
         ax.set_ylim(-3,3)
-        
+
         ax.set_xlabel("Universal Time (UT)",fontsize=font_size,labelpad=15)
         ax.tick_params(axis='x', which='major', pad=5, direction="in")
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))#\n%b %d, %Y'))
-        
+
         for i,ax in enumerate(axes):
             if i>1:
                 ax.axvspan(bg_start, bg_end, color='gray', alpha=0.15,zorder=1)
@@ -1606,13 +1618,16 @@ class SEPevent:
             ax.xaxis.set_minor_locator(hours)
             ax.set_xlim([startdate, enddate])
         pol_ax.set_xlim(ax.get_xlim())
-        
+
         ax3 = ax.secondary_xaxis('bottom')
         x = ax.get_xticks()
         ax3.set_xticks(x)
         ax3.set_xticklabels(format_tick_labels(x))
         ax3.tick_params(axis='x', which='major', pad=15, direction="in")
-        
+
+        if not savefig:
+            add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=0.97)
+
         try:
             filename = f"{event_id}_{instrument}_{startdate.year}-{startdate.month}-{startdate.day}_{enddate.month}-{enddate.day}_{species}_ch{en_channel[0]}-{en_channel[1]}_ani_bgsub{ani_method_str}.png"
         except:

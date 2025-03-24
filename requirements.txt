@@ -1,4 +1,5 @@
 ipympl
+IPython>=7.23.1
 jupyter
 lmfit
 numba
@@ -7,9 +8,9 @@ pandas
 piecewise_regression
 pyspedas
 scipy
-git+https://github.com/jgieseler/SEPpy
+seppy>=0.1.19
 solarmach
-git+https://github.com/jgieseler/solo-epd-loader
+solo-epd-loader>=0.4.2
 stixdcpy
 sunpy
 sunpy_soar
