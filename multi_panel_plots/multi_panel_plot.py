@@ -2,9 +2,9 @@ import datetime as dt
 import ipywidgets as w
 
 
-from multi_sc_plots import stereo_tools as stereo
-from multi_sc_plots import psp_tools as psp
-from multi_sc_plots import l1_tools as l1
+from multi_panel_plots import stereo_tools as stereo
+from multi_panel_plots import psp_tools as psp
+from multi_panel_plots import l1_tools as l1
 #from multi_sc_plots import tools.solo_tools as solo
 
 

@@ -31,8 +31,8 @@ from sunpy.coordinates import get_horizons_coord
 from sunpy.coordinates import frames
 
 
-from multi_sc_plots.polarity_plotting import polarity_rtn #, polarity_panel, polarity_colorwheel
-import multi_sc_plots.cdaweb as cdaweb
+from multi_panel_plots.polarity_plotting import polarity_rtn #, polarity_panel, polarity_colorwheel
+import multi_panel_plots.cdaweb as cdaweb
 
 
 # omit Pandas' PerformanceWarning

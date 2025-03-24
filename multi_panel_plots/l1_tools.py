@@ -34,7 +34,7 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.colors import LogNorm, Normalize
 from matplotlib import cm
 
-from multi_sc_plots.polarity_plotting import polarity_rtn # , polarity_panel, polarity_colorwheel
+from multi_panel_plots.polarity_plotting import polarity_rtn # , polarity_panel, polarity_colorwheel
 
 from seppy.loader.wind import wind3dp_load
 from seppy.loader.soho import soho_load
