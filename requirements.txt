@@ -11,6 +11,7 @@ scipy
 seppy>=0.1.19
 solarmach
 solo-epd-loader>=0.4.2
+speasy<1.5.0
 stixdcpy
 sunpy
 sunpy_soar
