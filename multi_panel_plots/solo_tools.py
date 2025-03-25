@@ -346,7 +346,7 @@ def make_plot(options):
                 axs[i].set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0,1,len(ept_ele_channels)+color_offset)))
                 # for k, e in enumerate(energies_ept['Electron_Bins_Text']):
                 for chan in ept_ele_channels:
-                    axs[i].plot(df_ept[f'Electron_Corrected_Flux_{view}_{chan}'], ds="steps-mid", label=f'EPT {energies_ept['Electron_Bins_Text'][chan]}') 
+                    axs[i].plot(df_ept[f'Electron_Corrected_Flux_{view}_{chan}'], ds="steps-mid", label=f"EPT {energies_ept['Electron_Bins_Text'][chan]}")
             else:
                 ch_start = 0
                 ch_end = len(energies_ept[ch_key])
@@ -423,7 +423,7 @@ def make_plot(options):
                 axs[i].set_prop_cycle('color', plt.cm.plasma(np.linspace(0,1,len(ept_ion_channels)+color_offset)))
                 # for k, e in enumerate(energies_ept['Ion_Bins_Text']):
                 for chan in ept_ion_channels:                    
-                    axs[i].plot(df_ept[f'Ion_Flux_{view}_{chan}'], ds="steps-mid", label=f'EPT {energies_ept['Ion_Bins_Text'][chan]}') 
+                    axs[i].plot(df_ept[f'Ion_Flux_{view}_{chan}'], ds="steps-mid", label=f"EPT {energies_ept['Ion_Bins_Text'][chan]}")
             else:
                 p_channels = np.arange(0, 64, 6)
                 axs[i].set_prop_cycle('color', plt.cm.YlOrRd(np.linspace(0.2,1,len(p_channels))))
