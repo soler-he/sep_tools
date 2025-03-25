@@ -21,7 +21,7 @@ import sunpy_soar
 from sunpy.net import Fido
 from sunpy.timeseries import TimeSeries
 
-from multi_panel_plots.polarity_plotting import polarity_rtn, polarity_panel, polarity_colorwheel
+from multi_inst_plots.polarity_plotting import polarity_rtn, polarity_panel, polarity_colorwheel
 
 
 
