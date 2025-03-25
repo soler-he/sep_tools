@@ -35,6 +35,8 @@ Activate the created virtual environment in the terminal (step 5. of [Installati
 - `SEP_PADs-and-Anisotropy.ipynb`: SEP PADs-and-Anisotropy tool
 - `SEP_Regression_Analysis.ipynb`: SEP Regression-Analysis tool
 
+If you are new to Jupyter Notebooks, the official documentation will give you more info about [What is the Jupyter Notebook?](https://jupyter-notebook.readthedocs.io/en/stable/examples/Notebook/What%20is%20the%20Jupyter%20Notebook.html) and [Running Code](https://jupyter-notebook.readthedocs.io/en/stable/examples/Notebook/Running%20Code.html) with it.
+
 ## Contributing
 
 Contributions to this tool are very much welcome and encouraged! Contributions can take the form of [issues](https://github.com/soler-he/sep_tools/issues) to report bugs and request new features or [pull requests](https://github.com/soler-he/sep_tools/pulls) to submit new code.
