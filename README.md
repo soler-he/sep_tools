@@ -29,11 +29,11 @@ This repository contains multiple Python tools for the analysis of Solar Energet
 
 Activate the created virtual environment in the terminal (step 5. of [Installation](#installation)), go to the folder where the tools have been extracted to, and run `jupyter-lab`. This will open the default web-browser. There, open the *.ipynb* file of the specific tool:
 
-- `SEP_Fluence-Spectra.ipynb`: SEP Fluence-Spectra tool
-- `SEP_Multi-Instrument-Plot.ipynb`: SEP Multi-Instrument-Plot tool
-- `SEP_Multi-Spacecraft-Plot.ipynb`: SEP Multi-Spacecraft-Plot tool
-- `SEP_PADs-and-Anisotropy.ipynb`: SEP PADs-and-Anisotropy tool
-- `SEP_Regression-Onset.ipynb`: SEP Regression-Onset tool
+- `SEP_Fluence-Spectra.ipynb`<br>Determines and visualizes SEP energy spectra accumulated over a whole event duration
+- `SEP_Multi-Instrument-Plot.ipynb`<br>Makes multi-panel time-series plots of various different in-situ measurements, including also selected remote-sensing observations
+- `SEP_Multi-Spacecraft-Plot.ipynb`<br>Makes a plot of SEP intensity-time profiles combining observations by different spacecraft
+- `SEP_PADs-and-Anisotropy.ipynb`<br>Determines and visualizes SEP Pitch-Angle Distributions (PADs) and first-order anisotropies, including methods for background subtraction
+- `SEP_Regression-Onset.ipynb`<br>Determines SEP onset times based on a regression method
 
 If you are new to Jupyter Notebooks, the official documentation will give you more info about [What is the Jupyter Notebook?](https://jupyter-notebook.readthedocs.io/en/stable/examples/Notebook/What%20is%20the%20Jupyter%20Notebook.html) and [Running Code](https://jupyter-notebook.readthedocs.io/en/stable/examples/Notebook/Running%20Code.html) with it.
 
