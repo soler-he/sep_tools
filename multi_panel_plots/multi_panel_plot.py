@@ -52,7 +52,7 @@ class Options:
         self.T = w.Checkbox(value=True, description="T")
         self.p_dyn = w.Checkbox(value=True, description="p_dyn")
         self.stix = w.Checkbox(value=True, description="SolO/STIX")
-        self.stix_ltc = w.Checkbox(value=True, description="SolO/STIX lightcurves")
+        self.stix_ltc = w.Checkbox(value=True, description="Correct STIX for light travel time")
         
         self.path = f"{os.getcwd()}{os.sep}data"
         self.plot_range = None
