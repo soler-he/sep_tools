@@ -3,10 +3,10 @@ import ipywidgets as w
 import os
 
 from IPython.display import display
-from multi_panel_plots import stereo_tools as stereo
-from multi_panel_plots import psp_tools as psp
-from multi_panel_plots import l1_tools as l1
-from multi_panel_plots import solo_tools as solo
+from multi_inst_plots import stereo_tools as stereo
+from multi_inst_plots import psp_tools as psp
+from multi_inst_plots import l1_tools as l1
+from multi_inst_plots import solo_tools as solo
 
 
 style = {'description_width' : '50%'} 

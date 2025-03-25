@@ -181,11 +181,13 @@ class Reg:
 
         # Formatting the x-axis and setting the axis labels
         self.quicklook_ax.xaxis.set_major_formatter(DateFormatter("%H:%M\n%d"))
-        self.quicklook_ax.set_xlabel(f"Date of {data.index[len(data.index)//2].strftime('%b, %Y')}", fontsize=STANDARD_LEGENDSIZE)
+        self.quicklook_ax.set_xlabel(f"Date of {data.index[len(data.index)//2].strftime('%b, %Y')}", fontsize=QUICKLOOK_LEGENDSIZE)
         self.quicklook_ax.set_ylabel(r"Intensity [1/(cm$^{2}$ sr s MeV)]", fontsize=QUICKLOOK_LEGENDSIZE)
 
         # Add the legend and show the figure
         self.quicklook_ax.legend(fontsize=QUICKLOOK_LEGENDSIZE)
+
+        self.quicklook_fig.tight_layout()
         plt.show()
 
 

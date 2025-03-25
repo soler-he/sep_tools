@@ -20,7 +20,7 @@ from seppy.tools import resample_df
 from stixdcpy.quicklook import LightCurves # https://github.com/i4Ds/stixdcpy
 from sunpy.coordinates import frames, get_horizons_coord
 
-from multi_panel_plots.polarity_plotting import polarity_rtn
+from multi_inst_plots.polarity_plotting import polarity_rtn
 
 # disable unused speasy data provider before importing to speed it up
 os.environ['SPEASY_CORE_DISABLED_PROVIDERS'] = "sscweb,archive,csa"
