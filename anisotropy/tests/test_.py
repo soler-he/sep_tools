@@ -29,20 +29,20 @@ def test_SEP_PADs_and_Anisotropy():
     end_time = pd.to_datetime('2021-11-01 18:00:00')
     event = run_SEPevent(path, spacecraft_instrument.value, start_time, end_time, species=species, channels=channels, averaging=averaging)
     fig, axes = event.overview_plot()
-    
-    # chose a background window. Setting these to None will set default window [start_time, start_time + 5 hours] 
+
+    # chose a background window. Setting these to None will set default window [start_time, start_time + 5 hours]
     bg_start = pd.to_datetime('2021-10-31 23:00:00')  # None
     bg_end = pd.to_datetime('2021-11-01 01:30:00')  # None
     #
     # chose an end time for the background subtraction:
     # if None then background subraction stops 3 hours after the end of the background window (bg_end)
-    corr_window_end = None  # pd.to_datetime('2021-11-01 18:00:00') 
+    corr_window_end = None  # pd.to_datetime('2021-11-01 18:00:00')
     #
     # resets background window and event.corr_window_end which is used to check that the background is not above the observations near the event start
     event.set_background_window(bg_start, bg_end, corr_window_end)
     #
     # averaging (in minutes) used for the background analysis
-    bg_av_min = 10  
+    bg_av_min = 10
     #
     event.background_analysis_all(minutes=bg_av_min)
     fig, axes = event.overview_plot_bgsub()
@@ -51,5 +51,5 @@ def test_SEP_PADs_and_Anisotropy():
     #
     event.calculate_anisotropy(ani_method=ani_method)
     fig, axes = event.anisotropy_plot(ani_method=ani_method)
-    
+
     return fig
