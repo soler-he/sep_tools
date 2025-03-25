@@ -29,21 +29,23 @@ This repository contains multiple Python tools for the analysis of Solar Energet
 
 Activate the created virtual environment in the terminal (step 5. of [Installation](#installation)), go to the folder where the tools have been extracted to, and run `jupyter-lab`. This will open the default web-browser. There, open the *.ipynb* file of the specific tool:
 
+- `SEP_Fluence-Spectra.ipynb`: SEP Fluence-Spectra tool
+- `SEP_Multi-Panel-Plot.ipynb`: SEP Multi-Panel-Plot tool
 - `SEP_Multi-Spacecraft-Plot.ipynb`: SEP Multi-Spacecraft-Plot tool
 - `SEP_PADs-and-Anisotropy.ipynb`: SEP PADs-and-Anisotropy tool
+- `SEP_Regression_Analysis.ipynb`: SEP Regression-Analysis tool
 
 ## Contributing
 
-Contributions to this tool are very much welcome and encouraged! Contributions can take the form of [issues](https://github.com/soler-he/sep_tools/issues) to report bugs and request new features or [pull requests](https://github.com/soler-he/sep_tools/pulls) to submit new code. 
+Contributions to this tool are very much welcome and encouraged! Contributions can take the form of [issues](https://github.com/soler-he/sep_tools/issues) to report bugs and request new features or [pull requests](https://github.com/soler-he/sep_tools/pulls) to submit new code.
 
 If you don't have a GitHub account, you can [sign-up for free here](https://github.com/signup), or you can also reach out to us with feedback by sending an email to jan.gieseler@utu.fi.
 
 ## Acknowledgement
 
-<img align="right" height="80px" src="https://github.com/user-attachments/assets/28c60e00-85b4-4cf3-a422-6f0524c42234"> 
-<img align="right" height="80px" src="https://github.com/user-attachments/assets/5bec543a-5d80-4083-9357-f11bc4b339bd"> 
+<img align="right" height="80px" src="https://github.com/user-attachments/assets/28c60e00-85b4-4cf3-a422-6f0524c42234" alt="EU flag">
+<img align="right" height="80px" src="https://github.com/user-attachments/assets/5bec543a-5d80-4083-9357-f11bc4b339bd" alt="SOLER logo">
 
-This tool is developed within the SOLER (*Energetic Solar Eruptions: Data and Analysis Tools*) project. SOLER has received funding from the European Union’s Horizon Europe programme under grant agreement No 101134999. 
+This tool is developed within the SOLER (*Energetic Solar Eruptions: Data and Analysis Tools*) project. SOLER has received funding from the European Union’s Horizon Europe programme under grant agreement No 101134999.
 
 The tool reflects only the authors’ view and the European Commission is not responsible for any use that may be made of the information it contains.
-
