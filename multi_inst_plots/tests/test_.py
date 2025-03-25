@@ -21,6 +21,8 @@ def test_SEP_Multi_Instrument_Plot_PSP():
     m.options.path = f"{os.getcwd()}{os.sep}data"
     display(m.plot_range(m.options.startdate.value, m.options.enddate.value))
     m.options.spacecraft.value = 'PSP'
+    # deactivate STIX for now as it crashes on GitHub
+    m.options.stix.value = False
     m.load_data()
     fig, axs = m.make_plot()
     return fig
@@ -31,6 +33,8 @@ def test_SEP_Multi_Instrument_Plot_SolO():
     m.options.path = f"{os.getcwd()}{os.sep}data"
     display(m.plot_range(m.options.startdate.value, m.options.enddate.value))
     m.options.spacecraft.value = 'SolO'
+    # deactivate STIX for now as it crashes on GitHub
+    m.options.stix.value = False
     m.load_data()
     fig, axs = m.make_plot()
     return fig
