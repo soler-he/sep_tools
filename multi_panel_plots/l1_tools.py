@@ -508,8 +508,8 @@ def make_plot(options):
     if plot_electrons:
         # electrons
         ax = axs[i]
-        axs[i].set_prop_cycle('color', plt.cm.Greens_r(np.linspace(0,1, len(meta_e['channels_dict_df'])+color_offset)))
         if plot_wind:
+            axs[i].set_prop_cycle('color', plt.cm.Greens_r(np.linspace(0,1, len(meta_e['channels_dict_df'])+color_offset)))
             for ch in np.arange(1, len(meta_e['channels_dict_df'])):
                 ax.plot(edic.index, edic[f'FLUX_{ch}'] * wind_ev2MeV_fac, label='Wind/3DP '+meta_e['channels_dict_df']['Bins_Text'].values[ch], drawstyle='steps-mid')
         
@@ -531,8 +531,8 @@ def make_plot(options):
     if plot_protons:    
         # protons low en:
         ax = axs[i]
-        ax.set_prop_cycle('color', plt.cm.plasma(np.linspace(0,1, len(meta_p['channels_dict_df'])+color_offset)))
         if plot_wind:
+            ax.set_prop_cycle('color', plt.cm.plasma(np.linspace(0,1, len(meta_p['channels_dict_df'])+color_offset)))
             for ch in np.arange(2, len(meta_p['channels_dict_df'])):
                 ax.plot(pdic.index, pdic[f'FLUX_{ch}'] * wind_ev2MeV_fac, label='Wind/3DP '+meta_p['channels_dict_df']['Bins_Text'].values[ch],
                         drawstyle='steps-mid')
