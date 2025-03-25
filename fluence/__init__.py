@@ -45,6 +45,8 @@ class Event:
                 self.viewing = ''
         if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
             self.instrument = 'EPI-Hi HET'
+        if self.spacecraft.lower() == 'solar orbiter':
+            self.spacecraft = 'solo'
 
         if not data_path:
             data_path = os.getcwd()+os.sep+'data'+os.sep
@@ -93,7 +95,7 @@ class Event:
         fig, axs = plt.subplots(1, sharex=True, figsize=(9, 6), dpi=200)
 
         if self.spacecraft.lower() == 'solo':
-            if self.instrument == 'ept':
+            if self.instrument.lower() == 'ept':
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
                     flux_id = 'Electron_Flux'
                     energy_text = 'Electron_Bins_Text'
@@ -103,7 +105,7 @@ class Event:
                     energy_text = 'Ion_Bins_Text'
                     show_channels = [0, 4, 8, 12, 16, 20, 24, 28, 32]
 
-            if self.instrument == 'het':
+            if self.instrument.lower() == 'het':
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
                     show_channels = [0, 1, 2, 3]
                     energy_text = "Electron_Bins_Text"
@@ -265,14 +267,14 @@ class Event:
                 unc_id = f"{self.viewing}_H_Uncertainty"
                 self.spec_E = self.meta['H_ENERGY']
 
-        if self.instrument == 'sept':
+        if self.instrument.lower() == 'sept':
             df_fluxes = self.df[self.df.columns.drop([i for i in self.df.columns if 'err' in i])]
         else:
             df_fluxes = self.df[self.df.filter(like=flux_id).columns]
 
         I_spec = np.nanmean(df_fluxes.iloc[ind], axis=0)
 
-        if self.spacecraft == 'wind':
+        if self.spacecraft.lower() == 'wind':
             I_spec = np.nanmean(df_fluxes.iloc[ind], axis=0)*1e6
             unc_spec = np.zeros(len(I_spec))*np.nan
         else:
@@ -283,7 +285,7 @@ class Event:
             print('subtracting background')
             bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
             self.integrated_spec = I_spec - bg_spec
-            if self.spacecraft == 'wind':
+            if self.spacecraft.lower() == 'wind':
                 self.integrated_unc = np.zeros(len(I_spec))*np.nan
             else:
                 bg_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)
