@@ -68,16 +68,14 @@ def test_SEP_Regression_Analysis():
     #
     # Leaving selection to None
     selection = None
-    # selection=["2022-01-20 02:00", "2022-01-20 12:00"]
-    selection = "2022-01-20 12:00"
-    event.selection_max_x = pd.Timestamp(selection)  # pd.Timestamp('2022-01-20 12:02:41.096722364')
+    selection = ["2022-01-20 02:00", "2022-01-20 12:00"]
     #
     # Display a quicklook plot of the input data (df).
     # Apply the selection of data for the tool by 'selection' parameter or by clicking
     # on the plot.
     # The line magic 'ipympl' enables interactive mode
     # %matplotlib ipympl
-    event.quicklook(channel=channel, resample="5 min")
+    event.quicklook(channel=channel, resample="5 min", selection=selection)
     #
     # Title for the figure (optional)
     title = r"Solar Orbiter / EPT$^{\mathrm{sun}}$ ($0.0439 - 0.0467$) MeV electrons, 1 min data"
