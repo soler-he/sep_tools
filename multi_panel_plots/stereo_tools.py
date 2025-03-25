@@ -223,18 +223,22 @@ def make_plot(options):
     cmap = options.radio_cmap.value
     legends_inside = options.legends_inside.value
 
-    ### Resampling
+### Resampling
     if resample != "0min":
-        df_sept_electrons = resample_df(df_sept_electrons_orig, resample)  
-        df_sept_protons = resample_df(df_sept_protons_orig, resample)  
+        if plot_sept_e:
+            df_sept_electrons = resample_df(df_sept_electrons_orig, resample)
+        if plot_sept_p:
+            df_sept_protons = resample_df(df_sept_protons_orig, resample)
         if plot_het:
-            df_het  = resample_df(df_het_orig, resample)  
+            df_het = resample_df(df_het_orig, resample)  
         
     else:
-        df_sept_electrons = df_sept_electrons_orig
-        df_sept_protons = df_sept_protons_orig  
+        if plot_sept_e:
+            df_sept_electrons = df_sept_electrons_orig
+        if plot_sept_p:
+            df_sept_protons = df_sept_protons_orig
         if plot_het:
-            df_het  = df_het_orig
+            df_het = df_het_orig
         
     if resample_mag != "0min":
         if plot_Vsw or plot_N or plot_T:
