@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # Constants:
-STANDARD_QUICKLOOK_FIGSIZE = (10,5)
+STANDARD_QUICKLOOK_FIGSIZE = (10,6)
 STANDARD_FIGSIZE = (26,11)
 
 STANDARD_TITLE_FONTSIZE = 32
