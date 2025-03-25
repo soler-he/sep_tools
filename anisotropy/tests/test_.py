@@ -20,6 +20,7 @@ pytest -rP --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-gene
 def test_SEP_PADs_and_Anisotropy():
     path = os.getcwd()+os.sep+'data'
     spacecraft_instrument = select_sc_inst()
+    spacecraft_instrument.value = 'Wind 3DP'
     #
     species = "e"
     channels = 3  # no channel averaging implemented for 3DP!
