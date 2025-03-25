@@ -156,22 +156,24 @@ def load_data(options):
                                                                 pos_timestamp=None,viewing=viewing, path=path, autodownload=True)
         protons_het, electrons_het, energies_het = epd_load(sensor='het', level='l2', startdate=startdate, enddate=enddate, 
                                                             pos_timestamp=None,viewing=viewing, path=path, autodownload=True)
-    
-    print('EPT electron channels:')
-    for i, e in enumerate(energies_ept['Electron_Bins_Text']):
-        print(i, e)
-    print('')
-    print('HET electron channels:')
-    for i, e in enumerate(energies_het['Electron_Bins_Text']):
-        print(i, e)
-    print('')
-    print('EPT ion channels:')
-    for i, e in enumerate(energies_ept['Ion_Bins_Text']):
-        print(i, e)
-    print('')
-    print('HET ion channels:')
-    for i, e in enumerate(energies_het['H_Bins_Text']):
-        print(i, e)
+
+    if plot_electrons:
+        print('EPT electron channels:')
+        for i, e in enumerate(energies_ept['Electron_Bins_Text']):
+            print(i, e)
+        print('')
+        print('HET electron channels:')
+        for i, e in enumerate(energies_het['Electron_Bins_Text']):
+            print(i, e)
+        print('')
+    if plot_protons:
+        print('EPT ion channels:')
+        for i, e in enumerate(energies_ept['Ion_Bins_Text']):
+            print(i, e)
+        print('')
+        print('HET ion channels:')
+        for i, e in enumerate(energies_het['H_Bins_Text']):
+            print(i, e)
 
     if plot_stix:
         lc = LightCurves.from_sdc(start_utc=startdate, end_utc=enddate, ltc=stix_ltc)
