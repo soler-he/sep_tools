@@ -30,10 +30,10 @@ This repository contains multiple Python tools for the analysis of Solar Energet
 Activate the created virtual environment in the terminal (step 5. of [Installation](#installation)), go to the folder where the tools have been extracted to, and run `jupyter-lab`. This will open the default web-browser. There, open the *.ipynb* file of the specific tool:
 
 - `SEP_Fluence-Spectra.ipynb`: SEP Fluence-Spectra tool
-- `SEP_Multi-Panel-Plot.ipynb`: SEP Multi-Panel-Plot tool
+- `SEP_Multi-Instrument-Plot.ipynb`: SEP Multi-Instrument-Plot tool
 - `SEP_Multi-Spacecraft-Plot.ipynb`: SEP Multi-Spacecraft-Plot tool
 - `SEP_PADs-and-Anisotropy.ipynb`: SEP PADs-and-Anisotropy tool
-- `SEP_Regression_Analysis.ipynb`: SEP Regression-Analysis tool
+- `SEP_Regression-Onset.ipynb`: SEP Regression-Onset tool
 
 If you are new to Jupyter Notebooks, the official documentation will give you more info about [What is the Jupyter Notebook?](https://jupyter-notebook.readthedocs.io/en/stable/examples/Notebook/What%20is%20the%20Jupyter%20Notebook.html) and [Running Code](https://jupyter-notebook.readthedocs.io/en/stable/examples/Notebook/Running%20Code.html) with it.
 
@@ -48,6 +48,6 @@ If you don't have a GitHub account, you can [sign-up for free here](https://gith
 <img align="right" height="80px" src="https://github.com/user-attachments/assets/28c60e00-85b4-4cf3-a422-6f0524c42234" alt="EU flag">
 <img align="right" height="80px" src="https://github.com/user-attachments/assets/5bec543a-5d80-4083-9357-f11bc4b339bd" alt="SOLER logo">
 
-This tool is developed within the SOLER (*Energetic Solar Eruptions: Data and Analysis Tools*) project. SOLER has received funding from the European Union’s Horizon Europe programme under grant agreement No 101134999.
+These tools are developed within the SOLER (*Energetic Solar Eruptions: Data and Analysis Tools*) project. SOLER has received funding from the European Union’s Horizon Europe programme under grant agreement No 101134999.
 
 The tool reflects only the authors’ view and the European Commission is not responsible for any use that may be made of the information it contains.
