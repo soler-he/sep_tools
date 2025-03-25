@@ -420,14 +420,16 @@ def make_plot(options):
             df_vsw = df_solwind
         
     if av_sep != "0min":
-        edic = resample_df(edic_, av_sep)
-        pdic = resample_df(pdic_, av_sep)
+        if plot_wind:
+            edic = resample_df(edic_, av_sep)
+            pdic = resample_df(pdic_, av_sep)
         if plot_ephin:
             ephin = resample_df(ephin_, av_sep)
         
     else:
-        edic = edic_
-        pdic = pdic_
+        if plot_wind:
+            edic = edic_
+            pdic = pdic_
         if plot_ephin:
             ephin = ephin_
         
