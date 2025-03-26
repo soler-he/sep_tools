@@ -30,6 +30,7 @@ from .externals import export_seppy_data
 from .select_data import data_file
 
 DEFAULT_NUM_OF_BREAKPOINTS = 1
+DEFAULT_NUM_OF_TRIALS = 5
 SECONDS_PER_DAY = 86400
 
 
@@ -193,8 +194,8 @@ class Reg:
 
     def find_breakpoints(self, channel:str, resample:str=None, xlim:list=None, window:int=None, 
                         threshold:float=None, plot:bool=True, diagnostics=False, index_choice="time_s", 
-                        plot_style="step", breaks=1, title:str=None, fill_zeroes=True,
-                        convergence_trials=1):
+                        plot_style="step", breaks=DEFAULT_NUM_OF_BREAKPOINTS, title:str=None, fill_zeroes=True,
+                        convergence_trials=DEFAULT_NUM_OF_TRIALS):
         """
         If not using manual selection, then seeks for the first peak in the given data. Cuts the data there 
         and only considers that part which comes before the first peak. In this chosen part, seek (a) break/s 
@@ -205,18 +206,18 @@ class Reg:
         Parameters:
         -----------
         channel : {str} The ID of the channel.
-        resample : {str}
-        xlim : {list}
-        window : {str}
-        threshold : {float}
+        resample : {str} Time-averaging str to apply, e.g., '5 min' for 5 -minute time-averaging.
+        xlim : {list} List of two timestamps. Sets the boundaries of the x-axis.
+        window : {str} For peak finder: The amount of data points to look forward from last found peak.
+        threshold : {float} For peak finder: The minimum value to consider the peak.
         plot : {bool} Draws the plot of breakpoints and intensity time series.
-        diagnostics : {bool}
+        diagnostics : {bool} Enables diagnostic mode.
         index_choice : {str} Either 'counting_numbers' or 'time_s'
         plot_style : {str} Either 'step' or 'scatter'
         breaks : {int} Number of breaks to search for.
         title : {str} The title string.
         fill_zeroes : {bool} Fills zero intensity bins with a filler value, described in calc.fill_zeros().
-        convergence_trials : {int} The number of trials to find a convergent solution before giving up.
+        convergence_trials : {int} The number of trials to find a convergent solution before giving up. Default = 5
 
         Returns:
         ----------
