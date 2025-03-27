@@ -13,7 +13,7 @@ style = {'description_width' : '50%'}
 
 common_attrs = ["spacecraft", "startdate", "enddate", "resample", "resample_mag", "radio_cmap", "legends_inside"] # , "resample_pol"
 
-variable_attrs = ['radio', 'mag', 'mag_angles', 'polarity', 'Vsw', 'N', 'T', 'p_dyn', "stix", "stix_ltc"] # ,'pad'
+variable_attrs = ['radio', 'mag', 'polarity', 'mag_angles', 'Vsw', 'N', 'T', 'p_dyn', "stix", "stix_ltc"] # ,'pad'
 
 psp_attrs = ['psp_epilo_e', 'psp_epilo_p', 'psp_epihi_e',
              'psp_epihi_p', 'psp_het_viewing', 'psp_epilo_viewing',
@@ -46,7 +46,7 @@ class Options:
         #self.pad = w.Checkbox(value=True, description="Pitch angle distribution")    # TODO: remove disabled keyword after implementation
         self.mag = w.Checkbox(value=True, description="MAG")
         self.mag_angles = w.Checkbox(value=True, description="MAG angles")
-        self.polarity = w.Checkbox(value=True, description="Polarity")
+        self.polarity = w.Checkbox(value=True, description="MAG polarity")
         self.Vsw = w.Checkbox(value=True, description="V_sw")
         self.N = w.Checkbox(value=True, description="N")
         self.T = w.Checkbox(value=True, description="T")
@@ -130,6 +130,27 @@ class Options:
 
                 if change.new == "STEREO":
                     display(self.stereo_box)
+
+        def disable_checkbox(change):
+            """
+            Disable checkbox when options get update (e.g. MAG + MAG polarity).
+            """
+            if change.owner == self.mag:
+                if change.new == False:
+                    self.polarity.disabled = True
+
+                elif change.new == True:
+                    self.polarity.disabled = False
+
+            if change.owner == self.stix:
+                if change.new == False:
+                    self.stix_ltc.disabled = True
+
+                elif change.new == True:
+                    self.stix_ltc.disabled = False
+
+        self.mag.observe(disable_checkbox, names="value")
+        self.stix.observe(disable_checkbox, names="value")
 
         # TODO figure out how to have plot range update based on changes in start and end date
         # def change_plot_range(change):
