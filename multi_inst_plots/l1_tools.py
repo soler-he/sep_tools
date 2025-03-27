@@ -321,9 +321,6 @@ def load_data(options):
     plot_polarity = options.polarity.value
     path = options.path
 
-    av_sep = str(options.l1_av_sep.value) + "min"
-    av_mag =  str(options.resample_mag.value) + "min"
-    av_erne = str(options.l1_av_erne.value) + "min"
 
 
     # LOAD DATA
@@ -451,13 +448,18 @@ def make_plot(options):
         t_start = options.plot_range.children[0].value[0]
         t_end = options.plot_range.children[0].value[1]
 
-    print(f"Plotting Wind/SOHO data for timerange {t_start} - {t_end}")
 
     font_ylabel = 20
     font_legend = 10
 
     panels = 1*plot_radio + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T # + 1*plot_pad 
 
+    if panels == 0:
+        print("No instruments chosen!")
+        return (None, None)
+    
+    print(f"Plotting Wind/SOHO data for timerange {t_start} - {t_end}")
+    
     panel_ratios = list(np.zeros(panels)+1)
     if plot_radio:
         panel_ratios[0] = 2
@@ -478,7 +480,7 @@ def make_plot(options):
     fig.subplots_adjust(hspace=0.1)
 
     if panels == 1:
-        axs = [axs, axs]
+        axs = [axs]
 
     
     color_offset = 3

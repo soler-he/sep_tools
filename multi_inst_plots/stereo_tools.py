@@ -223,7 +223,7 @@ def make_plot(options):
     cmap = options.radio_cmap.value
     legends_inside = options.legends_inside.value
 
-### Resampling
+    ### Resampling
     if resample != "0min":
         if plot_sept_e:
             df_sept_electrons = resample_df(df_sept_electrons_orig, resample)
@@ -264,7 +264,7 @@ def make_plot(options):
         t_start = options.plot_range.children[0].value[0]
         t_end = options.plot_range.children[0].value[1]
 
-    print(f"Plotting STEREO {sc} for timerange {t_start} - {t_end}")
+    
 
     # #Channels list
     # channels_n_sept_e = range(0,14+1,n_sept_e)  # changed from np.arange()
@@ -275,18 +275,27 @@ def make_plot(options):
     # channels_list = [channels_n_sept_e, channels_n_het_e, channels_n_sept_p, channels_n_het_p]
 
     #Chosen channels
-    print('Chosen channels:')
-    if plot_electrons:
-        print(f'SEPT electrons: {ch_sept_e}, {len(ch_sept_e)}')
-        if plot_het:
-            print(f'HET electrons: {ch_het_e}, {len(ch_het_e)}')
-    if plot_protons:
-        print(f'SEPT protons: {ch_sept_p}, {len(ch_sept_p)}')
-        if plot_het:
-            print(f'HET protons: {ch_het_p}, {len(ch_het_p)}')
+    if plot_protons or plot_electrons:
+        print('Chosen energy channels:')
+        if plot_electrons:
+            if plot_sept_e:
+                print(f'SEPT electrons: {ch_sept_e}, {len(ch_sept_e)}')
+            if plot_het_e:
+                print(f'HET electrons: {ch_het_e}, {len(ch_het_e)}')
+        if plot_protons:
+            if plot_sept_p:
+                print(f'SEPT protons: {ch_sept_p}, {len(ch_sept_p)}')
+            if plot_het_p:
+                print(f'HET protons: {ch_het_p}, {len(ch_het_p)}')
 
     panels = 1*plot_radio + 1*plot_electrons + 1*plot_protons  + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T # + 1*plot_pad
 
+    if panels == 0:
+        print("No instruments chosen!")
+        return (None, None)
+    
+    print(f"Plotting STEREO {sc} for timerange {t_start} - {t_end}")
+    
     panel_ratios = list(np.zeros(panels)+1)
 
     if plot_radio:
@@ -302,6 +311,9 @@ def make_plot(options):
     else:
         fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 3*panels], gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
     fig.subplots_adjust(hspace=0.1)
+
+    if panels == 1:
+        axs = [axs]
 
     i = 0
 

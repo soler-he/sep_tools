@@ -222,10 +222,10 @@ def load_data(options):
         psp_mag['phi_mod'] = ((psp_mag['phi'].values - 180) % 360) - 180
 
 
-    if plot_mag_angles:
-        theta, phi = mag_angles(psp_mag['|b|'].values, psp_mag['br'].values, psp_mag['bt'].values, psp_mag['bn'].values)
-        psp_mag['theta2'] = theta
-        psp_mag['phi2'] = phi
+        if plot_mag_angles:
+            theta, phi = mag_angles(psp_mag['|b|'].values, psp_mag['br'].values, psp_mag['bt'].values, psp_mag['bn'].values)
+            psp_mag['theta2'] = theta
+            psp_mag['phi2'] = phi
 
     if plot_Vsw or plot_N or plot_T or plot_p_dyn:
         # SPC
@@ -399,39 +399,46 @@ def make_plot(options):
         if plot_Vsw or plot_N or plot_T or plot_p_dyn:
             df_magplas_spani = resample_df(df_psp_spani, resample_mag) 
             df_magplas_spc = resample_df(df_psp_spc, resample_mag)
-        if plot_mag:
+        if plot_mag or plot_mag_angles:
             mag = resample_df(psp_mag, resample_mag) 
 
     else:
         if plot_Vsw or plot_N or plot_T or plot_p_dyn:
             df_magplas_spani = df_psp_spani 
             df_magplas_spc = df_psp_spc
-        if plot_mag:
+        if plot_mag or plot_mag_angles:
             mag = psp_mag
 
-    print(f"Plotting PSP data for timerange {t_start} - {t_end}")
+    
     
     ############################################################################
     ############## Energy channel ranges #######################################
     ############################################################################
-    print("Chosen channels:")
-    if plot_protons:  
-        #Chosen channels
-        if plot_epihi_p:
-            print('HET protons:', ch_het_p, ',', len(ch_het_p))
-        if plot_epilo_p:
-            print('EPI-Lo ic:', ch_epilo_ic, ',', len(ch_epilo_ic))
+    if plot_electrons or plot_protons:
+        print("Chosen energy channels:")
+        if plot_protons:  
+            
+            if plot_epihi_p:
+                print('HET protons:', ch_het_p, ',', len(ch_het_p))
+            if plot_epilo_p:
+                print('EPI-Lo ic:', ch_epilo_ic, ',', len(ch_epilo_ic))
 
-    if plot_electrons:
-        if plot_epihi_e:
-            print('HET electrons:', ch_het_e, ',', len(ch_het_e))
-        if plot_epilo_e:
-            print('EPI-Lo electrons:', ch_epilo_e, ',', len(ch_epilo_e))
+        if plot_electrons:
+            if plot_epihi_e:
+                print('HET electrons:', ch_het_e, ',', len(ch_het_e))
+            if plot_epilo_e:
+                print('EPI-Lo electrons:', ch_epilo_e, ',', len(ch_epilo_e))
         
     
 
     panels = 1*plot_radio + 1*plot_stix + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1*plot_Vsw + 1*plot_N + 1*plot_T + 1*plot_p_dyn 
 
+    if panels == 0:
+        print("No instruments chosen!")
+        return (None, None)
+    
+    print(f"Plotting PSP data for timerange {t_start} - {t_end}")
+    
     panel_ratios = list(np.zeros(panels)+1)
 
     if plot_radio:
@@ -450,6 +457,9 @@ def make_plot(options):
         fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 4*panels])#, gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
     else:
         fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 3*panels], gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
+
+    if panels == 1:
+        axs = [axs] # fixes bug when plotting just one instrument
 
     fig.subplots_adjust(hspace=0.1)
     
