@@ -49,3 +49,5 @@ jobs:
       with:
         name: ${{ matrix.python-version }}-pytest-mpl-report-artifact
         path: "/home/runner/work/sep_tools/tests_report/"
+    - uses: pre-commit-ci/lite-action@v1.1.0
+      if: always()
