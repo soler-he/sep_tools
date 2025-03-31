@@ -30,6 +30,7 @@ from .externals import export_seppy_data
 from .select_data import data_file
 
 DEFAULT_NUM_OF_BREAKPOINTS = 1
+DEFAULT_NUM_OF_TRIALS = 5
 SECONDS_PER_DAY = 86400
 
 
@@ -193,7 +194,8 @@ class Reg:
 
     def find_breakpoints(self, channel:str, resample:str=None, xlim:list=None, window:int=None, 
                         threshold:float=None, plot:bool=True, diagnostics=False, index_choice="time_s", 
-                        plot_style="step", breaks=1, title:str=None, fill_zeroes=True):
+                        plot_style="step", breaks=DEFAULT_NUM_OF_BREAKPOINTS, title:str=None, fill_zeroes=True,
+                        convergence_trials=DEFAULT_NUM_OF_TRIALS):
         """
         If not using manual selection, then seeks for the first peak in the given data. Cuts the data there 
         and only considers that part which comes before the first peak. In this chosen part, seek (a) break/s 
@@ -204,17 +206,18 @@ class Reg:
         Parameters:
         -----------
         channel : {str} The ID of the channel.
-        resample : {str}
-        xlim : {list}
-        window : {str}
-        threshold : {float}
+        resample : {str} Time-averaging str to apply, e.g., '5 min' for 5 -minute time-averaging.
+        xlim : {list} List of two timestamps. Sets the boundaries of the x-axis.
+        window : {str} For peak finder: The amount of data points to look forward from last found peak.
+        threshold : {float} For peak finder: The minimum value to consider the peak.
         plot : {bool} Draws the plot of breakpoints and intensity time series.
-        diagnostics : {bool}
+        diagnostics : {bool} Enables diagnostic mode.
         index_choice : {str} Either 'counting_numbers' or 'time_s'
         plot_style : {str} Either 'step' or 'scatter'
         breaks : {int} Number of breaks to search for.
         title : {str} The title string.
         fill_zeroes : {bool} Fills zero intensity bins with a filler value, described in calc.fill_zeros().
+        convergence_trials : {int} The number of trials to find a convergent solution before giving up. Default = 5
 
         Returns:
         ----------
@@ -284,32 +287,45 @@ class Reg:
         series = series[min_idx:max_idx]
         numerical_indices = data[index_choice].values[min_idx:max_idx]
 
-        # Get the fit results
-        fit_results = break_regression(ints=series.values, indices=numerical_indices, num_of_breaks=breaks)
+        # Get the fit results (try a number of times if converged == False)
+        while convergence_trials > 0:
 
-        # The results are a dictionary, extract values here. Also check that the result converged.
-        estimates = fit_results["estimates"]
-        regression_converged = fit_results["converged"]
+            # Runs regression model with given parameters
+            fit_results = break_regression(ints=series.values, indices=numerical_indices, num_of_breaks=breaks)
 
-        _validate_fit_convergence(regression_converged=regression_converged)
+            # The results are a dictionary, extract values here. Also check that the result converged.
+            estimates = fit_results["estimates"]
+            regression_converged = fit_results["converged"]
 
-        const, list_of_alphas, list_of_breakpoints, list_of_breakpoint_errs = calc.unpack_fit_results(fit_results=estimates,
+            # Let's not validate convergence anymore
+            # _validate_fit_convergence(regression_converged=regression_converged)
+            # If regression converged to a solution, simply exit the loop and continue as usual
+            if regression_converged:
+                convergence_trials = 0
+
+                const, list_of_alphas, list_of_breakpoints, list_of_breakpoint_errs = calc.unpack_fit_results(fit_results=estimates,
                                                                                                 num_of_breaks=breaks)
 
-        # Finds corresponding timestamps to the numerical indices
-        list_of_dt_breakpoints, list_of_dt_breakpoint_errs = calc.breakpoints_to_datetime(series=series, numerical_indices=numerical_indices,
-                                                                                    list_of_breakpoints=list_of_breakpoints,
-                                                                                    list_of_breakpoint_errs=list_of_breakpoint_errs,
-                                                                                    index_choice=index_choice)
+                # Finds corresponding timestamps to the numerical indices
+                list_of_dt_breakpoints, list_of_dt_breakpoint_errs = calc.breakpoints_to_datetime(series=series, numerical_indices=numerical_indices,
+                                                                                            list_of_breakpoints=list_of_breakpoints,
+                                                                                            list_of_breakpoint_errs=list_of_breakpoint_errs,
+                                                                                            index_choice=index_choice)
 
-        # Compile a results dictionary to eventually return
-        results_dict = {"const": const}
-        for i, alpha in enumerate(list_of_alphas):
-            results_dict[f"alpha{i}"] = alpha
-        for i, bp in enumerate(list_of_dt_breakpoints):
-            results_dict[f"breakpoint{i}"] = bp
-        for i, bp_errs in enumerate(list_of_dt_breakpoint_errs):
-            results_dict[f"breakpoint{i}_errors"] = bp_errs
+                # Compile a results dictionary to eventually return
+                results_dict = {"const": const}
+                for i, alpha in enumerate(list_of_alphas):
+                    results_dict[f"alpha{i}"] = alpha
+                for i, bp in enumerate(list_of_dt_breakpoints):
+                    results_dict[f"breakpoint{i}"] = bp
+                for i, bp_errs in enumerate(list_of_dt_breakpoint_errs):
+                    results_dict[f"breakpoint{i}_errors"] = bp_errs
+
+            # If not, notify the user and deduct 1 from the amount of trials -> try again
+            else:
+                convergence_trials -= 1
+                print(f"Regression converged: {regression_converged}. Retries left: {convergence_trials}")
+
 
         if plot:
 
@@ -320,13 +336,14 @@ class Reg:
                 print(f"Data selection: {series.index[0]}, {series.index[-1]}")
                 print(f"Regression converged: {regression_converged}")
                 # Generate the fit lines to display on the plot
-                list_of_fit_series = calc.generate_fit_lines(data_df=data, indices=numerical_indices, const=const,
-                                                            list_of_alphas=list_of_alphas, 
-                                                            list_of_breakpoints=list_of_breakpoints, index_choice=index_choice)
+                if regression_converged:
+                    list_of_fit_series = calc.generate_fit_lines(data_df=data, indices=numerical_indices, const=const,
+                                                                list_of_alphas=list_of_alphas, 
+                                                                list_of_breakpoints=list_of_breakpoints, index_choice=index_choice)
 
-                # Plot the fit results on the real data
-                for line in list_of_fit_series:
-                    ax.plot(line.index, line.values, lw=2.8, ls="--", c="maroon", zorder=3)
+                    # Plot the fit results on the real data
+                    for line in list_of_fit_series:
+                        ax.plot(line.index, line.values, lw=2.8, ls="--", c="maroon", zorder=3)
 
                 # Apply a span over xmin=start and xmax=max_idx to display the are considered for the fit
                 ax.axvspan(xmin=series.index[0], xmax=series.index[-1], facecolor="green", alpha=DEFAULT_SELECTION_ALPHA, label="selection area")
@@ -337,16 +354,17 @@ class Reg:
             if plot_style=="scatter":
                 ax.scatter(plot_series.index, plot_series.values, label=channel, zorder=1)
 
-            for i, breakpoint_dt in enumerate(list_of_dt_breakpoints):
+            if regression_converged:
+                for i, breakpoint_dt in enumerate(list_of_dt_breakpoints):
 
-                # One has to use the notoriously awkward triple curly parenthesis here to be able to
-                # employ LateX formalism in an f-string:
-                err_delta_plusminus = str(breakpoint_dt - list_of_dt_breakpoint_errs[i][0])[7:7+8]
-                #err_delta_minus = str(list_of_dt_breakpoint_errs[i][1] - breakpoint_dt)[7:7+8]
-                #bp_label = f"breakpoint$_{{{i}}}$: "+f"{breakpoint_dt.strftime('%H:%M:%S')}$_{{-{err_delta_minus}}}^{{+{err_delta_plus}}}$"
-                bp_label = f"breakpoint$_{{{i}}}$: "+f"{breakpoint_dt.strftime('%H:%M:%S')}{LATEX_PM}{err_delta_plusminus}"
-                ax.axvspan(xmin=list_of_dt_breakpoint_errs[i][0], xmax=list_of_dt_breakpoint_errs[i][1], alpha=BREAKPOINT_SHADING_ALPHA, color="red")
-                ax.axvline(x=breakpoint_dt, c="red", lw=1.8, label=bp_label)
+                    # One has to use the notoriously awkward triple curly parenthesis here to be able to
+                    # employ LateX formalism in an f-string:
+                    err_delta_plusminus = str(breakpoint_dt - list_of_dt_breakpoint_errs[i][0])[7:7+8]
+                    #err_delta_minus = str(list_of_dt_breakpoint_errs[i][1] - breakpoint_dt)[7:7+8]
+                    #bp_label = f"breakpoint$_{{{i}}}$: "+f"{breakpoint_dt.strftime('%H:%M:%S')}$_{{-{err_delta_minus}}}^{{+{err_delta_plus}}}$"
+                    bp_label = f"breakpoint$_{{{i}}}$: "+f"{breakpoint_dt.strftime('%H:%M:%S')}{LATEX_PM}{err_delta_plusminus}"
+                    ax.axvspan(xmin=list_of_dt_breakpoint_errs[i][0], xmax=list_of_dt_breakpoint_errs[i][1], alpha=BREAKPOINT_SHADING_ALPHA, color="red")
+                    ax.axvline(x=breakpoint_dt, c="red", lw=1.8, label=bp_label)
 
             # Sets the yticklabels to their exponential form (e.g., 10^5 instead of 5)
             fabricate_yticks(ax=ax)
@@ -354,7 +372,7 @@ class Reg:
 
             # Format the x-axis, name the y-axis and set the x-axis span
             ax.xaxis.set_major_formatter(DateFormatter("%H:%M\n%d"))
-            ax.set_xlabel(f"Date of {breakpoint_dt.strftime('%b, %Y')}", fontsize=STANDARD_LEGENDSIZE)
+            ax.set_xlabel(f"Date of {plot_series.index[0].strftime('%b, %Y')}", fontsize=STANDARD_LEGENDSIZE)
             ax.set_ylabel(r"Intensity [1/(cm$^{2}$ sr s MeV)]", fontsize=STANDARD_LEGENDSIZE)
             set_xlims(ax=ax, data=data, xlim=xlim)
 
@@ -370,8 +388,9 @@ class Reg:
             results_dict["series"] = series
             results_dict["indices"] = numerical_indices
             results_dict["data_df"] = data
-            for i, line in enumerate(list_of_fit_series):
-                results_dict[f"line{i}"] = line
+            if regression_converged:
+                for i, line in enumerate(list_of_fit_series):
+                    results_dict[f"line{i}"] = line
 
         return results_dict
 
