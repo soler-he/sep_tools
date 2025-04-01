@@ -21,7 +21,7 @@ import sunpy_soar
 from sunpy.net import Fido
 from sunpy.timeseries import TimeSeries
 
-from multi_inst_plots.polarity_plotting import polarity_rtn, polarity_panel, polarity_colorwheel
+from multi_inst_plots.other_tools import polarity_rtn, polarity_panel, polarity_colorwheel, mag_angles
 
 
 
@@ -37,23 +37,6 @@ plt.rc('axes', labelsize=20)  # fontsize of the x and y labels
 plt.rcParams['agg.path.chunksize'] = 20000
 
 
-def mag_angles(B,Br,Bt,Bn):
-    theta = np.arccos(Bn/B)
-    alpha = 90-(180/np.pi*theta)
-
-    r = np.sqrt(Br**2 + Bt**2 + Bn**2)
-    phi = np.arccos(Br/np.sqrt(Br**2 + Bt**2))*180/np.pi
-
-    sel = np.where(Bt < 0)
-    count = len(sel[0])
-    if count > 0:
-        phi[sel] = 2*np.pi - phi[sel]
-    sel = np.where(r <= 0)
-    count = len(sel[0])
-    if count > 0:
-        phi[sel] = 0
-
-    return alpha, phi
 
 def swa_load_grnd_mom(startdate, enddate, path=None):
     """

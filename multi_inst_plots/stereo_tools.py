@@ -31,7 +31,7 @@ from sunpy.coordinates import get_horizons_coord
 from sunpy.coordinates import frames
 
 
-from multi_inst_plots.polarity_plotting import polarity_rtn #, polarity_panel, polarity_colorwheel
+from multi_inst_plots.other_tools import polarity_rtn, mag_angles #, polarity_panel, polarity_colorwheel
 import multi_inst_plots.cdaweb as cdaweb
 
 
@@ -40,23 +40,7 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 warnings.filterwarnings(action='ignore', message='No units provided for variable', category=sunpy.util.SunpyUserWarning, module='sunpy.io._cdf')
 warnings.filterwarnings(action='ignore', message='astropy did not recognize units of', category=sunpy.util.SunpyUserWarning, module='sunpy.io._cdf')
 
-def mag_angles(B,Br,Bt,Bn):
-    theta = np.arccos(Bn/B)
-    alpha = 90-(180/np.pi*theta)
 
-    r = np.sqrt(Br**2 + Bt**2 + Bn**2)
-    phi = np.arccos(Br/np.sqrt(Br**2 + Bt**2))*180/np.pi
-
-    sel = np.where(Bt < 0)
-    count = len(sel[0])
-    if count > 0:
-        phi[sel] = 2*np.pi - phi[sel]
-    sel = np.where(r <= 0)
-    count = len(sel[0])
-    if count > 0:
-        phi[sel] = 0
-
-    return alpha, phi
 
 def load_swaves(dataset, startdate, enddate, path=None):
     """

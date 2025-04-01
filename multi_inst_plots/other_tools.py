@@ -70,3 +70,21 @@ def polarity_panel(ax,datetimes,phi_relative,bbox_to_anchor=(0.,0.22,1,1.1)):
     pol_ax.bar(datetimes[(phi_relative>=0) & (phi_relative<180)],pol_arr[(phi_relative>=0) & (phi_relative<180)],color=mapper.to_rgba(phi_relative[(phi_relative>=0) & (phi_relative<180)]),width=timestamp)
     pol_ax.bar(datetimes[(phi_relative>=180) & (phi_relative<360)],pol_arr[(phi_relative>=180) & (phi_relative<360)],color=mapper.to_rgba(np.abs(360-phi_relative[(phi_relative>=180) & (phi_relative<360)])),width=timestamp)
     return pol_ax
+
+def mag_angles(B,Br,Bt,Bn):
+    theta = np.arccos(Bn/B)
+    alpha = 90-(180/np.pi*theta)
+
+    r = np.sqrt(Br**2 + Bt**2 + Bn**2)
+    phi = np.arccos(Br/np.sqrt(Br**2 + Bt**2))*180/np.pi
+
+    sel = np.where(Bt < 0)
+    count = len(sel[0])
+    if count > 0:
+        phi[sel] = 2*np.pi - phi[sel]
+    sel = np.where(r <= 0)
+    count = len(sel[0])
+    if count > 0:
+        phi[sel] = 0
+
+    return alpha, phi

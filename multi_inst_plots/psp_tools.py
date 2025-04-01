@@ -20,13 +20,11 @@ from seppy.tools import resample_df
 from stixdcpy.quicklook import LightCurves # https://github.com/i4Ds/stixdcpy
 from sunpy.coordinates import frames, get_horizons_coord
 
-from multi_inst_plots.polarity_plotting import polarity_rtn
+from multi_inst_plots.other_tools import polarity_rtn, mag_angles
 
 # disable unused speasy data provider before importing to speed it up
 os.environ['SPEASY_CORE_DISABLED_PROVIDERS'] = "sscweb,archive,csa"
 import speasy as spz
-
-from IPython.display import display
 
 # omit Pandas' PerformanceWarning
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
@@ -42,23 +40,6 @@ plt.rc('axes', labelsize=20)  # fontsize of the x and y labels
 plt.rcParams['agg.path.chunksize'] = 20000
 
 
-def mag_angles(B,Br,Bt,Bn):
-    theta = np.arccos(Bn/B)
-    alpha = 90-(180/np.pi*theta)
-
-    r = np.sqrt(Br**2 + Bt**2 + Bn**2)
-    phi = np.arccos(Br/np.sqrt(Br**2 + Bt**2))*180/np.pi
-
-    sel = np.where(Bt < 0)
-    count = len(sel[0])
-    if count > 0:
-        phi[sel] = 2*np.pi - phi[sel]
-    sel = np.where(r <= 0)
-    count = len(sel[0])
-    if count > 0:
-        phi[sel] = 0
-
-    return alpha, phi
 
 def load_data(options):
     """

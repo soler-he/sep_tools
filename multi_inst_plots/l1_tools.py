@@ -34,7 +34,7 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.colors import LogNorm, Normalize
 from matplotlib import cm
 
-from multi_inst_plots.polarity_plotting import polarity_rtn # , polarity_panel, polarity_colorwheel
+from multi_inst_plots.other_tools import polarity_rtn, mag_angles # , polarity_panel, polarity_colorwheel
 
 from seppy.loader.wind import wind3dp_load
 from seppy.loader.soho import soho_load
@@ -45,23 +45,7 @@ from seppy.tools import resample_df
 #intensity_label = 'Intensity\n/(s cm² sr MeV)'
 intensity_label = 'Intensity\n'+r'[(s cm² sr MeV)$^{-1}$]'
 
-def mag_angles(B,Br,Bt,Bn):
-    theta = np.arccos(Bn/B)
-    alpha = 90-(180/np.pi*theta)
 
-    r = np.sqrt(Br**2 + Bt**2 + Bn**2)
-    phi = np.arccos(Br/np.sqrt(Br**2 + Bt**2))*180/np.pi
-
-    sel = np.where(Bt < 0)
-    count = len(sel[0])
-    if count > 0:
-        phi[sel] = 2*np.pi - phi[sel]
-    sel = np.where(r <= 0)
-    count = len(sel[0])
-    if count > 0:
-        phi[sel] = 0
-
-    return alpha, phi
 
 def download_wind_waves_cdf(sensor, startdate, enddate, path=None):
     """

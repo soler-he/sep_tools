@@ -1,4 +1,13 @@
+# TODO:
+# - "choose all energy channels" checkbox (or choose every nth)
+# - download_wind_waves_cdf deprecation
+# - Empty plots and appropriate print output for time ranges with no data (right now crashing is pretty much guaranteed every time this happens)
+# - limit allowed time ranges (e.g. no data from PSP before Oct 2018)
+# - legend overlapping with many energy channels
+
+
 import datetime as dt
+import pandas as pd
 import ipywidgets as w
 import os
 
@@ -28,8 +37,6 @@ solo_attrs = ['solo_electrons', 'solo_protons', 'solo_viewing', 'solo_ch_ept_e',
 
 class Options:
     def __init__(self):
-        # now = dt.datetime.now()
-        # dt_now = dt.datetime(now.year, now.month, now.day, 0, 0)
 
         self.spacecraft = w.Dropdown(value=None, description="Spacecraft", options=["PSP", "SolO", "L1 (Wind/SOHO)", "STEREO"], style=style)
         self.startdate = w.NaiveDatetimePicker(value=dt.datetime(2022, 3, 14), disabled=False, description="Start date:")
@@ -55,7 +62,7 @@ class Options:
         self.stix_ltc = w.Checkbox(value=True, description="Correct STIX for light travel time")
         
         self.path = f"{os.getcwd()}{os.sep}data"
-        self.plot_range = None
+        self.plot_range = plot_range(self.startdate.value, self.enddate.value)
 
         self.psp_epilo_e = w.Checkbox(description="EPI-Lo electrons", value=True)
         self.psp_epilo_p = w.Checkbox(description="EPI-Lo protons", value=True)
@@ -98,7 +105,6 @@ class Options:
         self.ster_het_p = w.Checkbox(description="HET protons", value=True)
         self.ster_sept_viewing = w.Dropdown(description="SEPT viewing", options=['sun', 'asun', 'north', 'south'], style=style)
         
-        # TODO: "choose all energy channels" checkbox
         self.ster_ch_sept_e = w.SelectMultiple(description="SEPT e channels", options=range(0,14+1), value=tuple(range(0,14+1, 2)), rows=10, style=style)
         self.ster_ch_sept_p = w.SelectMultiple(description="SEPT p channels", options=range(0,29+1), value=tuple(range(0,29+1,3)), rows=10, style=style)
         self.ster_ch_het_p =  w.SelectMultiple(description="HET p channels", options=range(0,10+1), value=tuple(range(0,10+1,1)), rows=10, style=style)
@@ -151,63 +157,26 @@ class Options:
 
         self.mag.observe(disable_checkbox, names="value")
         self.stix.observe(disable_checkbox, names="value")
-
-        # TODO figure out how to have plot range update based on changes in start and end date
-        # def change_plot_range(change):
-            
-        #     if change.owner == self.startdate:
-        #         print("Changed startdate!")
-        #         dates = plot_range_interval(change.new, self.enddate.value)
-        #         self.plot_range.children[0].options = dates
-        #         self.plot_range.children[0].value[0] = change.new
-        #         self.plot_range.children[0].value[1] = self.enddate.value
                 
-        #     elif change.owner == self.enddate:
-        #         print("Changed enddate!")
-        #         dates = plot_range_interval(self.startdate.value, change.new)
-        #         self.plot_range.children[0].options = dates
-        #         self.plot_range.children[0].value[0] = self.startdate.value
-        #         self.plot_range.children[0].value[1] = change.new
-                
-                # dates = plot_range_interval(self.startdate.value, change.new)
-            
-            # self.plot_range.children[0].options = dates
-            # self.plot_range.children[0].index = (0,s len(dates) - 1)
-            # self.plot_range.children[1]
             
         #Set observer to listen for changes in S/C dropdown menu
         self.spacecraft.observe(change_sc, names="value")
-
-        #Likewise for start/end dates for plot range
-        # self.startdate.observe(change_plot_range, names="value")
-        # self.enddate.observe(change_plot_range, names='value')
 
         # Common attributes (dates, plot options etc.)
         self._commons = w.HBox([w.VBox([getattr(self, attr) for attr in common_attrs]), w.VBox([getattr(self, attr) for attr in variable_attrs])])
         
         # output widgets
-        self._out1 = w.Output(layout=w.Layout(width="auto"))  # for common attributes
-        self._out2 = w.Output(layout=w.Layout(width="auto"))  # for sc specific attributes
-        self._pr_out = w.Output(layout=w.Layout(width="auto"))
-        self._outs = w.HBox((w.VBox([self._out1, self._pr_out]), self._out2))         # side-by-side outputs
+        layout = w.Layout(width="auto")
+        self._out1 = w.Output(layout=layout)  # for common attributes
+        self._out2 = w.Output(layout=layout)  # for sc specific attributes
+        self._txt_out = w.Output(layout=layout) # for printing additional info
+        self._outs = w.HBox((w.VBox([self._out1, self._txt_out]), self._out2))         # side-by-side outputs
 
         display(self._outs)
 
         with self._out1:
             display(self._commons)
 
-        # with self._pr_out:
-        #     display(self.plot_range)
-            
-       
-
-def plot_range_interval(startdate, enddate):
-    timestamps = []
-    date_iter = startdate
-    while date_iter <= enddate:
-        timestamps.append(date_iter)
-        date_iter = date_iter + dt.timedelta(hours=1)
-    return timestamps
 
 
 def plot_range(startdate, enddate):
@@ -219,7 +188,8 @@ def plot_range(startdate, enddate):
     if not isinstance(startdate, dt.datetime) or not isinstance(enddate, dt.datetime):
         raise ValueError("Start and end dates have to be valid datetime objects")
     
-    dates = plot_range_interval(startdate=startdate, enddate=enddate)
+    # dates = plot_range_interval(startdate=startdate, enddate=enddate)
+    dates = pd.date_range(start=startdate, end=enddate, freq="1h")
 
     # First and last dates are selected by default
     initial_selection = (0, len(dates) - 1)
@@ -251,14 +221,12 @@ def plot_range(startdate, enddate):
         callback, 
         {"dts": date_range_selector})
     
-    options.plot_range = date_range
+    #options.plot_range = date_range
 
     return date_range
 
 
 def load_data():
-    global load_flag
-    load_flag = False
 
     if options.spacecraft.value is None:
         print("You must choose a spacecraft first!")
@@ -266,27 +234,19 @@ def load_data():
     
     if options.spacecraft.value == "PSP":
         psp.load_data(options)
-        load_flag = True
 
     if options.spacecraft.value == "SolO":
         solo.load_data(options)
-        load_flag = True
 
     if options.spacecraft.value == "L1 (Wind/SOHO)":
         l1.load_data(options)
-        load_flag = True
 
     if options.spacecraft.value == "STEREO":
         stereo.load_data(options)
-        load_flag = True
 
 
 
 def make_plot():
-    if not load_flag:
-        print("You must run load_data() first!")
-        return (None, None)
-    
     if options.spacecraft.value == "PSP":
         return psp.make_plot(options)
     
