@@ -67,9 +67,16 @@ def download_wind_waves_cdf(freq, startdate, enddate, path=None):
     timerange = TimeRange(startdate, enddate)
 
     try:
-        pattern = ("https://spdf.gsfc.nasa.gov/pub/data/wind/waves/{freq}_l2/{{year:4d}}/wi_l2_wav_{freq}_{{year:4d}}{{month:2d}}{{day:2d}}_v{version}.cdf")
+        from packaging.version import Version
+        if hasattr(sunpy, "__version__") and Version(sunpy.__version__) >= Version("6.1.0"):
+            pattern = ("https://spdf.gsfc.nasa.gov/pub/data/wind/waves/{freq}_l2/{{year:4d}}/wi_l2_wav_{freq}_{{year:4d}}{{month:2d}}{{day:2d}}_v{version}.cdf")
 
-        scrap = Scraper(format=pattern, freq=freq.lower(), version="{:2d}") 
+            scrap = Scraper(format=pattern, freq=freq.lower(), version="{:2d}") 
+        else:
+            pattern = "https://spdf.gsfc.nasa.gov/pub/data/wind/waves/{freq}_l2/%Y/wi_l2_wav_{freq}_%Y%m%d_{version}.cdf"
+ 
+            scrap = Scraper(pattern=pattern, freq=freq.lower(), version="v\\d{2}")  # regex matching "v{any digit}{any digit}""
+        
         
         filelist_urls = scrap.filelist(timerange=timerange)
 
