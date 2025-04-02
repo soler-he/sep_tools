@@ -333,18 +333,10 @@ class Reg:
             fig, ax = plt.subplots(figsize=STANDARD_FIGSIZE)
 
             if diagnostics:
+                # Print some useful values that describe the data
+                print(f"Data min: {np.min(series.values)}, max: {np.max(series.values)}")
                 print(f"Data selection: {series.index[0]}, {series.index[-1]}")
                 print(f"Regression converged: {regression_converged}")
-                # Generate the fit lines to display on the plot
-                if regression_converged:
-                    list_of_fit_series = calc.generate_fit_lines(data_df=data, indices=numerical_indices, const=const,
-                                                                list_of_alphas=list_of_alphas, 
-                                                                list_of_breakpoints=list_of_breakpoints, index_choice=index_choice)
-
-                    # Plot the fit results on the real data
-                    for line in list_of_fit_series:
-                        ax.plot(line.index, line.values, lw=2.8, ls="--", c="maroon", zorder=3)
-
                 # Apply a span over xmin=start and xmax=max_idx to display the are considered for the fit
                 ax.axvspan(xmin=series.index[0], xmax=series.index[-1], facecolor="green", alpha=DEFAULT_SELECTION_ALPHA, label="selection area")
 
@@ -355,6 +347,17 @@ class Reg:
                 ax.scatter(plot_series.index, plot_series.values, label=channel, zorder=1)
 
             if regression_converged:
+
+                # Generate the fit lines to display on the plot
+                list_of_fit_series = calc.generate_fit_lines(data_df=data, indices=numerical_indices, const=const,
+                                                            list_of_alphas=list_of_alphas, 
+                                                            list_of_breakpoints=list_of_breakpoints, index_choice=index_choice)
+
+                # Plot the fit results on the real data
+                for line in list_of_fit_series:
+                    ax.plot(line.index, line.values, lw=2.8, ls="--", c="maroon", zorder=3)
+
+                # Loop through the breakpoints
                 for i, breakpoint_dt in enumerate(list_of_dt_breakpoints):
 
                     # One has to use the notoriously awkward triple curly parenthesis here to be able to
