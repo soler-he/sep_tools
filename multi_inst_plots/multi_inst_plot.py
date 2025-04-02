@@ -1,6 +1,5 @@
 # TODO:
 # - "choose all energy channels" checkbox (or choose every nth)
-# - download_wind_waves_cdf deprecation
 # - Empty plots and appropriate print output for time ranges with no data (right now crashing is pretty much guaranteed every time this happens)
 # - limit allowed time ranges (e.g. no data from PSP before Oct 2018)
 # - legend overlapping with many energy channels
@@ -62,7 +61,7 @@ class Options:
         self.stix_ltc = w.Checkbox(value=True, description="Correct STIX for light travel time")
         
         self.path = f"{os.getcwd()}{os.sep}data"
-        self.plot_range = plot_range(self.startdate.value, self.enddate.value)
+        self.plot_range = None
 
         self.psp_epilo_e = w.Checkbox(description="EPI-Lo electrons", value=True)
         self.psp_epilo_p = w.Checkbox(description="EPI-Lo protons", value=True)
@@ -221,28 +220,43 @@ def plot_range(startdate, enddate):
         callback, 
         {"dts": date_range_selector})
     
-    #options.plot_range = date_range
+    options.plot_range = date_range
 
     return date_range
 
 
 def load_data():
-
+    
     if options.spacecraft.value is None:
         print("You must choose a spacecraft first!")
         return
     
     if options.spacecraft.value == "PSP":
-        psp.load_data(options)
+        if options.startdate.value >= dt.datetime(2018, 10, 2):
+            psp.load_data(options)
+        else:
+            print("PSP: no data before 2 Oct 2018")
 
     if options.spacecraft.value == "SolO":
-        solo.load_data(options)
+        if options.startdate.value >= dt.datetime(2020, 2, 28):
+            solo.load_data(options)
+        else:
+            print("SolO: no data before 28 Feb 2020")
 
     if options.spacecraft.value == "L1 (Wind/SOHO)":
-        l1.load_data(options)
-
+        if options.startdate.value >= dt.datetime(1994,11,1):
+            l1.load_data(options)
+        else:
+            print("Wind/SOHO: no data before 1 Nov 1994 / 2 Dec 1995")
+        
     if options.spacecraft.value == "STEREO":
-        stereo.load_data(options)
+        if options.startdate.value >= dt.datetime(2006, 10, 26):
+            if options.enddate.value >= dt.datetime(2016, 9 ,23) and options.ster_sc.value == "B":
+                print("STEREO B: no data after 23 Sep 2016")
+            else:
+                stereo.load_data(options)
+        else:
+            print("STEREO A/B: no data before 26 Oct 2006")
 
 
 
