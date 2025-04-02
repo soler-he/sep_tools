@@ -338,12 +338,6 @@ class Reg:
             if plot_style=="scatter":
                 ax.scatter(plot_series.index, plot_series.values, label=channel, zorder=2)
 
-            # Sets the yticklabels to their exponential form (e.g., 10^5 instead of 5). This has to be done
-            # IMMEDIATELY after plotting the intensity, not later, because otherwise it will mess up the 
-            # spacing of the yticks for an unknown reason.
-            fabricate_yticks(ax=ax)
-            set_standard_ticks(ax=ax)
-
             # The fits and breakpoints only exists if regression converged
             if regression_converged:
 
@@ -368,6 +362,12 @@ class Reg:
                     ax.axvspan(xmin=list_of_dt_breakpoint_errs[i][0], xmax=list_of_dt_breakpoint_errs[i][1], 
                                alpha=BREAKPOINT_SHADING_ALPHA, color="red", zorder=3)
                     ax.axvline(x=breakpoint_dt, c="red", lw=1.8, label=bp_label, zorder=4)
+                
+                # Sets the yticklabels to their exponential form (e.g., 10^5 instead of 5). This has to be done
+                # IMMEDIATELY after plotting the intensity, fits and breakpoints, not later, because otherwise it will mess up the 
+                # spacing of the yticks for an unknown reason.
+                #fabricate_yticks(ax=ax)
+                set_standard_ticks(ax=ax)
 
             # Some extra if diagnostics are enabled:
             if diagnostics:
@@ -376,6 +376,10 @@ class Reg:
                 print(f"Data min: {np.min(series.values)}, max: {np.max(series.values)}")
                 print(f"Data selection: {series.index[0]}, {series.index[-1]}")
                 print(f"Regression converged: {regression_converged}")
+
+                # Scatter the fit results on the real data
+                for line in list_of_fit_series:
+                    ax.scatter(line.index, line.values, s=135, c="darkorange", marker='x', zorder=3)
 
                 # Apply a span over xmin=start and xmax=max_idx to display the are considered for the fit
                 ax.axvspan(xmin=series.index[0], xmax=series.index[-1], facecolor="green",
