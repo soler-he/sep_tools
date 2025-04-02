@@ -332,20 +332,19 @@ class Reg:
             # Init figure
             fig, ax = plt.subplots(figsize=STANDARD_FIGSIZE)
 
-            if diagnostics:
-                # Print some useful values that describe the data
-                print(f"Data min: {np.min(series.values)}, max: {np.max(series.values)}")
-                print(f"Data selection: {series.index[0]}, {series.index[-1]}")
-                print(f"Regression converged: {regression_converged}")
-                # Apply a span over xmin=start and xmax=max_idx to display the are considered for the fit
-                ax.axvspan(xmin=series.index[0], xmax=series.index[-1], facecolor="green", alpha=DEFAULT_SELECTION_ALPHA, label="selection area")
-
             # Plot the intensities
             if plot_style=="step":
-                ax.step(plot_series.index, plot_series.values, label=channel, zorder=1, where="mid")
+                ax.step(plot_series.index, plot_series.values, label=channel, zorder=2, where="mid")
             if plot_style=="scatter":
-                ax.scatter(plot_series.index, plot_series.values, label=channel, zorder=1)
+                ax.scatter(plot_series.index, plot_series.values, label=channel, zorder=2)
 
+            # Sets the yticklabels to their exponential form (e.g., 10^5 instead of 5). This has to be done
+            # IMMEDIATELY after plotting the intensity, not later, because otherwise it will mess up the 
+            # spacing of the yticks for an unknown reason.
+            fabricate_yticks(ax=ax)
+            set_standard_ticks(ax=ax)
+
+            # The fits and breakpoints only exists if regression converged
             if regression_converged:
 
                 # Generate the fit lines to display on the plot
@@ -366,12 +365,30 @@ class Reg:
                     #err_delta_minus = str(list_of_dt_breakpoint_errs[i][1] - breakpoint_dt)[7:7+8]
                     #bp_label = f"breakpoint$_{{{i}}}$: "+f"{breakpoint_dt.strftime('%H:%M:%S')}$_{{-{err_delta_minus}}}^{{+{err_delta_plus}}}$"
                     bp_label = f"breakpoint$_{{{i}}}$: "+f"{breakpoint_dt.strftime('%H:%M:%S')}{LATEX_PM}{err_delta_plusminus}"
-                    ax.axvspan(xmin=list_of_dt_breakpoint_errs[i][0], xmax=list_of_dt_breakpoint_errs[i][1], alpha=BREAKPOINT_SHADING_ALPHA, color="red")
-                    ax.axvline(x=breakpoint_dt, c="red", lw=1.8, label=bp_label)
+                    ax.axvspan(xmin=list_of_dt_breakpoint_errs[i][0], xmax=list_of_dt_breakpoint_errs[i][1], 
+                               alpha=BREAKPOINT_SHADING_ALPHA, color="red", zorder=3)
+                    ax.axvline(x=breakpoint_dt, c="red", lw=1.8, label=bp_label, zorder=4)
 
-            # Sets the yticklabels to their exponential form (e.g., 10^5 instead of 5)
-            fabricate_yticks(ax=ax)
-            set_standard_ticks(ax=ax)
+            # Some extra if diagnostics are enabled:
+            if diagnostics:
+
+                # Print some useful values that describe the data
+                print(f"Data min: {np.min(series.values)}, max: {np.max(series.values)}")
+                print(f"Data selection: {series.index[0]}, {series.index[-1]}")
+                print(f"Regression converged: {regression_converged}")
+
+                # Apply a span over xmin=start and xmax=max_idx to display the are considered for the fit
+                ax.axvspan(xmin=series.index[0], xmax=series.index[-1], facecolor="green",
+                           alpha=DEFAULT_SELECTION_ALPHA, label="selection area", zorder=1)
+
+                # Initialize a parallel y-axis to plot the original values to (invisible). This is to compare
+                # that the original values align with 
+                ax1 = ax.twinx()
+                set_standard_ticks(ax=ax1)
+                ax1.step(plot_series.index, plot_series.values, zorder=1, where="mid", alpha=0.4)
+
+                # Enable grid for easier comparison of axes
+                ax.grid(visible=True, which="both")
 
             # Format the x-axis, name the y-axis and set the x-axis span
             ax.xaxis.set_major_formatter(DateFormatter("%H:%M\n%d"))
