@@ -1,5 +1,3 @@
-# TODO:
-# - figure out paths
 
 
 # from IPython.core.display import display, HTML
@@ -47,13 +45,13 @@ intensity_label = 'Intensity\n'+r'[(s cm² sr MeV)$^{-1}$]'
 
 
 
-def download_wind_waves_cdf(sensor, startdate, enddate, path=None):
+def download_wind_waves_cdf(freq, startdate, enddate, path=None):
     """
     Download Wind WAVES L2 data files for given time range.
 
     Parameters
     ----------
-    sensor: str
+    freq: str
         RAD1 or RAD2 (lower case works as well)
     startdate, enddate: str or dt
         start and end dates as parse_time compatible strings or datetimes (see TimeRange docs)
@@ -69,9 +67,10 @@ def download_wind_waves_cdf(sensor, startdate, enddate, path=None):
     timerange = TimeRange(startdate, enddate)
 
     try:
-        pattern = "https://spdf.gsfc.nasa.gov/pub/data/wind/waves/{sensor}_l2/%Y/wi_l2_wav_{sensor}_%Y%m%d_{version}.cdf"
+        pattern = ("https://spdf.gsfc.nasa.gov/pub/data/wind/waves/{freq}_l2/{{year:4d}}/wi_l2_wav_{freq}_{{year:4d}}{{month:2d}}{{day:2d}}_v{version}.cdf")
 
-        scrap = Scraper(pattern=pattern, sensor=sensor.lower(), version="v\\d{2}")  # regex matching "v{any digit}{any digit}""
+        scrap = Scraper(format=pattern, freq=freq.lower(), version="{:2d}") 
+        
         filelist_urls = scrap.filelist(timerange=timerange)
 
         filelist_urls.sort()
@@ -105,7 +104,7 @@ def download_wind_waves_cdf(sensor, startdate, enddate, path=None):
                 dl.download(url=url, path=f)
 
     except (RuntimeError, IndexError):
-        print(f'Unable to obtain Wind WAVES {sensor} data for {startdate}-{enddate}!')
+        print(f'Unable to obtain Wind WAVES {freq} data for {startdate}-{enddate}!')
         downloaded_files = []
 
     return downloaded_files
@@ -227,7 +226,7 @@ def wind_mfi_loader(startdate, enddate):
 
 
 def load_data(options):
-    data = {}
+    
     ######### This is just for easier copy pasting from other versions (no need to change variables into dictionary references) #########
     global df_wind_wav_rad2
     global df_wind_wav_rad1
@@ -266,10 +265,9 @@ def load_data(options):
 
     global path
 
-    # data_path = None  # '/Users/dresing/data/projects/wind/'
-    # wind_data_path = None  # '/Users/jagies/data/wind/'
-    # erne_data_path = None  # '/Users/jagies/data/soho/'
-    # ephin_data_path = None  # '/Users/jagies/data/soho/'
+    global av_mag
+    global av_sep
+    global av_erne
 
     plot_wind_e = options.l1_wind_e.value
     plot_wind_p = options.l1_wind_p.value
@@ -305,6 +303,10 @@ def load_data(options):
     plot_polarity = options.polarity.value
     path = options.path
 
+    av_sep = str(options.l1_av_sep.value) + "min"
+    av_mag =  str(options.resample_mag.value) + "min"
+    av_erne = str(options.l1_av_erne.value) + "min"
+
 
 
     # LOAD DATA
@@ -326,13 +328,23 @@ def load_data(options):
                             threshold=wind_flux_thres)
         
     if plot_radio:
-        df_wind_wav_rad2 = load_waves_rad(dataset="RAD2", startdate=startdate, enddate=enddate, file_path=path)
-        df_wind_wav_rad1 = load_waves_rad(dataset="RAD1", startdate=startdate, enddate=enddate, file_path=path)
+        try:
+            df_wind_wav_rad2 = load_waves_rad(dataset="RAD2", startdate=startdate, enddate=enddate, file_path=path)
+            df_wind_wav_rad1 = load_waves_rad(dataset="RAD1", startdate=startdate, enddate=enddate, file_path=path)
+        except IndexError:
+            print(f'Unable to obtain Wind WAVES data for {startdate} - {enddate}!')
+            df_wind_wav_rad1 = []
+            df_wind_wav_rad2 = []
 
 
     if plot_ephin:
-        ephin_, meta_ephin = soho_load(dataset="SOHO_COSTEP-EPHIN_L2-1MIN", startdate=startdate, enddate=enddate,
-                        path=path, resample=None)
+        try:
+            ephin_, meta_ephin = soho_load(dataset="SOHO_COSTEP-EPHIN_L2-1MIN", startdate=startdate, enddate=enddate,
+                            path=path, resample=None)
+        except UnboundLocalError:   # soho_ephin_loader throws this error since it tries to access a variable (cs_e300) that hasn't been set
+            print(f"Unable to obtain SOHO/EPHIN data for {startdate} - {enddate}!")
+            ephin_ = []
+            meta_ephin = []
 
     if plot_erne:
         erne_p_, meta_erne = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=startdate, enddate=enddate,
@@ -340,9 +352,12 @@ def load_data(options):
         
 
     if plot_mag or plot_mag_angles:
-        mag_data = wind_mfi_loader(startdate, enddate)
-        df_mag_pol = resample_df(mag_data, '1min')  # resampling to 1min for polarity plot
-
+        try:
+            mag_data = wind_mfi_loader(startdate, enddate)
+            
+        except IndexError:  # TimeSeries() call throws IndexError when trying to pop from an empty list
+            print(f"No MFI data found for {startdate} - {enddate}!")
+            mag_data = []
     
         
     #product = a.cdaweb.Dataset('AC_K0_SWE')
@@ -359,10 +374,9 @@ def load_data(options):
             df_solwind = sw_data.to_dataframe()
             df_solwind['vsw'] = np.sqrt(df_solwind['ion_vel_0']**2 + df_solwind['ion_vel_1']**2 + df_solwind['ion_vel_2']**2)
         except IndexError:
-            print("Unable to get WI_K0_3DP data")
-            plot_Vsw = False
-            plot_N = False
-            plot_T = False
+            print(f"Unable to obtain WI_K0_3DP data for {startdate} - {enddate}!")
+            df_solwind = []
+            
     
     
         
@@ -378,49 +392,60 @@ def make_plot(options):
     global ephin
     global erne_p
 
-    global av_sep
-    global av_mag
-    global av_erne
-
     legends_inside = options.legends_inside.value
 
-    av_sep = str(options.l1_av_sep.value) + "min"
-    av_mag =  str(options.resample_mag.value) + "min"
-    av_erne = str(options.l1_av_erne.value) + "min"
+    
 
     # AVERAGING
-    if av_mag != "0min":
-        if plot_mag or plot_mag_angles:
+    if plot_mag or plot_mag_angles:
+        # If no data, mag_data is an empty list and resample_df would crash (no resample method). Else if no averaging is done, rename to df_mag.
+        if isinstance(mag_data, pd.DataFrame) and av_mag != "0min":
             df_mag = resample_df(mag_data, av_mag)
-        if plot_Vsw or plot_N or plot_T:
-            df_vsw = resample_df(df_solwind, av_mag)
-    else:
-        if plot_mag or plot_mag_angles:
+        else:
             df_mag = mag_data
-        if plot_Vsw or plot_T or plot_N:
+            
+    if plot_Vsw or plot_N or plot_T:
+        if isinstance(df_solwind, pd.DataFrame) and av_mag != "0min":
+            df_vsw = resample_df(df_solwind, av_mag)
+        else:
             df_vsw = df_solwind
-        
-    if av_sep != "0min":
-        if plot_wind:
-            edic = resample_df(edic_, av_sep)
-            pdic = resample_df(pdic_, av_sep)
-        if plot_ephin:
-            ephin = resample_df(ephin_, av_sep)
-        
-    else:
-        if plot_wind:
-            edic = edic_
-            pdic = pdic_
-        if plot_ephin:
-            ephin = ephin_
-        
-    if av_erne != "0min":
-        if plot_erne:
-            erne_p = resample_df(erne_p_, av_erne)
 
+    # else:
+    #     if plot_mag or plot_mag_angles:
+    #         df_mag = mag_data
+            
+    #     if plot_Vsw or plot_T or plot_N:
+    #         df_vsw = df_solwind
+
+    if plot_polarity and isinstance(mag_data, pd.DataFrame):
+        df_mag_pol = resample_df(mag_data, '1min')  # resampling to 1min for polarity plot
     else:
-        if plot_erne:
+        df_mag_pol = []
+        
+    
+    if plot_wind:
+        if isinstance(edic_, pd.DataFrame) and av_sep != "0min":
+            edic = resample_df(edic_, av_sep)
+        else:
+            edic = edic_
+
+        if isinstance(pdic_, pd.DataFrame) and av_sep != "0min":
+            pdic = resample_df(pdic_, av_sep)
+        else:
+            pdic = pdic_
+    
+    if plot_ephin:
+        if isinstance(ephin_, pd.DataFrame) and av_sep != "0min":
+            ephin = resample_df(ephin_, av_sep)
+        else:
+            ephin = ephin_
+
+    if plot_erne:
+        if isinstance(erne_p_, pd.DataFrame) and av_erne != "0min":
+            erne_p = resample_df(erne_p_, av_erne)
+        else:
             erne_p = erne_p_
+    
     
     wind_ev2MeV_fac = 1e6
     cmap = options.radio_cmap.value
@@ -474,33 +499,36 @@ def make_plot(options):
         vmin, vmax = 1e-15, 1e-10
         log_norm = LogNorm(vmin=vmin, vmax=vmax)
         
-        time_rad2_2D, freq_rad2_2D = np.meshgrid(df_wind_wav_rad2.index, df_wind_wav_rad2.columns, indexing='ij')
-        time_rad1_2D, freq_rad1_2D = np.meshgrid(df_wind_wav_rad1.index, df_wind_wav_rad1.columns, indexing='ij')
+        if isinstance(df_wind_wav_rad1, pd.DataFrame) and isinstance(df_wind_wav_rad2, pd.DataFrame):
+            time_rad2_2D, freq_rad2_2D = np.meshgrid(df_wind_wav_rad2.index, df_wind_wav_rad2.columns, indexing='ij')
+            time_rad1_2D, freq_rad1_2D = np.meshgrid(df_wind_wav_rad1.index, df_wind_wav_rad1.columns, indexing='ij')
 
-        # Create colormeshes. Shading option flat and thus the removal of last row and column are there to solve the time jump bar problem, 
-        # when resampling isn't used
-        mesh = axs[i].pcolormesh(time_rad1_2D, freq_rad1_2D, df_wind_wav_rad1.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
-        axs[i].pcolormesh(time_rad2_2D, freq_rad2_2D, df_wind_wav_rad2.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
+            # Create colormeshes. Shading option flat and thus the removal of last row and column are there to solve the time jump bar problem, 
+            # when resampling isn't used
+            mesh = axs[i].pcolormesh(time_rad1_2D, freq_rad1_2D, df_wind_wav_rad1.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
+            axs[i].pcolormesh(time_rad2_2D, freq_rad2_2D, df_wind_wav_rad2.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
+
+            # Add inset axes for colorbar
+            axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.05,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
+            cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
+            cbar.set_label(r"Intensity ($\mathrm{V^2/Hz}$)", rotation=90, labelpad=10, fontsize=font_ylabel)
 
         axs[i].set_yscale('log')
         axs[i].set_ylabel("Frequency (MHz)", fontsize=font_ylabel)
         
-        # Add inset axes for colorbar
-        axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.05,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
-        cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
-        cbar.set_label(r"Intensity ($\mathrm{V^2/Hz}$)", rotation=90, labelpad=10, fontsize=font_ylabel)
+        
         i += 1
 
     if plot_electrons:
         # electrons
         ax = axs[i]
-        if plot_wind:
+        if plot_wind and isinstance(edic, pd.DataFrame):
             axs[i].set_prop_cycle('color', plt.cm.Greens_r(np.linspace(0,1, len(meta_e['channels_dict_df'])+color_offset)))
             for ch in np.arange(1, len(meta_e['channels_dict_df'])):
                 ax.plot(edic.index, edic[f'FLUX_{ch}'] * wind_ev2MeV_fac, label='Wind/3DP '+meta_e['channels_dict_df']['Bins_Text'].values[ch], drawstyle='steps-mid')
         
         
-        if plot_ephin:
+        if plot_ephin and isinstance(ephin, pd.DataFrame):
             ax.plot(ephin.index, ephin[l1_ch_eph_e]*intercal, '-k', label='SOHO/EPHIN '+meta_ephin[l1_ch_eph_e]+f' / {intercal}', drawstyle='steps-mid')
         # ax.set_ylim(1e0, 1e4)
         if legends_inside:
@@ -517,7 +545,7 @@ def make_plot(options):
     if plot_protons:    
         # protons low en:
         ax = axs[i]
-        if plot_wind:
+        if plot_wind and isinstance(pdic, pd.DataFrame):
             ax.set_prop_cycle('color', plt.cm.plasma(np.linspace(0,1, len(meta_p['channels_dict_df'])+color_offset)))
             for ch in np.arange(2, len(meta_p['channels_dict_df'])):
                 ax.plot(pdic.index, pdic[f'FLUX_{ch}'] * wind_ev2MeV_fac, label='Wind/3DP '+meta_p['channels_dict_df']['Bins_Text'].values[ch],
@@ -527,7 +555,7 @@ def make_plot(options):
         ax.set_ylabel(intensity_label, fontsize=font_ylabel)
 
         # protons high en:
-        if plot_erne:
+        if plot_erne and isinstance(erne_p, pd.DataFrame):
             ax.set_prop_cycle('color', plt.cm.YlOrRd(np.linspace(0.2,1,10))) #cm.RdPu_r
             for ch in np.arange(0, 10):
                 ax.plot(erne_p.index, erne_p[f'PH_{ch}'], label='SOHO/ERNE/HED '+meta_erne['channels_dict_df_p']['ch_strings'][ch], 
@@ -542,10 +570,11 @@ def make_plot(options):
     
     if plot_mag:    
         ax = axs[i]
-        ax.plot(df_mag.index, df_mag.B.values, label='B', color='k', linewidth=1)
-        ax.plot(df_mag.index, df_mag.BRTN_0.values, label='Br', color='dodgerblue', linewidth=1)
-        ax.plot(df_mag.index, df_mag.BRTN_1.values, label='Bt', color='limegreen', linewidth=1)
-        ax.plot(df_mag.index, df_mag.BRTN_2.values, label='Bn', color='deeppink', linewidth=1)
+        if isinstance(mag_data, pd.DataFrame):
+            ax.plot(df_mag.index, df_mag.B.values, label='B', color='k', linewidth=1)
+            ax.plot(df_mag.index, df_mag.BRTN_0.values, label='Br', color='dodgerblue', linewidth=1)
+            ax.plot(df_mag.index, df_mag.BRTN_1.values, label='Bt', color='limegreen', linewidth=1)
+            ax.plot(df_mag.index, df_mag.BRTN_2.values, label='Bn', color='deeppink', linewidth=1)
         ax.axhline(y=0, color='gray', linewidth=0.8, linestyle='--')
         if legends_inside:
             ax.legend(title='Protons', loc="upper right", fontsize=font_legend)
@@ -556,7 +585,7 @@ def make_plot(options):
         
         i += 1
         
-        if plot_polarity:
+        if plot_polarity and isinstance(df_mag_pol, pd.DataFrame):
             pos = get_horizons_coord('Wind', time={'start':df_mag_pol.index[0]-pd.Timedelta(minutes=15),
                                                 'stop':df_mag_pol.index[-1]+pd.Timedelta(minutes=15),'step':"1min"}) 
                                                     # (lon, lat, radius) in (deg, deg, AU)
@@ -565,7 +594,7 @@ def make_plot(options):
             r = np.interp([t.timestamp() for t in df_mag_pol.index],[t.timestamp() for t in pd.to_datetime(pos.obstime.value)],pos.radius.value)
             lat = np.interp([t.timestamp() for t in df_mag_pol.index],[t.timestamp() for t in pd.to_datetime(pos.obstime.value)],pos.lat.value)
             pol, phi_relative = polarity_rtn(df_mag_pol.BRTN_0.values, df_mag_pol.BRTN_1.values, df_mag_pol.BRTN_2.values,r,lat,V=400)
-        # create an inset axe in the current axe:
+            # create an inset axe in the current axe:
             pol_ax = inset_axes(ax, height="5%", width="100%", loc=9, bbox_to_anchor=(0.,0,1,1.1), bbox_transform=ax.transAxes) # center, you can check the different codes in plt.legend?
             pol_ax.get_xaxis().set_visible(False)
             pol_ax.get_yaxis().set_visible(False)
@@ -581,9 +610,10 @@ def make_plot(options):
         
         
     if plot_mag_angles:
-        alpha, phi = mag_angles(df_mag.B.values, df_mag.BRTN_0.values, df_mag.BRTN_1.values, df_mag.BRTN_2.values)
         ax = axs[i]
-        ax.plot(df_mag.index, alpha, '.k', label='alpha', ms=1)
+        if isinstance(df_mag, pd.DataFrame):
+            alpha, phi = mag_angles(df_mag.B.values, df_mag.BRTN_0.values, df_mag.BRTN_1.values, df_mag.BRTN_2.values)
+            ax.plot(df_mag.index, alpha, '.k', label='alpha', ms=1)
         ax.axhline(y=0, color='gray', linewidth=0.8, linestyle='--')
         ax.set_ylim(-90, 90)
         ax.set_ylabel(r"$\Theta_\mathrm{B}$ [°]", fontsize=font_ylabel)
@@ -591,7 +621,8 @@ def make_plot(options):
         i += 1
         
         ax = axs[i]
-        ax.plot(df_mag.index, phi, '.k', label='phi', ms=1)
+        if isinstance(df_mag, pd.DataFrame):
+            ax.plot(df_mag.index, phi, '.k', label='phi', ms=1)
         ax.axhline(y=0, color='gray', linewidth=0.8, linestyle='--')
         ax.set_ylim(-180, 180)
         ax.set_ylabel(r"$\Phi_\mathrm{B}$ [°]", fontsize=font_ylabel)
@@ -600,21 +631,24 @@ def make_plot(options):
         
     ### Temperature
     if plot_T:
-        axs[i].plot(df_vsw.index, df_vsw['ion_temp'], '-k', label="Temperature")
+        if isinstance(df_vsw, pd.DataFrame):
+            axs[i].plot(df_vsw.index, df_vsw['ion_temp'], '-k', label="Temperature")
         axs[i].set_ylabel(r"T$_\mathrm{p}$ [K]", fontsize=font_ylabel)
         i += 1
 
     ### Density
     if plot_N:
-        axs[i].plot(df_vsw.index, df_vsw.ion_density,
-                    '-k', label="Ion density")
+        if isinstance(df_vsw, pd.DataFrame):
+            axs[i].plot(df_vsw.index, df_vsw.ion_density,
+                        '-k', label="Ion density")
         axs[i].set_ylabel(r"N$_\mathrm{p}$ [cm$^{-3}$]", fontsize=font_ylabel)
         i += 1
 
     ### Sws
     if plot_Vsw:
-        axs[i].plot(df_vsw.index, df_vsw.vsw,
-                    '-k', label="Bulk speed")
+        if isinstance(df_vsw, pd.DataFrame):
+            axs[i].plot(df_vsw.index, df_vsw.vsw,
+                        '-k', label="Bulk speed")
         axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km/s]", fontsize=font_ylabel)
         i += 1
             
