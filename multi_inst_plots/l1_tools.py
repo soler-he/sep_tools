@@ -230,7 +230,6 @@ def load_data(options):
     ######### This is just for easier copy pasting from other versions (no need to change variables into dictionary references) #########
     global df_wind_wav_rad2
     global df_wind_wav_rad1
-    global df_mag_pol
     global df_solwind
     global mag_data
     global plot_wind
@@ -446,7 +445,7 @@ def make_plot(options):
         else:
             erne_p = erne_p_
     
-    
+
     wind_ev2MeV_fac = 1e6
     cmap = options.radio_cmap.value
 
