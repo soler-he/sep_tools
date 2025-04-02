@@ -261,3 +261,6 @@ data/
 
 # Plot output folder
 plots/
+
+# Regression onset testing
+SEP_Regression-Onset-Testing.ipynb
