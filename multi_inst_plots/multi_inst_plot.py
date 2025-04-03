@@ -1,4 +1,12 @@
+# TODO:
+# - "choose all energy channels" checkbox (or choose every nth)
+# - Empty plots and appropriate print output for time ranges with no data (right now crashing is pretty much guaranteed every time this happens)
+# - limit allowed time ranges (e.g. no data from PSP before Oct 2018)
+# - legend overlapping with many energy channels
+
+
 import datetime as dt
+import pandas as pd
 import ipywidgets as w
 import os
 
@@ -13,7 +21,7 @@ style = {'description_width' : '50%'}
 
 common_attrs = ["spacecraft", "startdate", "enddate", "resample", "resample_mag", "radio_cmap", "legends_inside"] # , "resample_pol"
 
-variable_attrs = ['radio', 'mag', 'mag_angles', 'polarity', 'Vsw', 'N', 'T', 'p_dyn', "stix", "stix_ltc"] # ,'pad'
+variable_attrs = ['radio', 'mag', 'polarity', 'mag_angles', 'Vsw', 'N', 'T', 'p_dyn', "stix", "stix_ltc"] # ,'pad'
 
 psp_attrs = ['psp_epilo_e', 'psp_epilo_p', 'psp_epihi_e',
              'psp_epihi_p', 'psp_het_viewing', 'psp_epilo_viewing',
@@ -28,8 +36,6 @@ solo_attrs = ['solo_electrons', 'solo_protons', 'solo_viewing', 'solo_ch_ept_e',
 
 class Options:
     def __init__(self):
-        # now = dt.datetime.now()
-        # dt_now = dt.datetime(now.year, now.month, now.day, 0, 0)
 
         self.spacecraft = w.Dropdown(value=None, description="Spacecraft", options=["PSP", "SolO", "L1 (Wind/SOHO)", "STEREO"], style=style)
         self.startdate = w.NaiveDatetimePicker(value=dt.datetime(2022, 3, 14), disabled=False, description="Start date:")
@@ -46,7 +52,7 @@ class Options:
         #self.pad = w.Checkbox(value=True, description="Pitch angle distribution")    # TODO: remove disabled keyword after implementation
         self.mag = w.Checkbox(value=True, description="MAG")
         self.mag_angles = w.Checkbox(value=True, description="MAG angles")
-        self.polarity = w.Checkbox(value=True, description="Polarity")
+        self.polarity = w.Checkbox(value=True, description="MAG polarity")
         self.Vsw = w.Checkbox(value=True, description="V_sw")
         self.N = w.Checkbox(value=True, description="N")
         self.T = w.Checkbox(value=True, description="T")
@@ -98,7 +104,6 @@ class Options:
         self.ster_het_p = w.Checkbox(description="HET protons", value=True)
         self.ster_sept_viewing = w.Dropdown(description="SEPT viewing", options=['sun', 'asun', 'north', 'south'], style=style)
         
-        # TODO: "choose all energy channels" checkbox
         self.ster_ch_sept_e = w.SelectMultiple(description="SEPT e channels", options=range(0,14+1), value=tuple(range(0,14+1, 2)), rows=10, style=style)
         self.ster_ch_sept_p = w.SelectMultiple(description="SEPT p channels", options=range(0,29+1), value=tuple(range(0,29+1,3)), rows=10, style=style)
         self.ster_ch_het_p =  w.SelectMultiple(description="HET p channels", options=range(0,10+1), value=tuple(range(0,10+1,1)), rows=10, style=style)
@@ -131,62 +136,46 @@ class Options:
                 if change.new == "STEREO":
                     display(self.stereo_box)
 
-        # TODO figure out how to have plot range update based on changes in start and end date
-        # def change_plot_range(change):
-            
-        #     if change.owner == self.startdate:
-        #         print("Changed startdate!")
-        #         dates = plot_range_interval(change.new, self.enddate.value)
-        #         self.plot_range.children[0].options = dates
-        #         self.plot_range.children[0].value[0] = change.new
-        #         self.plot_range.children[0].value[1] = self.enddate.value
+        def disable_checkbox(change):
+            """
+            Disable checkbox when options get update (e.g. MAG + MAG polarity).
+            """
+            if change.owner == self.mag:
+                if change.new == False:
+                    self.polarity.disabled = True
+
+                elif change.new == True:
+                    self.polarity.disabled = False
+
+            if change.owner == self.stix:
+                if change.new == False:
+                    self.stix_ltc.disabled = True
+
+                elif change.new == True:
+                    self.stix_ltc.disabled = False
+
+        self.mag.observe(disable_checkbox, names="value")
+        self.stix.observe(disable_checkbox, names="value")
                 
-        #     elif change.owner == self.enddate:
-        #         print("Changed enddate!")
-        #         dates = plot_range_interval(self.startdate.value, change.new)
-        #         self.plot_range.children[0].options = dates
-        #         self.plot_range.children[0].value[0] = self.startdate.value
-        #         self.plot_range.children[0].value[1] = change.new
-                
-                # dates = plot_range_interval(self.startdate.value, change.new)
-            
-            # self.plot_range.children[0].options = dates
-            # self.plot_range.children[0].index = (0,s len(dates) - 1)
-            # self.plot_range.children[1]
             
         #Set observer to listen for changes in S/C dropdown menu
         self.spacecraft.observe(change_sc, names="value")
-
-        #Likewise for start/end dates for plot range
-        # self.startdate.observe(change_plot_range, names="value")
-        # self.enddate.observe(change_plot_range, names='value')
 
         # Common attributes (dates, plot options etc.)
         self._commons = w.HBox([w.VBox([getattr(self, attr) for attr in common_attrs]), w.VBox([getattr(self, attr) for attr in variable_attrs])])
         
         # output widgets
-        self._out1 = w.Output(layout=w.Layout(width="auto"))  # for common attributes
-        self._out2 = w.Output(layout=w.Layout(width="auto"))  # for sc specific attributes
-        self._pr_out = w.Output(layout=w.Layout(width="auto"))
-        self._outs = w.HBox((w.VBox([self._out1, self._pr_out]), self._out2))         # side-by-side outputs
+        layout = w.Layout(width="auto")
+        self._out1 = w.Output(layout=layout)  # for common attributes
+        self._out2 = w.Output(layout=layout)  # for sc specific attributes
+        self._txt_out = w.Output(layout=layout) # for printing additional info
+        self._outs = w.HBox((w.VBox([self._out1, self._txt_out]), self._out2))         # side-by-side outputs
 
         display(self._outs)
 
         with self._out1:
             display(self._commons)
 
-        # with self._pr_out:
-        #     display(self.plot_range)
-            
-       
-
-def plot_range_interval(startdate, enddate):
-    timestamps = []
-    date_iter = startdate
-    while date_iter <= enddate:
-        timestamps.append(date_iter)
-        date_iter = date_iter + dt.timedelta(hours=1)
-    return timestamps
 
 
 def plot_range(startdate, enddate):
@@ -198,7 +187,8 @@ def plot_range(startdate, enddate):
     if not isinstance(startdate, dt.datetime) or not isinstance(enddate, dt.datetime):
         raise ValueError("Start and end dates have to be valid datetime objects")
     
-    dates = plot_range_interval(startdate=startdate, enddate=enddate)
+    # dates = plot_range_interval(startdate=startdate, enddate=enddate)
+    dates = pd.date_range(start=startdate, end=enddate, freq="1h")
 
     # First and last dates are selected by default
     initial_selection = (0, len(dates) - 1)
@@ -236,36 +226,41 @@ def plot_range(startdate, enddate):
 
 
 def load_data():
-    global load_flag
-    load_flag = False
-
+    
     if options.spacecraft.value is None:
         print("You must choose a spacecraft first!")
         return
     
     if options.spacecraft.value == "PSP":
-        psp.load_data(options)
-        load_flag = True
+        if options.startdate.value >= dt.datetime(2018, 10, 2):
+            psp.load_data(options)
+        else:
+            print("PSP: no data before 2 Oct 2018")
 
     if options.spacecraft.value == "SolO":
-        solo.load_data(options)
-        load_flag = True
+        if options.startdate.value >= dt.datetime(2020, 2, 28):
+            solo.load_data(options)
+        else:
+            print("SolO: no data before 28 Feb 2020")
 
     if options.spacecraft.value == "L1 (Wind/SOHO)":
-        l1.load_data(options)
-        load_flag = True
-
+        if options.startdate.value >= dt.datetime(1994,11,1):
+            l1.load_data(options)
+        else:
+            print("Wind/SOHO: no data before 1 Nov 1994 / 2 Dec 1995")
+        
     if options.spacecraft.value == "STEREO":
-        stereo.load_data(options)
-        load_flag = True
+        if options.startdate.value >= dt.datetime(2006, 10, 26):
+            if options.enddate.value >= dt.datetime(2016, 9 ,23) and options.ster_sc.value == "B":
+                print("STEREO B: no data after 23 Sep 2016")
+            else:
+                stereo.load_data(options)
+        else:
+            print("STEREO A/B: no data before 26 Oct 2006")
 
 
 
 def make_plot():
-    if not load_flag:
-        print("You must run load_data() first!")
-        return (None, None)
-    
     if options.spacecraft.value == "PSP":
         return psp.make_plot(options)
     

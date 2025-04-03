@@ -21,7 +21,7 @@ import sunpy_soar
 from sunpy.net import Fido
 from sunpy.timeseries import TimeSeries
 
-from multi_inst_plots.polarity_plotting import polarity_rtn, polarity_panel, polarity_colorwheel
+from multi_inst_plots.other_tools import polarity_rtn, polarity_panel, polarity_colorwheel, mag_angles
 
 
 
@@ -37,23 +37,6 @@ plt.rc('axes', labelsize=20)  # fontsize of the x and y labels
 plt.rcParams['agg.path.chunksize'] = 20000
 
 
-def mag_angles(B,Br,Bt,Bn):
-    theta = np.arccos(Bn/B)
-    alpha = 90-(180/np.pi*theta)
-
-    r = np.sqrt(Br**2 + Bt**2 + Bn**2)
-    phi = np.arccos(Br/np.sqrt(Br**2 + Bt**2))*180/np.pi
-
-    sel = np.where(Bt < 0)
-    count = len(sel[0])
-    if count > 0:
-        phi[sel] = 2*np.pi - phi[sel]
-    sel = np.where(r <= 0)
-    count = len(sel[0])
-    if count > 0:
-        phi[sel] = 0
-
-    return alpha, phi
 
 def swa_load_grnd_mom(startdate, enddate, path=None):
     """
@@ -237,25 +220,32 @@ def make_plot(options):
     if plot_Vsw or plot_N or plot_T:
         df_swa = resample_df(swa_data, resample_mag, pos_timestamp=None)
 
-    if plot_mag:
+    if plot_mag or plot_mag_angles or plot_polarity:
         mag_data = resample_df(mag_data_org, resample_mag, pos_timestamp=None)
 
     if plot_stix:
         df_stix = resample_df(df_stix_orig, resample, pos_timestamp=None) 
 
-    print(f"Plotting SolO data for time range {t_start} - {t_end}")
 
-    print("Chosen channels:")
-    if plot_electrons:
-        print(f"EPT electrons: {ept_ele_channels}, {len(ept_ele_channels)}")
-        print(f"HET electrons: {het_ele_channels}, {len(het_ele_channels)}")
-        
-    if plot_protons:
-        print(f"EPT ions: {ept_ion_channels}, {len(ept_ion_channels)}")
-        print(f"HET ions: {het_ion_channels}, {len(het_ion_channels)}")
+
+    if plot_electrons or plot_protons:
+        print("Chosen energy channels:")
+        if plot_electrons:
+            print(f"EPT electrons: {ept_ele_channels}, {len(ept_ele_channels)}")
+            print(f"HET electrons: {het_ele_channels}, {len(het_ele_channels)}")
+            
+        if plot_protons:
+            print(f"EPT ions: {ept_ion_channels}, {len(ept_ion_channels)}")
+            print(f"HET ions: {het_ion_channels}, {len(het_ion_channels)}")
         
 
     panels =  1*plot_stix + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T # + 1*plot_radio
+
+    if panels == 0:
+        print("No instruments chosen!")
+        return (None, None)
+    
+    print(f"Plotting SolO data for time range {t_start} - {t_end}")
 
     panel_ratios = list(np.zeros(panels)+1)
     # if plot_radio:
@@ -264,7 +254,7 @@ def make_plot(options):
         panel_ratios[0+1*plot_stix] = 2
         panel_ratios[1+1*plot_stix] = 2
     if plot_electrons or plot_protons:    
-        panel_ratios[0+1*plot_stix+1] = 2
+        panel_ratios[0+1*plot_stix] = 2
 
     
     i=0
@@ -276,7 +266,7 @@ def make_plot(options):
     fig.subplots_adjust(hspace=0.1)
 
     if panels == 1:
-        axs = [axs, axs]
+        axs = [axs]
 
     font_ylabel = 20
     font_legend = 10
@@ -539,6 +529,7 @@ def make_plot(options):
     axs[-1].set_xlim(t_start, t_end)
 
     axs[0].set_title('Solar Orbiter', ha='center')
+    fig.set_dpi(200)
 
     return fig, axs
 
