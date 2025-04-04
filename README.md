@@ -11,7 +11,7 @@
     - [Update](#update)
 - [Usage](#usage)
 - [Contributing](#contributing)
-- [Citation](#citation)
+- [Citing](#citing)
 - [Acknowledgement](#acknowledgement)
 
 ## About
@@ -51,7 +51,7 @@ Contributions to this tool are very much welcome and encouraged! Contributions c
 
 If you don't have a GitHub account, you can [sign-up for free here](https://github.com/signup), or you can also reach out to us with feedback by sending an email to jan.gieseler@utu.fi.
 
-## Citation
+## Citing
 
 To cite these tools, please obtain the citation from the corresponding [Zenodo entry](https://doi.org/10.5281/zenodo.15058293), where you can generate different citation styles on the bottom right of the page.
 
