@@ -8,8 +8,10 @@
 
 - [About](#about)
 - [Installation](#installation)
+    - [Update](#update)
 - [Usage](#usage)
 - [Contributing](#contributing)
+- [Citation](#citation)
 - [Acknowledgement](#acknowledgement)
 
 ## About
@@ -24,6 +26,12 @@ This repository contains multiple Python tools for the analysis of Solar Energet
 4. Create a new virtual environment (e.g., `conda create --name sep_tools python=3.12`, or `python -m venv venv_sep_tools` if you don't use miniforge/conda).
 5. Activate the just created virtual environment (e.g., `conda activate sep_tools`, or `source venv_sep_tools/bin/activate` if you don't use miniforge/conda).
 6. Install the Python dependencies from the *requirements.txt* file with `pip install -r requirements.txt`
+
+### Update
+
+To update the tools to the latest version, just [download this file](https://github.com/soler-he/sep_tools/archive/refs/heads/main.zip) and extract it. Note that changes that you made to the Notebooks will be overwritten if you extract into the same directory as used in the initial installation; in this case we recommend you make a copy of your edited version.
+
+The tools are continuously updated with small changes. After bigger updates, release versions are tagged and indexed at [Zenodo](https://doi.org/10.5281/zenodo.15058293). You can see the latest release version in the right sidebar of the repository (above Contributors) or get a full list at [soler-he/sep_tools/releases](https://github.com/soler-he/sep_tools/releases).
 
 ## Usage
 
@@ -42,6 +50,10 @@ If you are new to Jupyter Notebooks, the official documentation will give you mo
 Contributions to this tool are very much welcome and encouraged! Contributions can take the form of [issues](https://github.com/soler-he/sep_tools/issues) to report bugs and request new features or [pull requests](https://github.com/soler-he/sep_tools/pulls) to submit new code.
 
 If you don't have a GitHub account, you can [sign-up for free here](https://github.com/signup), or you can also reach out to us with feedback by sending an email to jan.gieseler@utu.fi.
+
+## Citation
+
+To cite these tools, please obtain the citation from the corresponding [Zenodo entry](https://doi.org/10.5281/zenodo.15058293), where you can generate different citation styles on the bottom right of the page.
 
 ## Acknowledgement
 
