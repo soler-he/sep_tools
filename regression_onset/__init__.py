@@ -19,7 +19,7 @@ import piecewise_regression
 
 # Relative imports cannot be used with "import .a" form; use "from . import a" instead. -Pylance
 from . import calc_utilities as calc
-from .plotting_utilities import set_standard_ticks, set_xlims, fabricate_yticks, STANDARD_QUICKLOOK_FIGSIZE, \
+from .plotting_utilities import set_standard_ticks, set_xlims, set_ylims, fabricate_yticks, STANDARD_QUICKLOOK_FIGSIZE, \
                                 STANDARD_TITLE_FONTSIZE, STANDARD_FIGSIZE, STANDARD_LEGENDSIZE, DEFAULT_SELECTION_ALPHA, \
                                 BREAKPOINT_SHADING_ALPHA, LATEX_PM
 
@@ -192,7 +192,7 @@ class Reg:
         plt.show()
 
 
-    def find_breakpoints(self, channel:str, resample:str=None, xlim:list=None, window:int=None, 
+    def find_breakpoints(self, channel:str, resample:str=None, xlim:list=None, ylim:list=None, window:int=None, 
                         threshold:float=None, plot:bool=True, diagnostics=False, index_choice="time_s", 
                         plot_style="step", breaks=DEFAULT_NUM_OF_BREAKPOINTS, title:str=None, fill_zeroes=True,
                         convergence_trials=DEFAULT_NUM_OF_TRIALS):
@@ -207,7 +207,8 @@ class Reg:
         -----------
         channel : {str} The ID of the channel.
         resample : {str} Time-averaging str to apply, e.g., '5 min' for 5 -minute time-averaging.
-        xlim : {list} List of two timestamps. Sets the boundaries of the x-axis.
+        xlim : {list | tuple} List of two timestamps. Sets the boundaries for the x-axis.
+        ylim : {list | tuple} List of two floats/integers. Sets the boundaries for the y-axis.
         window : {str} For peak finder: The amount of data points to look forward from last found peak.
         threshold : {float} For peak finder: The minimum value to consider the peak.
         plot : {bool} Draws the plot of breakpoints and intensity time series.
@@ -326,6 +327,12 @@ class Reg:
                 convergence_trials -= 1
                 print(f"Regression converged: {regression_converged}. Retries left: {convergence_trials}")
 
+        # Check here if regression did not converge.
+        # Results_dict still needs to be initialized even for empty result, so that figure and axes can be loaded into it
+        if not regression_converged:
+            results_dict = {}
+            print("It could be a good idea to try a different amount of breakpoints and/or adjust the time-averaging")
+
 
         if plot:
 
@@ -362,12 +369,13 @@ class Reg:
                     ax.axvspan(xmin=list_of_dt_breakpoint_errs[i][0], xmax=list_of_dt_breakpoint_errs[i][1], 
                                alpha=BREAKPOINT_SHADING_ALPHA, color="red", zorder=3)
                     ax.axvline(x=breakpoint_dt, c="red", lw=1.8, label=bp_label, zorder=4)
-                
-                # Sets the yticklabels to their exponential form (e.g., 10^5 instead of 5). This has to be done
-                # IMMEDIATELY after plotting the intensity, fits and breakpoints, not later, because otherwise it will mess up the 
-                # spacing of the yticks for an unknown reason.
-                #fabricate_yticks(ax=ax)
-                set_standard_ticks(ax=ax)
+
+            # Sets the yticklabels to their exponential form (e.g., 10^5 instead of 5). This has to be done
+            # IMMEDIATELY after plotting the intensity, fits and breakpoints, not later, because otherwise it will mess up the 
+            # spacing of the yticks for an unknown reason.
+            fabricate_yticks(ax=ax, series=plot_series)
+            set_ylims(ax=ax, series=plot_series, ylim=ylim)
+            set_standard_ticks(ax=ax)
 
             # Some extra if diagnostics are enabled:
             if diagnostics:
@@ -377,9 +385,10 @@ class Reg:
                 print(f"Data selection: {series.index[0]}, {series.index[-1]}")
                 print(f"Regression converged: {regression_converged}")
 
-                # Scatter the fit results on the real data
-                for line in list_of_fit_series:
-                    ax.scatter(line.index, line.values, s=135, c="darkorange", marker='x', zorder=3)
+                # Scatter the fit results on the real data (only if fits exist)
+                if regression_converged:
+                    for line in list_of_fit_series:
+                        ax.scatter(line.index, line.values, s=135, c="darkorange", marker='x', zorder=3)
 
                 # Apply a span over xmin=start and xmax=max_idx to display the are considered for the fit
                 ax.axvspan(xmin=series.index[0], xmax=series.index[-1], facecolor="green",
@@ -388,8 +397,9 @@ class Reg:
                 # Initialize a parallel y-axis to plot the original values to (invisible). This is to compare
                 # that the original values align with 
                 ax1 = ax.twinx()
-                set_standard_ticks(ax=ax1)
                 ax1.step(plot_series.index, plot_series.values, zorder=1, where="mid", alpha=0.4)
+                set_ylims(ax=ax1, series=plot_series, ylim=ylim)
+                set_standard_ticks(ax=ax1)
 
                 # Enable grid for easier comparison of axes
                 ax.grid(visible=True, which="both")
