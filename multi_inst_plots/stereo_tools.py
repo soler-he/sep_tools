@@ -31,7 +31,7 @@ from sunpy.coordinates import get_horizons_coord
 from sunpy.coordinates import frames
 
 
-from multi_inst_plots.other_tools import polarity_rtn, mag_angles #, polarity_panel, polarity_colorwheel
+from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_stix #, polarity_panel, polarity_colorwheel
 import multi_inst_plots.cdaweb as cdaweb
 
 
@@ -106,6 +106,7 @@ def load_data(options):
     
     global df_mag_orig
     global df_magplasma
+    global df_stix
     global meta_magplas
     global meta_mag
     global meta_se
@@ -121,6 +122,7 @@ def load_data(options):
     global plot_protons
     global plot_electrons
     global plot_radio
+    global plot_stix
     global plot_mag
     global plot_mag_angles
     global plot_Vsw
@@ -131,15 +133,13 @@ def load_data(options):
     global plot_het_p
     global plot_polarity
 
-    startdate = options.startdate.value
-    enddate = options.enddate.value
-
-    if not isinstance(startdate, dt.datetime) or not isinstance(enddate, dt.datetime):
-        raise ValueError("Invalid start/end date")
+    startdate = options.startdate
+    enddate = options.enddate
     
     sept_viewing = options.ster_sept_viewing.value
     sc = options.ster_sc.value
     plot_radio = options.radio.value
+    plot_stix = options.stix.value
     plot_het_e = options.ster_het_e.value
     plot_het_p = options.ster_het_p.value
     plot_sept_e = options.ster_sept_e.value
@@ -185,8 +185,9 @@ def load_data(options):
     if plot_radio:
         df_waves_hfr = load_swaves(f"ST{sc}_L3_WAV_HFR", startdate=startdate, enddate=enddate, path=path)
         df_waves_lfr = load_swaves(f"ST{sc}_L3_WAV_LFR", startdate=startdate, enddate=enddate, path=path)
-        if df_waves_hfr is None or df_waves_lfr is None:
-            plot_radio = False
+
+    if plot_stix:
+        df_stix = load_stix(options)
 
 
 
@@ -272,7 +273,7 @@ def make_plot(options):
             if plot_het_p:
                 print(f'HET protons: {ch_het_p}, {len(ch_het_p)}')
 
-    panels = 1*plot_radio + 1*plot_electrons + 1*plot_protons  + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T # + 1*plot_pad
+    panels = 1*plot_radio +1*plot_stix + 1*plot_electrons + 1*plot_protons  + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T # + 1*plot_pad
 
     if panels == 0:
         print("No instruments chosen!")
@@ -285,10 +286,10 @@ def make_plot(options):
     if plot_radio:
         panel_ratios[0] = 2
     if plot_electrons and plot_protons:
-        panel_ratios[0+1*plot_radio] = 2
-        panel_ratios[1+1*plot_radio] = 2
+        panel_ratios[0+1*plot_radio+1*plot_stix] = 2
+        panel_ratios[1+1*plot_radio+1*plot_stix] = 2
     if plot_electrons or plot_protons:    
-        panel_ratios[0+1*plot_radio] = 2
+        panel_ratios[0+1*plot_radio+1*plot_stix] = 2
 
     if panels == 3:
         fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 4*panels])#, gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
@@ -323,6 +324,22 @@ def make_plot(options):
         cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
         cbar.set_label("Intensity (sfu)", rotation=90, labelpad=10, fontsize=font_ylabel)
         i += 1
+
+    if plot_stix:
+        for key in df_stix.keys():
+            axs[i].plot(df_stix.index, df_stix[key], ds="steps-mid", label=key)
+        if options.stix_ltc.value == True:
+            title = 'SolO/STIX (light travel time corr.)'
+        else:
+            title = 'SolO/STIX'
+        if legends_inside:
+            axs[i].legend(loc='upper right', title=title)
+        else:
+            # axs[i].legend(loc='upper right', title=title, bbox_to_anchor=(1, 0.5))
+            axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', title=title)
+        axs[i].set_ylabel('Counts', fontsize=font_ylabel)
+        axs[i].set_yscale('log')
+        i +=1 
 
     if plot_electrons:
         if plot_sept_e:

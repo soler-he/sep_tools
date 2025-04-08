@@ -92,8 +92,8 @@ def load_data(options):
 
     path = options.path
 
-    startdate = options.startdate.value
-    enddate = options.enddate.value
+    startdate = options.startdate
+    enddate = options.enddate
 
     plot_electrons = options.solo_electrons.value
     plot_protons = options.solo_protons.value

@@ -1,8 +1,10 @@
 # TODO:
 # - "choose all energy channels" checkbox (or choose every nth)
-# - Empty plots and appropriate print output for time ranges with no data (right now crashing is pretty much guaranteed every time this happens)
-# - limit allowed time ranges (e.g. no data from PSP before Oct 2018)
+# - Empty plots and appropriate print output for time ranges with no data (right now crashing is pretty much guaranteed every time this happens) (L1 and PSP done)
 # - legend overlapping with many energy channels
+# - fix polarity axes on top of title
+# - GOES 
+
 
 
 import datetime as dt
@@ -17,9 +19,9 @@ from multi_inst_plots import l1_tools as l1
 from multi_inst_plots import solo_tools as solo
 
 
-style = {'description_width' : '50%'} 
+style = {'description_width' : '60%'} 
 
-common_attrs = ["spacecraft", "startdate", "enddate", "resample", "resample_mag", "radio_cmap", "legends_inside"] # , "resample_pol"
+common_attrs = ["spacecraft", "start_date", "end_date", "start_time", "end_time", "resample", "resample_mag", "resample_stixgoes", "radio_cmap", "legends_inside"] # , "resample_pol"
 
 variable_attrs = ['radio', 'mag', 'polarity', 'mag_angles', 'Vsw', 'N', 'T', 'p_dyn', "stix", "stix_ltc"] # ,'pad'
 
@@ -30,19 +32,22 @@ psp_attrs = ['psp_epilo_e', 'psp_epilo_p', 'psp_epihi_e',
 
 stereo_attrs = ['ster_sc', 'ster_sept_e', 'ster_sept_p', 'ster_het_e', 'ster_het_p', 'ster_sept_viewing', 'ster_ch_sept_e', 'ster_ch_sept_p',  'ster_ch_het_p'] #'ster_ch_het_e',
 
-l1_attrs = ['l1_wind_e', 'l1_wind_p', 'l1_ephin', 'l1_erne', 'l1_ch_eph_e', 'l1_ch_eph_p', 'l1_intercal', 'l1_av_sep', 'l1_av_erne']
+l1_attrs = ['l1_wind_e', 'l1_wind_p', 'l1_ephin', 'l1_erne', 'l1_ch_eph_e', 'l1_intercal', 'l1_av_sep', 'l1_av_erne']   # 'l1_ch_eph_p'
 
 solo_attrs = ['solo_electrons', 'solo_protons', 'solo_viewing', 'solo_ch_ept_e', 'solo_ch_ept_p', 'solo_ch_het_e', 'solo_ch_het_p', 'solo_resample_particles']
 
 class Options:
     def __init__(self):
 
-        self.spacecraft = w.Dropdown(value=None, description="Spacecraft", options=["PSP", "SolO", "L1 (Wind/SOHO)", "STEREO"], style=style)
-        self.startdate = w.NaiveDatetimePicker(value=dt.datetime(2022, 3, 14), disabled=False, description="Start date:")
-        self.enddate = w.NaiveDatetimePicker(value=dt.datetime(2022, 3, 16), disabled=False, description="End date:")
+        self.spacecraft = w.Dropdown(value="PSP", description="Spacecraft", options=["PSP", "SolO", "L1 (Wind/SOHO)", "STEREO"], style=style)
+        self.start_date = w.DatePicker(value=dt.date(2021, 7, 27), disabled=False, description="Start date/time:", style={'description_width': "40%"})   
+        self.end_date = w.DatePicker(value=dt.date(2021, 7, 28), disabled=False, description="End date/time:", style={'description_width': "40%"})
+        self.start_time = w.TimePicker(description="Start time:", value=dt.time(0,0), step=60, style=style)
+        self.end_time = w.TimePicker(description="End time:", value=dt.time(0,0), step=60, style=style)
 
         self.resample = w.BoundedIntText(value=15, min=0, max=30, step=1, description='Averaging (min):', disabled=False, style=style)
         self.resample_mag = w.BoundedIntText(value=5, min=0, max=30, step=1, description='MAG averaging (min):', disabled=False, style=style)
+        self.resample_stixgoes = w.BoundedIntText(value=5, min=0, max=30, step=1, description="STIX/GOES averaging (min):", style=style)
         #self.resample_pol = w.BoundedIntText(value=1, min=0, max=30, step=1, description='Polarity resampling (min):', disabled=False, style=style)
         self.radio_cmap = w.Dropdown(options=['jet'], value='jet', description='Radio colormap', style=style)
         self.pos_timestamp = 'center' #w.Dropdown(options=['center', 'start', 'original'], description='Timestamp position', style=style)
@@ -91,8 +96,8 @@ class Options:
         self.l1_wind_p = w.Checkbox(value=True, description="Wind/3DP protons")
         self.l1_ephin = w.Checkbox(value=True, description="SOHO/EPHIN electrons")
         self.l1_erne = w.Checkbox(value=True, description="SOHO/ERNE protons")
-        self.l1_ch_eph_e = w.Dropdown(description="EPHIN e channel:", options=["E150"], value="E150", disabled=True, style=style)
-        self.l1_ch_eph_p = w.Dropdown(description="EPHIN p channel:", options=["P25"], value="P25", disabled=True, style=style)
+        self.l1_ch_eph_e = w.Dropdown(description="EPHIN e channel:", options=["E150", "E1300", "E3000"], value="E150", disabled=False, style=style)
+        #self.l1_ch_eph_p = w.Dropdown(description="EPHIN p channel:", options=["P25"], value="P25", disabled=True, style=style)
         self.l1_intercal = w.BoundedIntText(value=1, min=1, max=14, description="Intercal", disabled=True, style=style)
         self.l1_av_sep = w.BoundedIntText(value=20, min=0, max=30, description="3DP+EPHIN averaging:", style=style)
         self.l1_av_erne = w.BoundedIntText(value=10, min=0, max=30, description="ERNE averaging:", style=style)
@@ -154,9 +159,18 @@ class Options:
                 elif change.new == True:
                     self.stix_ltc.disabled = False
 
+        # def limit_time_range(change):
+        #     self._txt_out.clear_output()
+        #     if self.enddate.value - change.new > dt.timedelta(days=7) or change.new - self.startdate.value > dt.timedelta(days=7):
+        #         with self._txt_out:
+        #             print("Data loading for more than 7 days is not supported!")
+
+
         self.mag.observe(disable_checkbox, names="value")
         self.stix.observe(disable_checkbox, names="value")
-                
+            
+        # self.startdate.observe(limit_time_range, names="value")
+        # self.enddate.observe(limit_time_range, names="value")
             
         #Set observer to listen for changes in S/C dropdown menu
         self.spacecraft.observe(change_sc, names="value")
@@ -188,70 +202,85 @@ def plot_range(startdate, enddate):
         raise ValueError("Start and end dates have to be valid datetime objects")
     
     # dates = plot_range_interval(startdate=startdate, enddate=enddate)
-    dates = pd.date_range(start=startdate, end=enddate, freq="1h")
+    if startdate - enddate < dt.timedelta(days=7):
+        dates = pd.date_range(start=startdate, end=enddate, freq="1h")
 
-    # First and last dates are selected by default
-    initial_selection = (0, len(dates) - 1)
+        # First and last dates are selected by default
+        initial_selection = (0, len(dates) - 1)
 
-    # Define the date range slider: set readout to False
-    date_range_selector = w.SelectionRangeSlider(
-        options=dates,
-        description="Plot range",
-        index=initial_selection,
-        continous_update=False,
-        readout=False
-    )
+        # Define the date range slider: set readout to False
+        date_range_selector = w.SelectionRangeSlider(
+            options=dates,
+            description="Plot range",
+            index=initial_selection,
+            continous_update=False,
+            readout=False
+        )
 
-    # Define the display to substitute the readout
-    date_range_display = w.HTML(
-        value=(
-            f"<b>{dates[initial_selection[0]]}" + 
-            f" - {dates[initial_selection[1]]}</b>"))
+        # Define the display to substitute the readout
+        date_range_display = w.HTML(
+            value=(
+                f"<b>{dates[initial_selection[0]]}" + 
+                f" - {dates[initial_selection[1]]}</b>"))
 
-    # Define the date range using the widgets.HBox
-    date_range = w.HBox(
-        (date_range_selector, date_range_display))
+        # Define the date range using the widgets.HBox
+        date_range = w.HBox(
+            (date_range_selector, date_range_display))
 
-    # Callback function that updates the display
-    def callback(dts):
-        date_range_display.value = f"<b>{dts[0]} - {dts[1]}</b>"
+        # Callback function that updates the display
+        def callback(dts):
+            date_range_display.value = f"<b>{dts[0]} - {dts[1]}</b>"
 
-    w.interactive_output(
-        callback, 
-        {"dts": date_range_selector})
+        w.interactive_output(
+            callback, 
+            {"dts": date_range_selector})
+        
+        options.plot_range = date_range
+
+        return date_range
     
-    options.plot_range = date_range
-
-    return date_range
+    else:
+        print("Plotting for more than 7 days not supported!")
+        return None
 
 
 def load_data():
+    options.startdate = dt.datetime(options.start_date.value.year,
+                                    options.start_date.value.month,
+                                    options.start_date.value.day,
+                                    options.start_time.value.hour,
+                                    options.start_time.value.minute)
+    options.enddate = dt.datetime(options.end_date.value.year,
+                                    options.end_date.value.month,
+                                    options.end_date.value.day,
+                                    options.end_time.value.hour,
+                                    options.end_time.value.minute)
     
     if options.spacecraft.value is None:
         print("You must choose a spacecraft first!")
         return
     
     if options.spacecraft.value == "PSP":
-        if options.startdate.value >= dt.datetime(2018, 10, 2):
+        if options.startdate >= dt.datetime(2018, 10, 2):
             psp.load_data(options)
         else:
             print("PSP: no data before 2 Oct 2018")
 
     if options.spacecraft.value == "SolO":
-        if options.startdate.value >= dt.datetime(2020, 2, 28):
+        if options.startdate >= dt.datetime(2020, 2, 28):
             solo.load_data(options)
         else:
             print("SolO: no data before 28 Feb 2020")
 
     if options.spacecraft.value == "L1 (Wind/SOHO)":
-        if options.startdate.value >= dt.datetime(1994,11,1):
+        if options.startdate >= dt.datetime(1994, 11, 1):
             l1.load_data(options)
         else:
-            print("Wind/SOHO: no data before 1 Nov 1994 / 2 Dec 1995")
+            print("L1: no data before 1 Nov 1994 (Wind) / 2 Dec 1995 (SOHO)")
         
     if options.spacecraft.value == "STEREO":
         if options.startdate.value >= dt.datetime(2006, 10, 26):
-            if options.enddate.value >= dt.datetime(2016, 9 ,23) and options.ster_sc.value == "B":
+            if options.enddate.value >= dt.datetime(2016, 9, 23) and options.ster_sc.value == "B":
                 print("STEREO B: no data after 23 Sep 2016")
             else:
                 stereo.load_data(options)

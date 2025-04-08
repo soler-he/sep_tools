@@ -32,7 +32,7 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.colors import LogNorm, Normalize
 from matplotlib import cm
 
-from multi_inst_plots.other_tools import polarity_rtn, mag_angles # , polarity_panel, polarity_colorwheel
+from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_stix # , polarity_panel, polarity_colorwheel
 
 from seppy.loader.wind import wind3dp_load
 from seppy.loader.soho import soho_load
@@ -254,7 +254,7 @@ def load_data(options):
     global meta_p
     global l1_ch_eph_e
     global intercal
-    global l1_ch_eph_p
+    global df_stix
 
     global startdate
     global enddate
@@ -268,6 +268,7 @@ def load_data(options):
     global plot_N
     global plot_T
     global plot_polarity
+    global plot_stix
 
     global path
 
@@ -286,16 +287,13 @@ def load_data(options):
     plot_electrons = plot_wind_e or plot_ephin
     plot_protons = plot_wind_p or plot_erne
 
-    startdate = options.startdate.value
-    enddate = options.enddate.value
+    startdate = options.startdate
+    enddate = options.enddate
 
-    if not isinstance(startdate, dt.datetime) or not isinstance(enddate, dt.datetime):
-        raise ValueError("Invalid start/end date")
     
     if plot_ephin:
         l1_ch_eph_e = options.l1_ch_eph_e.value
         intercal = options.l1_intercal.value
-        l1_ch_eph_p = options.l1_ch_eph_p.value
     
     wind_flux_thres = None
 
@@ -307,11 +305,16 @@ def load_data(options):
     plot_N = options.N.value
     plot_T = options.T.value
     plot_polarity = options.polarity.value
+    plot_stix = options.stix.value
     path = options.path
+
+    if not plot_mag:
+        plot_polarity = False
 
     av_sep = str(options.l1_av_sep.value) + "min"
     av_mag =  str(options.resample_mag.value) + "min"
     av_erne = str(options.l1_av_erne.value) + "min"
+    
 
 
 
@@ -383,7 +386,8 @@ def load_data(options):
             print(f"Unable to obtain WI_K0_3DP data for {startdate} - {enddate}!")
             df_solwind = []
             
-    
+    if plot_stix:
+        df_stix = load_stix(options)
     
         
     # add particles, SWE
@@ -398,6 +402,7 @@ def make_plot(options):
     global ephin
     global erne_p
 
+    stix_ltc = options.stix_ltc.value
     legends_inside = options.legends_inside.value
 
     
@@ -416,17 +421,11 @@ def make_plot(options):
         else:
             df_vsw = df_solwind
 
-    # else:
-    #     if plot_mag or plot_mag_angles:
-    #         df_mag = mag_data
-            
-    #     if plot_Vsw or plot_T or plot_N:
-    #         df_vsw = df_solwind
-
-    if plot_polarity and isinstance(mag_data, pd.DataFrame):
-        df_mag_pol = resample_df(mag_data, '1min')  # resampling to 1min for polarity plot
-    else:
-        df_mag_pol = []
+    if plot_polarity:
+        if isinstance(mag_data, pd.DataFrame):
+            df_mag_pol = resample_df(mag_data, '1min')  # resampling to 1min for polarity plot
+        else:
+            df_mag_pol = []
         
     
     if plot_wind:
@@ -467,7 +466,7 @@ def make_plot(options):
     font_ylabel = 20
     font_legend = 10
 
-    panels = 1*plot_radio + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T # + 1*plot_pad 
+    panels = 1*plot_radio + 1*plot_stix + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T # + 1*plot_pad 
 
     if panels == 0:
         print("No instruments chosen!")
@@ -479,10 +478,10 @@ def make_plot(options):
     if plot_radio:
         panel_ratios[0] = 2
     if plot_electrons and plot_protons:
-        panel_ratios[0+1*plot_radio] = 2
-        panel_ratios[1+1*plot_radio] = 2
+        panel_ratios[0+1*plot_radio+1*plot_stix] = 2
+        panel_ratios[1+1*plot_radio+1*plot_stix] = 2
     if plot_electrons or plot_protons:    
-        panel_ratios[0+1*plot_radio] = 2
+        panel_ratios[0+1*plot_radio+1*plot_stix] = 2
 
     
     if panels == 3:
@@ -524,6 +523,22 @@ def make_plot(options):
         
         
         i += 1
+
+    if plot_stix:
+        for key in df_stix.keys():
+            axs[i].plot(df_stix.index, df_stix[key], ds="steps-mid", label=key)
+        if stix_ltc:
+            title = 'SolO/STIX (light travel time corr.)'
+        else:
+            title = 'SolO/STIX'
+        if legends_inside:
+            axs[i].legend(loc='upper right', title=title)
+        else:
+            # axs[i].legend(loc='upper right', title=title, bbox_to_anchor=(1, 0.5))
+            axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', title=title)
+        axs[i].set_ylabel('Counts', fontsize=font_ylabel)
+        axs[i].set_yscale('log')
+        i +=1 
 
     if plot_electrons:
         # electrons
@@ -583,9 +598,9 @@ def make_plot(options):
             ax.plot(df_mag.index, df_mag.BRTN_2.values, label='Bn', color='deeppink', linewidth=1)
         ax.axhline(y=0, color='gray', linewidth=0.8, linestyle='--')
         if legends_inside:
-            ax.legend(title='Protons', loc="upper right", fontsize=font_legend)
+            ax.legend(loc="upper right", fontsize=font_legend)
         else:
-            ax.legend(title='Protons', loc='center left', bbox_to_anchor=(1, 0.5), fontsize=font_legend)#, title='RTN')#, bbox_to_anchor=(1, 0.5))
+            ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize=font_legend)#, title='RTN')#, bbox_to_anchor=(1, 0.5))
         ax.set_ylabel('B [nT]', fontsize=font_ylabel)
         ax.tick_params(axis="x",direction="in", which='both') #, pad=-15
         

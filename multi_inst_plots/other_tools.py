@@ -5,6 +5,8 @@ from matplotlib.colors import Normalize
 from matplotlib import cm
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib import pyplot as plt
+from stixdcpy.quicklook import LightCurves
+from seppy.tools import resample_df
 
 def polarity_rtn(Br,Bt,Bn,r,lat,V=400,delta_angle=10):
     """
@@ -88,3 +90,19 @@ def mag_angles(B,Br,Bt,Bn):
         phi[sel] = 0
 
     return alpha, phi
+
+def load_stix(options):
+    resample_stixgoes = str(options.resample_stixgoes.value) + "min"
+    try:
+        lc = LightCurves.from_sdc(start_utc=options.startdate, end_utc=options.enddate, ltc=options.stix_ltc.value)
+        df_stix_orig = lc.to_pandas()
+
+        if resample_stixgoes != "0min":
+            df_stix = resample_df(df_stix_orig, resample_stixgoes, pos_timestamp=None)
+        else:
+            df_stix = df_stix_orig
+    except TypeError:
+        print("Unable to load STIX data!")
+        df_stix = []
+
+    return df_stix
