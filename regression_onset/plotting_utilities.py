@@ -66,8 +66,8 @@ def set_ylims(ax:plt.Axes, series:pd.Series=None, ylim:list=None):
     MAX_ORDERS_OF_MAGNITUDE = 10
     MIN_FIG_INTENSITY = 1e-4
 
-    # In case not otherwise specified, set the lower limit to 10% less than the smallest value,
-    # and upper limit as 20% higher than the largest value
+    # In case not otherwise specified, set the lower limit to 0.1 orders of magnitude less than the smallest value,
+    # and upper limit as 0.2 orders of magnitude higher than the largest value
     if ylim is None:
         # ylim = [np.nanmin(series) - abs(np.nanmin(series) * FIG_LOW_LIM_COEFF),
         #         np.nanmax(series) + abs(np.nanmax(series) * FIG_HIGH_LIM_COEFF)]
@@ -106,20 +106,21 @@ def fabricate_yticks(ax:plt.Axes, series:pd.Series) -> None:
     ax : {plt.Axes} The axis object of the figure.
     """
 
-    AXIS_STEPSIZE = 0.25
+    AXIS_STEPSIZE = 1
     BUFFER_REL_COEFF = 1.
 
     # This little helper function formats labels as "x * 10^y"
     def sci_notation(val):
         exponent = int(np.floor(np.log10(val)))
         coeff = val / (10**exponent)
-        return rf"${coeff:.1f} \times 10^{{{exponent}}}$"
+        #return rf"${coeff:.1f} \times 10^{{{exponent}}}$"
+        return rf"$10^{{{exponent}}}$"
 
     # Assert tick range:
     log_min = np.nanmin(series)
     log_max = np.nanmax(series)
 
-    # Use a 10% buffer to push the boundaries (up and down)
+    # Use a 100% buffer to push the boundaries (up and down)
     buffer = BUFFER_REL_COEFF * (log_max - log_min)
     log_min -= buffer
     log_max += buffer
