@@ -114,7 +114,7 @@ def generate_fit_lines(data_df:pd.DataFrame, indices:np.ndarray, const:float, li
     indices : {array-like} The numerical indices of the data, the x-axis. They are either ordinal numbers or seconds.
     const : {float} The constant of the first linear fit.
     list_of_alphas : {list[float]} The slopes of the fits. Is always one longer than list_of_breakpoints.
-    list_of_breakpoints : {float} The breakpoints of the fit lines. Always one shorter than list_of_alphas.
+    list_of_breakpoints : {list[float]} The breakpoints of the fit lines. Always one shorter than list_of_alphas.
 
     Returns:
     --------
@@ -136,11 +136,25 @@ def generate_fit_lines(data_df:pd.DataFrame, indices:np.ndarray, const:float, li
 
         index_selection = indices[(indices>=selection_start)&(indices<=selection_end)]
 
-        # Overwrite the index selection with ordinal numbers from 0 to len(index_selection), because otherwise
-        # only the first linear polynome fits right; all the others will look as if they start from the common 
-        # origin (because they, in fact, do). Perhaps it would be possible to hold on to the actual index selection
-        # but that would require me to find a constant subtraction term to apply to these fits to bring them down
-        # so that their origin would lie at the point at which the previous fit ends.
+        # Add the first element of the part that was left OUTSIDE (right) the previous selection; this is
+        # to make sure that all consecutive fits have one common data point.
+        # The elements returned by np.setdiff1d() are only found in ar1, not in ar2.
+        try:
+            # Only add one more element on iterations other than the final iteration
+            if i < len(list_of_alphas)-1:
+                index_diff = np.setdiff1d(ar1=indices, ar2=index_selection)
+                # Apply further selection from selection_start onward to discard every element BEFORE the current 
+                # fit. (fit1_indices still exist in the diff(all_indices,fit2_indices))
+                index_diff = index_diff[index_diff>=selection_start]
+                # And here append the first element of the set of indices RIGHT to the current selection of indices.
+                index_selection = np.append(index_selection, index_diff[0])
+        except IndexError as ie:
+            # Here IndexError would be caused by trying to access the 0th element of index_diff. If said
+            # array is empty, then that element does not exist -> No need to do anything
+            print(f"{ie} on iteration {i}.")
+            pass
+
+        # Add the currently selected segment of indices to the list of index selections.
         list_of_index_selections.append(index_selection)
 
         # Generate the line y = alpha * x, where alpha = const
