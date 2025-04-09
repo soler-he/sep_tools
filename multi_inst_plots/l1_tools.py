@@ -32,7 +32,7 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.colors import LogNorm, Normalize
 from matplotlib import cm
 
-from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_stix # , polarity_panel, polarity_colorwheel
+from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
 
 from seppy.loader.wind import wind3dp_load
 from seppy.loader.soho import soho_load
@@ -233,21 +233,15 @@ def wind_mfi_loader(startdate, enddate):
 
 
 def load_data(options):
-    
-    ######### This is just for easier copy pasting from other versions (no need to change variables into dictionary references) #########
     global df_wind_wav_rad2
     global df_wind_wav_rad1
-    global df_solwind
-    global mag_data
-    global plot_wind
-    global plot_wind_e
-    global plot_wind_p
-    global plot_ephin
-    global plot_erne
-    global ephin_
-    global erne_p_
-    global edic_
-    global pdic_
+    global df_vsw
+    global df_mag
+    global df_mag_pol
+    global ephin
+    global erne_p
+    global edic
+    global pdic
     global meta_ephin
     global meta_erne
     global meta_e
@@ -255,12 +249,20 @@ def load_data(options):
     global l1_ch_eph_e
     global intercal
     global df_stix
+    global df_goes
+    global goes_sat
 
     global startdate
     global enddate
+
     global plot_radio
     global plot_electrons
     global plot_protons
+    global plot_wind
+    global plot_wind_e
+    global plot_wind_p
+    global plot_ephin
+    global plot_erne
     #global plot_pad
     global plot_mag_angles
     global plot_mag
@@ -269,7 +271,9 @@ def load_data(options):
     global plot_T
     global plot_polarity
     global plot_stix
-
+    global stix_ltc
+    global plot_goes
+    
     global path
 
     global av_mag
@@ -278,9 +282,7 @@ def load_data(options):
 
     plot_wind_e = options.l1_wind_e.value
     plot_wind_p = options.l1_wind_p.value
-
     plot_wind = plot_wind_e or plot_wind_p
-
     plot_ephin = options.l1_ephin.value
     plot_erne = options.l1_erne.value
 
@@ -290,7 +292,6 @@ def load_data(options):
     startdate = options.startdate
     enddate = options.enddate
 
-    
     if plot_ephin:
         l1_ch_eph_e = options.l1_ch_eph_e.value
         intercal = options.l1_intercal.value
@@ -306,6 +307,8 @@ def load_data(options):
     plot_T = options.T.value
     plot_polarity = options.polarity.value
     plot_stix = options.stix.value
+    stix_ltc = options.stix_ltc.value
+    plot_goes = options.goes.value
     path = options.path
 
     if not plot_mag:
@@ -314,9 +317,8 @@ def load_data(options):
     av_sep = str(options.l1_av_sep.value) + "min"
     av_mag =  str(options.resample_mag.value) + "min"
     av_erne = str(options.l1_av_erne.value) + "min"
+    av_stixgoes = str(options.resample_stixgoes.value) + "min"   
     
-
-
 
     # LOAD DATA
     ####################################################################
@@ -385,28 +387,14 @@ def load_data(options):
         except IndexError:
             print(f"Unable to obtain WI_K0_3DP data for {startdate} - {enddate}!")
             df_solwind = []
-            
+
+      
     if plot_stix:
-        df_stix = load_stix(options)
+        df_stix = load_solo_stix(startdate, enddate, resample=av_stixgoes, ltc = stix_ltc)
+
+    if plot_goes:
+        df_goes, goes_sat = load_goes_xrs(startdate, enddate, resample=av_stixgoes)
     
-        
-    # add particles, SWE
-
-def make_plot(options):
-    
-    global df_mag
-    global df_vsw
-    global edic
-    global pdic
-
-    global ephin
-    global erne_p
-
-    stix_ltc = options.stix_ltc.value
-    legends_inside = options.legends_inside.value
-
-    
-
     # AVERAGING
     if plot_mag or plot_mag_angles:
         # If no data, mag_data is an empty list and resample_df would crash (no resample method). Else if no averaging is done, rename to df_mag.
@@ -451,52 +439,21 @@ def make_plot(options):
         else:
             erne_p = erne_p_
     
+        
+    # add particles, SWE
+
+def make_plot(options):
 
     wind_ev2MeV_fac = 1e6
+
+    legends_inside = options.legends_inside.value
     cmap = options.radio_cmap.value
-
-    if options.plot_range is None:
-        t_start = startdate
-        t_end = enddate
-    else:
-        t_start = options.plot_range.children[0].value[0]
-        t_end = options.plot_range.children[0].value[1]
-
 
     font_ylabel = 20
     font_legend = 10
 
-    panels = 1*plot_radio + 1*plot_stix + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T # + 1*plot_pad 
+    fig, axs = make_fig_axs(options)
 
-    if panels == 0:
-        print("No instruments chosen!")
-        return (None, None)
-    
-    print(f"Plotting Wind/SOHO data for timerange {t_start} - {t_end}")
-    
-    panel_ratios = list(np.zeros(panels)+1)
-    if plot_radio:
-        panel_ratios[0] = 2
-    if plot_electrons and plot_protons:
-        panel_ratios[0+1*plot_radio+1*plot_stix] = 2
-        panel_ratios[1+1*plot_radio+1*plot_stix] = 2
-    if plot_electrons or plot_protons:    
-        panel_ratios[0+1*plot_radio+1*plot_stix] = 2
-
-    
-    if panels == 3:
-        fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 4*panels])#, gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
-    else:
-        fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 3*panels], gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
-        #fig, axs = plt.subplots(nrows=panels, sharex=True, dpi=100, figsize=[7, 1.5*panels], gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
-
-        
-    fig.subplots_adjust(hspace=0.1)
-
-    if panels == 1:
-        axs = [axs]
-
-    
     color_offset = 3
     i = 0
 
@@ -521,24 +478,15 @@ def make_plot(options):
         axs[i].set_yscale('log')
         axs[i].set_ylabel("Frequency (MHz)", fontsize=font_ylabel)
         
-        
         i += 1
 
     if plot_stix:
-        for key in df_stix.keys():
-            axs[i].plot(df_stix.index, df_stix[key], ds="steps-mid", label=key)
-        if stix_ltc:
-            title = 'SolO/STIX (light travel time corr.)'
-        else:
-            title = 'SolO/STIX'
-        if legends_inside:
-            axs[i].legend(loc='upper right', title=title)
-        else:
-            # axs[i].legend(loc='upper right', title=title, bbox_to_anchor=(1, 0.5))
-            axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', title=title)
-        axs[i].set_ylabel('Counts', fontsize=font_ylabel)
-        axs[i].set_yscale('log')
-        i +=1 
+        plot_solo_stix(df_stix, axs[i], stix_ltc, legends_inside, font_ylabel)
+        i += 1 
+
+    if plot_goes:
+        plot_goes_xrs(df_goes, goes_sat, axs[i], legends_inside, font_ylabel)
+        i += 1
 
     if plot_electrons:
         # electrons
@@ -591,7 +539,7 @@ def make_plot(options):
     
     if plot_mag:    
         ax = axs[i]
-        if isinstance(mag_data, pd.DataFrame):
+        if isinstance(df_mag, pd.DataFrame):
             ax.plot(df_mag.index, df_mag.B.values, label='B', color='k', linewidth=1)
             ax.plot(df_mag.index, df_mag.BRTN_0.values, label='Br', color='dodgerblue', linewidth=1)
             ax.plot(df_mag.index, df_mag.BRTN_1.values, label='Bt', color='limegreen', linewidth=1)
@@ -627,7 +575,7 @@ def make_plot(options):
             mapper = cm.ScalarMappable(norm=norm, cmap=cm.bwr)
             pol_ax.bar(df_mag_pol.index.values[(phi_relative>=0) & (phi_relative<180)],pol_arr[(phi_relative>=0) & (phi_relative<180)],color=mapper.to_rgba(phi_relative[(phi_relative>=0) & (phi_relative<180)]),width=timestamp)
             pol_ax.bar(df_mag_pol.index.values[(phi_relative>=180) & (phi_relative<360)],pol_arr[(phi_relative>=180) & (phi_relative<360)],color=mapper.to_rgba(np.abs(360-phi_relative[(phi_relative>=180) & (phi_relative<360)])),width=timestamp)
-            pol_ax.set_xlim(t_start, t_end)
+            pol_ax.set_xlim(options.plot_start, options.plot_end)
         
         
     if plot_mag_angles:
@@ -673,16 +621,6 @@ def make_plot(options):
         axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km/s]", fontsize=font_ylabel)
         i += 1
             
-
-    axs[0].set_title('Near-Earth spacecraft (Wind, SOHO)', fontsize=font_ylabel)
-    axs[-1].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M\n%b %d'))
-    axs[-1].xaxis.set_tick_params(rotation=0)
-    axs[-1].set_xlabel(f"Time (UTC) / Date in {t_start.year}", fontsize=15)
-    axs[-1].set_xlim(t_start, t_end)
-    fig.patch.set_facecolor('white')
-    fig.set_dpi(200)
     plt.show()
-    # if save_fig:
-    #     plt.savefig(f'{outpath}L1_multiplot_{str(startdate.date())}--{str(enddate.date())}_{av_sep}.png')
 
     return fig, axs

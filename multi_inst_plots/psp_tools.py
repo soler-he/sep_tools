@@ -20,7 +20,7 @@ from seppy.tools import resample_df
 from stixdcpy.quicklook import LightCurves # https://github.com/i4Ds/stixdcpy
 from sunpy.coordinates import frames, get_horizons_coord
 
-from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_stix
+from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
 
 # disable unused speasy data provider before importing to speed it up
 os.environ['SPEASY_CORE_DISABLED_PROVIDERS'] = "sscweb,archive,csa"
@@ -73,6 +73,7 @@ def load_data(options):
     global plot_electrons
     global plot_protons
     global plot_stix
+    global plot_goes
     global plot_radio
     global plot_mag
     global plot_mag_angles
@@ -92,7 +93,9 @@ def load_data(options):
     global df_psp_spc
     
     global psp_mag
-    global stix
+    global df_stix
+    global df_goes
+    global goes_sat
     global psp_epilo_energies_org
     global psp_epilo_ic_energies_org
     global psp_het_org
@@ -109,6 +112,7 @@ def load_data(options):
     plot_epilo_p = options.psp_epilo_p.value
     plot_epihi_p = options.psp_epihi_p.value
     plot_stix = options.stix.value
+    plot_goes = options.goes.value
     stix_ltc = options.stix_ltc.value
     plot_radio = options.radio.value
     plot_mag = options.mag.value
@@ -121,20 +125,24 @@ def load_data(options):
     
     epilo_ic_channel = options.psp_epilo_ic_channel.value
     epilo_channel = options.psp_epilo_channel.value
-    stix_ltc = options.stix_ltc.value
-
 
     plot_electrons = plot_epilo_e or plot_epihi_e
     plot_protons = plot_epilo_p or plot_epihi_p
+
+    resample = str(options.resample.value) + "min"         # convert to form that Pandas accepts
+    resample_mag = str(options.resample_mag.value) + "min"
+    resample_stixgoes = str(options.resample_stixgoes.value) + "min"
 
 
     if plot_stix:
         if enddate-startdate > dt.timedelta(days=7):
             print('WARNING: STIX loading for more than 7 days not supported at the moment!')
             print('')
-        stix = load_stix(options)
+        df_stix = load_solo_stix(startdate, enddate, ltc=stix_ltc, resample=resample_stixgoes)
     
-        
+    if plot_goes:
+        df_goes, goes_sat = load_goes_xrs(startdate, enddate, resample=resample_stixgoes, path=file_path)
+
     if plot_epihi_p or plot_epihi_e:
         
         psp_het_org, psp_het_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-HET-RATES60', startdate, enddate, 
@@ -330,42 +338,15 @@ def load_data(options):
     #################################################################
     ############## Resampling #######################################
     #################################################################
-
+    
     
 
-
-def make_plot(options):
-    """
-    Plot chosen data with user-specified parameters.
-    """
-   
-    plot_polarity = options.polarity.value
-    plot_epihi_p_combined_pixels = options.psp_epihi_p_combined_pixels.value
-    
-    psp_het_viewing = options.psp_het_viewing.value
-    epilo_ic_viewing = options.psp_epilo_ic_viewing.value
-    epilo_viewing = options.psp_epilo_viewing.value
-
-    ch_het_p = options.psp_ch_het_p.value
-    ch_epilo_ic = options.psp_ch_epilo_ic.value
-    ch_het_e = options.psp_ch_het_e.value
-    ch_epilo_e = options.psp_ch_epilo_e.value
-    
-    legends_inside = options.legends_inside.value
-    cmap = options.radio_cmap.value
-
-    if options.plot_range is None:
-        t_start = startdate
-        t_end = enddate
-    else:
-        t_start = options.plot_range.children[0].value[0]
-        t_end = options.plot_range.children[0].value[1]
-
-    ####  Resampling
-    
-    resample = str(options.resample.value) + "min"         # convert to form that Pandas accepts
-    resample_mag = str(options.resample_mag.value) + "min"
-
+    global psp_het
+    global psp_epilo
+    global psp_epilo_ic
+    global df_magplas_spani
+    global df_magplas_spc
+    global mag
     if (plot_epihi_e or plot_epihi_p):
         if isinstance(psp_het_org, pd.DataFrame) and resample != "0min":
             psp_het = resample_df(psp_het_org, resample)
@@ -403,7 +384,28 @@ def make_plot(options):
             mag = psp_mag
 
     
+
+
+def make_plot(options):
+    """
+    Plot chosen data with user-specified parameters.
+    """
+   
+    plot_polarity = options.polarity.value
+    plot_epihi_p_combined_pixels = options.psp_epihi_p_combined_pixels.value
     
+    psp_het_viewing = options.psp_het_viewing.value
+    epilo_ic_viewing = options.psp_epilo_ic_viewing.value
+    epilo_viewing = options.psp_epilo_viewing.value
+
+    ch_het_p = options.psp_ch_het_p.value
+    ch_epilo_ic = options.psp_ch_epilo_ic.value
+    ch_het_e = options.psp_ch_het_e.value
+    ch_epilo_e = options.psp_ch_epilo_e.value
+    
+    legends_inside = options.legends_inside.value
+    cmap = options.radio_cmap.value
+
     ############################################################################
     ############## Energy channel ranges #######################################
     ############################################################################
@@ -422,39 +424,11 @@ def make_plot(options):
             if plot_epilo_e:
                 print('EPI-Lo electrons:', ch_epilo_e, ',', len(ch_epilo_e))
         
-    
 
-    panels = 1*plot_radio + 1*plot_stix + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1*plot_Vsw + 1*plot_N + 1*plot_T + 1*plot_p_dyn 
-
-    if panels == 0:
-        print("No instruments chosen!")
-        return (None, None)
-    
-    print(f"Plotting PSP data for timerange {t_start} - {t_end}")
-    
-    panel_ratios = list(np.zeros(panels)+1)
-
-    if plot_radio:
-        panel_ratios[0] = 2
-
-    if plot_electrons and plot_protons:
-        panel_ratios[0+1*plot_stix+1*plot_radio] = 2
-        panel_ratios[1+1*plot_stix+1*plot_radio] = 2
-    if plot_electrons or plot_protons:    
-        panel_ratios[0+1*plot_stix+1*plot_radio] = 2
+    fig, axs = make_fig_axs(options)
 
     font_ylabel = 20
     font_legend = 10
-    
-    if panels == 3:
-        fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 4*panels])#, gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
-    else:
-        fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 3*panels], gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
-
-    if panels == 1:
-        axs = [axs] # fixes bug when plotting just one instrument
-
-    fig.subplots_adjust(hspace=0.1)
     
     i = 0
 
@@ -484,22 +458,12 @@ def make_plot(options):
         
     
     if plot_stix:
-        for key in stix.keys():
-            axs[i].plot(stix.index, stix[key], ds="steps-mid", label=key)
-        if stix_ltc:
-            title = 'SolO/STIX (light travel time corrected)'
-        else:
-            title = 'SolO/STIX'
-        if legends_inside:
-            axs[i].legend(loc='upper right', title=title)
-        else:
-            # axs[i].legend(loc='upper right', title=title, bbox_to_anchor=(1, 0.5))
-            axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', title=title)
-        axs[i].set_ylabel('Counts', fontsize=font_ylabel)
-        axs[i].set_yscale('log')
-        i +=1  
+        plot_solo_stix(df_stix, axs[i], stix_ltc, legends_inside, font_ylabel)
+        i += 1 
 
-        
+    if plot_goes:
+        plot_goes_xrs(df_goes, goes_sat, axs[i], legends_inside, font_ylabel)
+        i += 1
     
     
     color_offset = 4 
@@ -619,7 +583,7 @@ def make_plot(options):
             mapper = cm.ScalarMappable(norm=norm, cmap=cm.bwr)
             pol_ax.bar(mag.index.values[(phi_relative>=0) & (phi_relative<180)],pol_arr[(phi_relative>=0) & (phi_relative<180)],color=mapper.to_rgba(phi_relative[(phi_relative>=0) & (phi_relative<180)]),width=timestamp)
             pol_ax.bar(mag.index.values[(phi_relative>=180) & (phi_relative<360)],pol_arr[(phi_relative>=180) & (phi_relative<360)],color=mapper.to_rgba(np.abs(360-phi_relative[(phi_relative>=180) & (phi_relative<360)])),width=timestamp)
-            pol_ax.set_xlim(t_start, t_end)
+            pol_ax.set_xlim(options.plot_start, options.plot_end)
         
     if plot_mag_angles:
         ax = axs[i]
@@ -708,15 +672,6 @@ def make_plot(options):
             axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', fontsize=font_legend)
         # i += 1     
             
-    axs[0].set_title(f'Parker Solar Probe', ha='center')
-    axs[-1].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M\n%b %d'))
-    axs[-1].xaxis.set_tick_params(rotation=0)
-    axs[-1].set_xlabel(f"Time (UTC) / Date in {t_start.year}")#, fontsize=15)
-    axs[-1].set_xlim(t_start, t_end)
-    
-    #plt.tight_layout()
-    fig.patch.set_facecolor('white')
-    fig.set_dpi(200)
     plt.show()
 
     return fig, axs

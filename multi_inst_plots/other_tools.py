@@ -7,6 +7,10 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib import pyplot as plt
 from stixdcpy.quicklook import LightCurves
 from seppy.tools import resample_df
+from sunpy import timeseries as ts
+from sunpy.net import Fido
+from sunpy.net import attrs as a
+import matplotlib.dates as mdates
 
 def polarity_rtn(Br,Bt,Bn,r,lat,V=400,delta_angle=10):
     """
@@ -91,18 +95,195 @@ def mag_angles(B,Br,Bt,Bn):
 
     return alpha, phi
 
-def load_stix(options):
-    resample_stixgoes = str(options.resample_stixgoes.value) + "min"
+def load_solo_stix(start, end, ltc=True, resample=None):
+    
     try:
-        lc = LightCurves.from_sdc(start_utc=options.startdate, end_utc=options.enddate, ltc=options.stix_ltc.value)
-        df_stix_orig = lc.to_pandas()
+        lc = LightCurves.from_sdc(start_utc=start, end_utc=end, ltc=ltc)
+        df_stix = lc.to_pandas()
 
-        if resample_stixgoes != "0min":
-            df_stix = resample_df(df_stix_orig, resample_stixgoes, pos_timestamp=None)
-        else:
-            df_stix = df_stix_orig
+        if resample is not None:
+            df_stix = resample_df(df_stix, resample=resample, pos_timestamp=None)
+
     except TypeError:
         print("Unable to load STIX data!")
         df_stix = []
 
     return df_stix
+
+def plot_solo_stix(data, ax, ltc, legends_inside, font_ylabel):
+    if isinstance(data, pd.DataFrame):
+        for key in data.keys():
+            ax.plot(data.index, data[key], ds="steps-mid", label=key)
+        if ltc:
+            title = 'SolO/STIX (light travel time corr.)'
+        else:
+            title = 'SolO/STIX'
+        if legends_inside:
+            ax.legend(loc='upper right', title=title)
+        else:
+            # axs[i].legend(loc='upper right', title=title, bbox_to_anchor=(1, 0.5))
+            ax.legend(bbox_to_anchor=(1.01, 1), loc='upper left', title=title)
+        ax.set_ylabel('Counts', fontsize=font_ylabel)
+        ax.set_yscale('log')
+
+def load_goes_xrs(start, end, sat=None, resample=None, path=None):
+    """
+    Load GOES high-cadence XRS data with Fido. Picks largest satellite number available, if none specified.
+
+    Parameters
+    ----------
+
+    start : str or dt.datetime
+      start date in a parse_time-compatible format
+    end : str or dt.datetime
+      end date in a parse_time-compatible format
+    sat : int (optional)
+      GOES satellite number
+
+    Returns
+    -------
+
+    df_goes : pd.DataFrame
+        data
+    sat : int
+        satellite number for which data was returned
+    """
+
+    if sat is None:
+        result_goes = Fido.search(a.Time(start, end), a.Instrument("XRS"), a.Resolution("flx1s"))
+        sat = max(result_goes["xrs"]["SatelliteNumber"])
+        print(f"Fetching GOES-{sat} data for {start} - {end}")
+        file_goes = Fido.fetch(result_goes["xrs"][result_goes["xrs", "SatelliteNumber"] == sat])
+
+    else:
+        result_goes = Fido.search(a.Time(start, end), a.Instrument("XRS"), a.goes.SatelliteNumber(sat), a.Resolution("flx1s"))
+        print(f"Fetching GOES-{sat} data for {start} - {end}")
+        file_goes = Fido.fetch(result_goes, path=path)
+
+    goes = ts.TimeSeries(file_goes, concatenate=True)
+    df_goes = goes.to_dataframe()
+    
+    # Filter data
+    df_goes = df_goes[(df_goes["xrsa_quality"] == 0) & (df_goes["xrsb_quality"] == 0)]  # quality flags
+
+    # Resampling
+    if resample is not None:
+        df_goes = resample_df(df_goes, resample=resample)
+
+    return df_goes, sat
+
+def plot_goes_xrs(data, sat, ax, legends_inside, font_ylabel):
+    
+    if isinstance(data, pd.DataFrame):
+        for channel, wavelength in zip(["xrsa", "xrsb"], ["0.5 - 4.0 Å", "1.0 - 8.0 Å"]):
+            ax.plot(data.index, data[channel], ds="steps-mid", label=wavelength)
+    title = f"GOES-{sat}/XRS"
+    if legends_inside:
+        ax.legend(loc="upper right", title=title)
+    else:
+        ax.legend(bbox_to_anchor=(1.01, 1), loc='upper left', title=title)
+
+    ax.set_yscale('log')
+    ax.set_ylabel(r"Irradiance ($\mathrm{W/m^2}$)", fontsize=font_ylabel)
+
+def make_fig_axs(options):
+
+    plot_radio = options.radio.value
+    #plot_pad = options.pad.value
+    plot_mag = options.mag.value
+    plot_mag_angles = options.mag_angles.value
+    plot_Vsw = options.Vsw.value
+    plot_N = options.N.value
+    plot_T = options.T.value
+    plot_Pdyn = options.p_dyn.value
+    plot_stix = options.stix.value
+    plot_goes = options.goes.value
+
+    if options.plot_range is None:
+        t_start = options.startdate
+        t_end = options.enddate
+    else:
+        t_start = options.plot_range.children[0].value[0]
+        t_end = options.plot_range.children[0].value[1]
+
+    if options.spacecraft.value == "L1 (Wind/SOHO)":
+        plot_wind_e = options.l1_wind_e.value
+        plot_wind_p = options.l1_wind_p.value
+        plot_ephin = options.l1_ephin.value
+        plot_erne = options.l1_erne.value
+        plot_electrons = plot_wind_e or plot_ephin
+        plot_protons = plot_wind_p or plot_erne
+
+    if options.spacecraft.value == "PSP":
+        plot_epilo_e = options.psp_epilo_e.value
+        plot_epihi_e = options.psp_epihi_e.value
+        plot_epilo_p = options.psp_epilo_p.value
+        plot_epihi_p = options.psp_epihi_p.value
+        plot_electrons = plot_epilo_e or plot_epihi_e
+        plot_protons = plot_epilo_p or plot_epihi_p
+
+    if options.spacecraft.value == "SolO":
+        plot_electrons = options.solo_electrons.value
+        plot_protons = options.solo_protons.value
+
+    if options.spacecraft.value == "STEREO":
+        plot_het_e = options.ster_het_e.value
+        plot_het_p = options.ster_het_p.value
+        plot_sept_e = options.ster_sept_e.value
+        plot_sept_p = options.ster_sept_p.value
+        plot_electrons = plot_het_e or plot_sept_e
+        plot_protons = plot_het_p or plot_sept_p
+
+    font_ylabel = 20
+    font_legend = 10
+
+    if options.spacecraft.value == "PSP":
+        panels = 1*plot_radio + 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T + 1*plot_Pdyn # + 1*plot_pad 
+    else: 
+        panels = 1*plot_radio + 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T # + 1*plot_pad 
+
+    panel_ratios = list(np.zeros(panels)+1)
+    if plot_radio:
+        panel_ratios[0] = 2
+    if plot_electrons and plot_protons:
+        panel_ratios[0 + 1*plot_radio + 1*plot_stix + 1*plot_goes] = 2
+        panel_ratios[1 + 1*plot_radio + 1*plot_stix + 1*plot_goes] = 2
+    if plot_electrons or plot_protons:    
+        panel_ratios[0 + 1*plot_radio + 1*plot_stix + 1*plot_goes] = 2
+    
+    if panels == 3:
+        fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 4*panels])#, gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
+    else:
+        fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 3*panels], gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
+        #fig, axs = plt.subplots(nrows=panels, sharex=True, dpi=100, figsize=[7, 1.5*panels], gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
+
+    if panels == 1:
+        axs = [axs]
+    
+    if panels == 0:
+        print("No instruments chosen!")
+        return (None, None)
+
+    if options.spacecraft.value == "L1 (Wind/SOHO)":
+        axs[0].set_title('Near-Earth spacecraft (Wind, SOHO)', fontsize=font_ylabel)
+    elif options.spacecraft.value == "PSP":
+        axs[0].set_title('Parker Solar Probe', fontsize=font_ylabel)
+    elif options.spacecraft.value == "STEREO":
+        axs[0].set_title(f'STEREO {options.ster_sc.value}', fontsize=font_ylabel)
+    else:
+        axs[0].set_title(f'Solar Orbiter', fontsize=font_ylabel)
+
+    axs[-1].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M\n%b %d'))
+    axs[-1].xaxis.set_tick_params(rotation=0)
+    axs[-1].set_xlabel(f"Time (UTC) / Date in {t_start.year}", fontsize=15)
+    axs[-1].set_xlim(t_start, t_end)
+    fig.subplots_adjust(hspace=0.1)
+    fig.patch.set_facecolor('white')
+    fig.set_dpi(200)
+
+    if options.spacecraft.value != "STEREO":
+        print(f"Plotting {options.spacecraft.value} data for timerange {t_start} - {t_end}")
+    else:
+        print(f"Plotting STEREO {options.ster_sc.value} data for timerange {t_start} - {t_end}")
+
+    return fig, axs

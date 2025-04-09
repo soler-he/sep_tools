@@ -21,7 +21,7 @@ import sunpy_soar
 from sunpy.net import Fido
 from sunpy.timeseries import TimeSeries
 
-from multi_inst_plots.other_tools import polarity_rtn, polarity_panel, polarity_colorwheel, mag_angles
+from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
 
 
 
@@ -82,6 +82,7 @@ def load_data(options):
     global plot_mag_angles
     global plot_radio
     global plot_stix
+    global plot_goes
     global plot_Vsw
     global plot_T
     global plot_N
@@ -102,6 +103,7 @@ def load_data(options):
     plot_mag_angles = options.mag_angles.value
     plot_radio = options.radio.value
     plot_stix = options.stix.value
+    plot_goes = options.goes.value
     plot_Vsw = options.Vsw.value
     plot_T = options.T.value
     plot_N = options.N.value
@@ -123,11 +125,15 @@ def load_data(options):
     global electrons_ept
     global protons_ept
     global protons_het
-    global df_stix_orig
+    global df_stix
+    global df_goes
+    global goes_sat
     global swa_data
     global mag_data_org
     global energies_ept
     global energies_het
+
+    resample_stixgoes = str(options.resample_stixgoes.value) + "min"
 
     if plot_electrons or plot_protons:
         if ept_l3:
@@ -159,8 +165,10 @@ def load_data(options):
             print(i, e)
 
     if plot_stix:
-        lc = LightCurves.from_sdc(start_utc=startdate, end_utc=enddate, ltc=stix_ltc)
-        df_stix_orig = lc.to_pandas()
+        df_stix = load_solo_stix(startdate, enddate, resample=resample_stixgoes, ltc = stix_ltc)
+
+    if plot_goes:
+        df_goes, goes_sat = load_goes_xrs(startdate, enddate, resample=resample_stixgoes)
 
     if plot_mag or plot_mag_angles or plot_polarity:
         mag_data_org = mag_load(startdate, enddate, level='l2', frame='rtn', path=path)
@@ -196,13 +204,6 @@ def make_plot(options):
     legends_inside = options.legends_inside.value
     cmap = options.radio_cmap.value
 
-    if options.plot_range is None:
-        t_start = startdate
-        t_end = enddate
-    else:
-        t_start = options.plot_range.children[0].value[0]
-        t_end = options.plot_range.children[0].value[1]
-
     if plot_electrons or plot_protons:
         df_electrons_het = resample_df(electrons_het, resample_particles, pos_timestamp=None)
         df_protons_het = resample_df(protons_het, resample_particles, pos_timestamp=None)
@@ -223,11 +224,6 @@ def make_plot(options):
     if plot_mag or plot_mag_angles or plot_polarity:
         mag_data = resample_df(mag_data_org, resample_mag, pos_timestamp=None)
 
-    if plot_stix:
-        df_stix = resample_df(df_stix_orig, resample, pos_timestamp=None) 
-
-
-
     if plot_electrons or plot_protons:
         print("Chosen energy channels:")
         if plot_electrons:
@@ -239,39 +235,13 @@ def make_plot(options):
             print(f"HET ions: {het_ion_channels}, {len(het_ion_channels)}")
         
 
-    panels =  1*plot_stix + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T # + 1*plot_radio
-
-    if panels == 0:
-        print("No instruments chosen!")
-        return (None, None)
-    
-    print(f"Plotting SolO data for time range {t_start} - {t_end}")
-
-    panel_ratios = list(np.zeros(panels)+1)
-    # if plot_radio:
-    #     panel_ratios[0] = 2
-    if plot_electrons and plot_protons:
-        panel_ratios[0+1*plot_stix] = 2
-        panel_ratios[1+1*plot_stix] = 2
-    if plot_electrons or plot_protons:    
-        panel_ratios[0+1*plot_stix] = 2
-
-    
-    i=0
-    if panels == 3:
-        fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 4*panels])#, gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
-    else:
-        fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 3*panels], gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
-
-    fig.subplots_adjust(hspace=0.1)
-
-    if panels == 1:
-        axs = [axs]
+    fig, axs = make_fig_axs(options)
 
     font_ylabel = 20
     font_legend = 10
     color_offset = 3
 
+    i = 0
 
     # ### Radio
 
@@ -298,20 +268,12 @@ def make_plot(options):
 
     ### STIX
     if plot_stix:
-        for key in df_stix.keys():
-            axs[i].plot(df_stix.index, df_stix[key], ds="steps-mid", label=key)
-        if stix_ltc:
-            title = 'STIX (light travel time corr.)'
-        else:
-            title = 'STIX'
-        if legends_inside:
-            axs[i].legend(loc='upper right', title=title)
-        else:
-            # axs[i].legend(loc='upper right', title=title, bbox_to_anchor=(1, 0.5))
-            axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', title=title)
-        axs[i].set_ylabel('Counts', fontsize=font_ylabel)
-        axs[i].set_yscale('log')
-        i +=1 
+        plot_solo_stix(df_stix, axs[i], stix_ltc, legends_inside, font_ylabel)
+        i += 1 
+
+    if plot_goes:
+        plot_goes_xrs(df_goes, goes_sat, axs[i], legends_inside, font_ylabel)
+        i += 1
 
     ### Electrons
     ch_key = 'Electron_Bins_Text'
@@ -479,7 +441,7 @@ def make_plot(options):
             mapper = cm.ScalarMappable(norm=norm, cmap=cm.bwr)
             pol_ax.bar(mag_data.index.values[(phi_relative>=0) & (phi_relative<180)], pol_arr[(phi_relative>=0) & (phi_relative<180)], color=mapper.to_rgba(phi_relative[(phi_relative>=0) & (phi_relative<180)]), width=timestamp)
             pol_ax.bar(mag_data.index.values[(phi_relative>=180) & (phi_relative<360)], pol_arr[(phi_relative>=180) & (phi_relative<360)], color=mapper.to_rgba(np.abs(360-phi_relative[(phi_relative>=180) & (phi_relative<360)])), width=timestamp)
-            pol_ax.set_xlim(t_start, t_end)
+            pol_ax.set_xlim(options.plot_start, options.plot_end)
 
         
     if plot_mag_angles:
@@ -523,36 +485,6 @@ def make_plot(options):
         axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km/s]", fontsize=font_ylabel)
         i += 1
     
-    axs[-1].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M\n%b %d'))
-    axs[-1].xaxis.set_tick_params(rotation=0)
-    axs[-1].set_xlabel(f"Time (UTC) / Date in {startdate.year}", fontsize=15)
-    axs[-1].set_xlim(t_start, t_end)
-
-    axs[0].set_title('Solar Orbiter', ha='center')
-    fig.set_dpi(200)
+    plt.show()
 
     return fig, axs
-
-# startdate = dt.datetime(2022, 10, 3)
-# enddate = dt.datetime(2022, 10, 5)
-
-# # date = f"{startdate.year}{startdate.month:02d}{startdate.day:02d}"
-# viewing = 'sun'
-
-# resample = '1min'
-# resample_particles = '5min'
-
-# stix_ltc = True  # correct SolO/STIX data for light travel time
-
-# pos_timestamp = None  #'center'
-
-# plot_radio = True
-# plot_stix = True
-# plot_electrons = False
-# plot_protons = True
-# plot_mag_angles = True 
-# plot_mag = True
-# plot_Vsw = True
-# plot_N = True
-# plot_T = True
-# plot_polarity = True 

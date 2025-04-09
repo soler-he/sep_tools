@@ -3,8 +3,10 @@
 # - Empty plots and appropriate print output for time ranges with no data (right now crashing is pretty much guaranteed every time this happens) (L1 and PSP done)
 # - legend overlapping with many energy channels
 # - fix polarity axes on top of title
-# - GOES 
-
+# - download retrying (making weekly plots is going to be a nightmare)
+# - fontsize as options?
+# - SOLO/RPW
+# - GOES missing data handling
 
 
 import datetime as dt
@@ -23,7 +25,7 @@ style = {'description_width' : '60%'}
 
 common_attrs = ["spacecraft", "start_date", "end_date", "start_time", "end_time", "resample", "resample_mag", "resample_stixgoes", "radio_cmap", "legends_inside"] # , "resample_pol"
 
-variable_attrs = ['radio', 'mag', 'polarity', 'mag_angles', 'Vsw', 'N', 'T', 'p_dyn', "stix", "stix_ltc"] # ,'pad'
+variable_attrs = ['radio', 'mag', 'polarity', 'mag_angles', 'Vsw', 'N', 'T', 'p_dyn', "stix", "stix_ltc", "goes"] # ,'pad'
 
 psp_attrs = ['psp_epilo_e', 'psp_epilo_p', 'psp_epihi_e',
              'psp_epihi_p', 'psp_het_viewing', 'psp_epilo_viewing',
@@ -51,7 +53,8 @@ class Options:
         #self.resample_pol = w.BoundedIntText(value=1, min=0, max=30, step=1, description='Polarity resampling (min):', disabled=False, style=style)
         self.radio_cmap = w.Dropdown(options=['jet'], value='jet', description='Radio colormap', style=style)
         self.pos_timestamp = 'center' #w.Dropdown(options=['center', 'start', 'original'], description='Timestamp position', style=style)
-        self.legends_inside = w.Checkbox(value=False, description='Legends inside') 
+        self.legends_inside = w.Checkbox(value=False, description='Legends inside')
+    
 
         self.radio = w.Checkbox(value=True, description="Radio")
         #self.pad = w.Checkbox(value=True, description="Pitch angle distribution")    # TODO: remove disabled keyword after implementation
@@ -64,6 +67,7 @@ class Options:
         self.p_dyn = w.Checkbox(value=True, description="p_dyn")
         self.stix = w.Checkbox(value=True, description="SolO/STIX")
         self.stix_ltc = w.Checkbox(value=True, description="Correct STIX for light travel time")
+        self.goes = w.Checkbox(value=True, description="GOES/XRS")
         
         self.path = f"{os.getcwd()}{os.sep}data"
         self.plot_range = None
@@ -256,6 +260,13 @@ def load_data():
                                     options.end_time.value.hour,
                                     options.end_time.value.minute)
     
+    if options.plot_range is None:
+        options.plot_start = options.startdate
+        options.plot_end = options.enddate
+    else:
+        options.plot_start = options.plot_range.children[0].value[0]
+        options.plot_end = options.plot_range.children[0].value[1]
+    
     if options.spacecraft.value is None:
         print("You must choose a spacecraft first!")
         return
@@ -279,8 +290,8 @@ def load_data():
             print("L1: no data before 1 Nov 1994 (Wind) / 2 Dec 1995 (SOHO)")
         
     if options.spacecraft.value == "STEREO":
-        if options.startdate.value >= dt.datetime(2006, 10, 26):
-            if options.enddate.value >= dt.datetime(2016, 9, 23) and options.ster_sc.value == "B":
+        if options.startdate >= dt.datetime(2006, 10, 26):
+            if options.enddate >= dt.datetime(2016, 9, 23) and options.ster_sc.value == "B":
                 print("STEREO B: no data after 23 Sep 2016")
             else:
                 stereo.load_data(options)
