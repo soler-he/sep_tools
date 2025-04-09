@@ -19,8 +19,8 @@ import piecewise_regression
 
 # Relative imports cannot be used with "import .a" form; use "from . import a" instead. -Pylance
 from . import calc_utilities as calc
-from .plotting_utilities import set_standard_ticks, set_xlims, fabricate_yticks, STANDARD_QUICKLOOK_FIGSIZE, \
-                                STANDARD_TITLE_FONTSIZE, STANDARD_FIGSIZE, STANDARD_LEGENDSIZE, DEFAULT_SELECTION_ALPHA, \
+from .plotting_utilities import set_standard_ticks, set_xlims, set_ylims, fabricate_yticks, STANDARD_QUICKLOOK_FIGSIZE, \
+                                STANDARD_TITLE_FONTSIZE, STANDARD_FIGSIZE, STANDARD_FONTSIZE, DEFAULT_SELECTION_ALPHA, \
                                 BREAKPOINT_SHADING_ALPHA, LATEX_PM
 
 from .validate import _validate_index_choice, _validate_plot_style, _validate_fit_convergence, _validate_selection
@@ -33,6 +33,8 @@ DEFAULT_NUM_OF_BREAKPOINTS = 1
 DEFAULT_NUM_OF_TRIALS = 5
 SECONDS_PER_DAY = 86400
 
+QUICKLOOK_TICK_LABELSIZE = 18
+QUICKLOOK_LEGENDSIZE = STANDARD_FONTSIZE-5
 
 class Reg:
 
@@ -117,9 +119,6 @@ class Reg:
                     from the beginning of the input data and select up to the given timestamp.
         """
 
-        QUICKLOOK_TICK_LABELSIZE = 18
-        QUICKLOOK_LEGENDSIZE = STANDARD_LEGENDSIZE-5
-
         # Apply resampling if asked to
         if isinstance(resample,str):
             data = calc.resample_df(df=self.data, avg=resample)
@@ -192,7 +191,7 @@ class Reg:
         plt.show()
 
 
-    def find_breakpoints(self, channel:str, resample:str=None, xlim:list=None, window:int=None, 
+    def find_breakpoints(self, channel:str, resample:str=None, xlim:list=None, ylim:list=None, window:int=None, 
                         threshold:float=None, plot:bool=True, diagnostics=False, index_choice="time_s", 
                         plot_style="step", breaks=DEFAULT_NUM_OF_BREAKPOINTS, title:str=None, fill_zeroes=True,
                         convergence_trials=DEFAULT_NUM_OF_TRIALS):
@@ -207,7 +206,8 @@ class Reg:
         -----------
         channel : {str} The ID of the channel.
         resample : {str} Time-averaging str to apply, e.g., '5 min' for 5 -minute time-averaging.
-        xlim : {list} List of two timestamps. Sets the boundaries of the x-axis.
+        xlim : {list | tuple} List of two timestamps. Sets the boundaries for the x-axis.
+        ylim : {list | tuple} List of two floats/integers. Sets the boundaries for the y-axis.
         window : {str} For peak finder: The amount of data points to look forward from last found peak.
         threshold : {float} For peak finder: The minimum value to consider the peak.
         plot : {bool} Draws the plot of breakpoints and intensity time series.
@@ -291,11 +291,11 @@ class Reg:
         while convergence_trials > 0:
 
             # Runs regression model with given parameters
-            fit_results = break_regression(ints=series.values, indices=numerical_indices, num_of_breaks=breaks)
+            fit_results, fit_curve = break_regression(ints=series.values, indices=numerical_indices, num_of_breaks=breaks)
 
             # The results are a dictionary, extract values here. Also check that the result converged.
             estimates = fit_results["estimates"]
-            regression_converged = fit_results["converged"]
+            regression_converged:bool = fit_results["converged"]
 
             # Let's not validate convergence anymore
             # _validate_fit_convergence(regression_converged=regression_converged)
@@ -320,11 +320,18 @@ class Reg:
                     results_dict[f"breakpoint{i}"] = bp
                 for i, bp_errs in enumerate(list_of_dt_breakpoint_errs):
                     results_dict[f"breakpoint{i}_errors"] = bp_errs
+                results_dict["fit_curve"] = fit_curve
 
             # If not, notify the user and deduct 1 from the amount of trials -> try again
             else:
                 convergence_trials -= 1
                 print(f"Regression converged: {regression_converged}. Retries left: {convergence_trials}")
+
+        # Check here if regression did not converge.
+        # Results_dict still needs to be initialized even for empty result, so that figure and axes can be loaded into it
+        if not regression_converged:
+            results_dict = {}
+            print("It could be a good idea to try a different amount of breakpoints and/or adjust the time-averaging")
 
 
         if plot:
@@ -332,29 +339,19 @@ class Reg:
             # Init figure
             fig, ax = plt.subplots(figsize=STANDARD_FIGSIZE)
 
-            if diagnostics:
-                print(f"Data selection: {series.index[0]}, {series.index[-1]}")
-                print(f"Regression converged: {regression_converged}")
-                # Generate the fit lines to display on the plot
-                if regression_converged:
-                    list_of_fit_series = calc.generate_fit_lines(data_df=data, indices=numerical_indices, const=const,
-                                                                list_of_alphas=list_of_alphas, 
-                                                                list_of_breakpoints=list_of_breakpoints, index_choice=index_choice)
-
-                    # Plot the fit results on the real data
-                    for line in list_of_fit_series:
-                        ax.plot(line.index, line.values, lw=2.8, ls="--", c="maroon", zorder=3)
-
-                # Apply a span over xmin=start and xmax=max_idx to display the are considered for the fit
-                ax.axvspan(xmin=series.index[0], xmax=series.index[-1], facecolor="green", alpha=DEFAULT_SELECTION_ALPHA, label="selection area")
-
             # Plot the intensities
             if plot_style=="step":
-                ax.step(plot_series.index, plot_series.values, label=channel, zorder=1, where="mid")
+                ax.step(plot_series.index, plot_series.values, label=channel, zorder=2, where="mid")
             if plot_style=="scatter":
-                ax.scatter(plot_series.index, plot_series.values, label=channel, zorder=1)
+                ax.scatter(plot_series.index, plot_series.values, label=channel, zorder=2)
 
+            # The fits and breakpoints only exists if regression converged
             if regression_converged:
+
+                # Plot the fit curve on top of the data:
+                ax.plot(fit_curve, lw=2.8, ls="--", color="maroon", zorder=3)
+
+                # Loop through the breakpoints
                 for i, breakpoint_dt in enumerate(list_of_dt_breakpoints):
 
                     # One has to use the notoriously awkward triple curly parenthesis here to be able to
@@ -363,21 +360,48 @@ class Reg:
                     #err_delta_minus = str(list_of_dt_breakpoint_errs[i][1] - breakpoint_dt)[7:7+8]
                     #bp_label = f"breakpoint$_{{{i}}}$: "+f"{breakpoint_dt.strftime('%H:%M:%S')}$_{{-{err_delta_minus}}}^{{+{err_delta_plus}}}$"
                     bp_label = f"breakpoint$_{{{i}}}$: "+f"{breakpoint_dt.strftime('%H:%M:%S')}{LATEX_PM}{err_delta_plusminus}"
-                    ax.axvspan(xmin=list_of_dt_breakpoint_errs[i][0], xmax=list_of_dt_breakpoint_errs[i][1], alpha=BREAKPOINT_SHADING_ALPHA, color="red")
-                    ax.axvline(x=breakpoint_dt, c="red", lw=1.8, label=bp_label)
+                    ax.axvspan(xmin=list_of_dt_breakpoint_errs[i][0], xmax=list_of_dt_breakpoint_errs[i][1], 
+                               alpha=BREAKPOINT_SHADING_ALPHA, color="red", zorder=3)
+                    ax.axvline(x=breakpoint_dt, c="red", lw=1.8, label=bp_label, zorder=4)
 
-            # Sets the yticklabels to their exponential form (e.g., 10^5 instead of 5)
-            fabricate_yticks(ax=ax)
+            # Sets the yticklabels to their exponential form (e.g., 10^5 instead of 5). This has to be done
+            # IMMEDIATELY after plotting the intensity, fits and breakpoints, not later, because otherwise it will mess up the 
+            # spacing of the yticks for an unknown reason.
+            fabricate_yticks(ax=ax, series=plot_series)
+            set_ylims(ax=ax, series=plot_series, ylim=ylim)
             set_standard_ticks(ax=ax)
+
+            # Some extra if diagnostics are enabled:
+            if diagnostics:
+
+                # Print some useful values that describe the data
+                print(f"Data min: {np.min(series.values)}, max: {np.max(series.values)}")
+                print(f"Data selection: {series.index[0]}, {series.index[-1]}")
+                print(f"Regression converged: {regression_converged}")
+
+                # Apply a span over xmin=start and xmax=max_idx to display the are considered for the fit
+                ax.axvspan(xmin=series.index[0], xmax=series.index[-1], facecolor="green",
+                           alpha=DEFAULT_SELECTION_ALPHA, label="selection area", zorder=1)
+
+                # Initialize a parallel y-axis to plot the original values to (invisible). This is to compare
+                # that the original values align with 
+                ax1 = ax.twinx()
+                ax1.set_ylabel("log(Intensity)", fontsize=STANDARD_FONTSIZE)
+                ax1.step(plot_series.index, plot_series.values, zorder=1, where="mid", alpha=0.4)
+                set_ylims(ax=ax1, series=plot_series, ylim=ylim)
+                set_standard_ticks(ax=ax1)
+
+                # Enable grid for easier comparison of axes
+                ax.grid(visible=True, which="both")
 
             # Format the x-axis, name the y-axis and set the x-axis span
             ax.xaxis.set_major_formatter(DateFormatter("%H:%M\n%d"))
-            ax.set_xlabel(f"Date of {plot_series.index[0].strftime('%b, %Y')}", fontsize=STANDARD_LEGENDSIZE)
-            ax.set_ylabel(r"Intensity [1/(cm$^{2}$ sr s MeV)]", fontsize=STANDARD_LEGENDSIZE)
+            ax.set_xlabel(f"Date of {plot_series.index[0].strftime('%b, %Y')}", fontsize=STANDARD_FONTSIZE)
+            ax.set_ylabel(r"Intensity [1/(cm$^{2}$ sr s MeV)]", fontsize=STANDARD_FONTSIZE)
             set_xlims(ax=ax, data=data, xlim=xlim)
 
             ax.set_title(title, fontsize=STANDARD_TITLE_FONTSIZE)
-            ax.legend(fontsize=STANDARD_LEGENDSIZE)
+            ax.legend(fontsize=STANDARD_FONTSIZE)
             plt.show()
 
             results_dict["fig"] = fig
@@ -388,14 +412,11 @@ class Reg:
             results_dict["series"] = series
             results_dict["indices"] = numerical_indices
             results_dict["data_df"] = data
-            if regression_converged:
-                for i, line in enumerate(list_of_fit_series):
-                    results_dict[f"line{i}"] = line
 
         return results_dict
 
 
-def break_regression(ints, indices, starting_values:list=None, num_of_breaks:int=None) -> dict:
+def break_regression(ints, indices, starting_values:list=None, num_of_breaks:int=None) -> tuple[dict, pd.Series]:
     """
     Initializes the Fit of piecewise_regression package, effectively running the algorithm for
     given data.
@@ -410,6 +431,8 @@ def break_regression(ints, indices, starting_values:list=None, num_of_breaks:int
     Returns:
     --------
     fit_results : {dict} A dictionary that contains the results of analysis.
+    fit_curve : {pd.Series} A series of the broken linear curve that approximates the data. Is None if the algorithm
+                            did not converge to a solution.
     """
 
     if num_of_breaks is None:
@@ -420,5 +443,33 @@ def break_regression(ints, indices, starting_values:list=None, num_of_breaks:int
                                    start_values=starting_values,
                                    n_breakpoints=num_of_breaks)
 
-    return fit.get_results()
+    results = fit.get_results()
 
+    if results["converged"]:
+        fit_curve = get_fit_curve(fit=fit)
+    else:
+        fit_curve = None
+
+    return results, fit_curve
+
+def get_fit_curve(fit:piecewise_regression.Fit) -> pd.Series:
+    """
+    Returns the broken linear curve that approximates the original data.
+
+    Parameters:
+    -----------
+    fit : {piecewise_regression.Fit}
+
+    Returns:
+    -----------
+    series : {pd.Series} Broken fit curve indexed by linear space from selection(min) to selection(max)
+    """
+
+    # Generates a linear spacing of index numbers
+    linx = np.linspace(np.nanmin(fit.xx), np.nanmax(fit.xx), 1000)
+
+    # Generates the y-values for the fit
+    y_vals = fit.predict(xx_predict=linx)
+
+    # Convert index number (UNIX) to datetime
+    return pd.Series(data=y_vals, index=pd.to_datetime(linx, unit='s'))
