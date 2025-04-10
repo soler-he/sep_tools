@@ -23,7 +23,7 @@ from multi_inst_plots import solo_tools as solo
 
 style = {'description_width' : '60%'} 
 
-common_attrs = ["spacecraft", "start_date", "end_date", "start_time", "end_time", "resample", "resample_mag", "resample_stixgoes", "radio_cmap", "legends_inside"] # , "resample_pol"
+common_attrs = ["spacecraft", "startdate", "enddate", "starttime", "endtime", "resample", "resample_mag", "resample_stixgoes", "radio_cmap", "legends_inside"] # , "resample_pol"
 
 variable_attrs = ['radio', 'mag', 'polarity', 'mag_angles', 'Vsw', 'N', 'T', 'p_dyn', "stix", "stix_ltc", "goes"] # ,'pad'
 
@@ -42,10 +42,10 @@ class Options:
     def __init__(self):
 
         self.spacecraft = w.Dropdown(value="PSP", description="Spacecraft", options=["PSP", "SolO", "L1 (Wind/SOHO)", "STEREO"], style=style)
-        self.start_date = w.DatePicker(value=dt.date(2021, 7, 27), disabled=False, description="Start date/time:", style={'description_width': "40%"})   
-        self.end_date = w.DatePicker(value=dt.date(2021, 7, 28), disabled=False, description="End date/time:", style={'description_width': "40%"})
-        self.start_time = w.TimePicker(description="Start time:", value=dt.time(0,0), step=60, style=style)
-        self.end_time = w.TimePicker(description="End time:", value=dt.time(0,0), step=60, style=style)
+        self.startdate = w.DatePicker(value=dt.date(2021, 7, 27), disabled=False, description="Start date/time:", style={'description_width': "40%"})   
+        self.enddate = w.DatePicker(value=dt.date(2021, 7, 28), disabled=False, description="End date/time:", style={'description_width': "40%"})
+        self.starttime = w.TimePicker(description="Start time:", value=dt.time(0,0), step=60, style=style)
+        self.endtime = w.TimePicker(description="End time:", value=dt.time(0,0), step=60, style=style)
 
         self.resample = w.BoundedIntText(value=15, min=0, max=30, step=1, description='Averaging (min):', disabled=False, style=style)
         self.resample_mag = w.BoundedIntText(value=5, min=0, max=30, step=1, description='MAG averaging (min):', disabled=False, style=style)
@@ -145,6 +145,8 @@ class Options:
                 if change.new == "STEREO":
                     display(self.stereo_box)
 
+            options.plot_range = None
+
         def disable_checkbox(change):
             """
             Disable checkbox when options get update (e.g. MAG + MAG polarity).
@@ -189,6 +191,7 @@ class Options:
         self._txt_out = w.Output(layout=layout) # for printing additional info
         self._outs = w.HBox((w.VBox([self._out1, self._txt_out]), self._out2))         # side-by-side outputs
 
+    def show(self):
         display(self._outs)
 
         with self._out1:
@@ -202,11 +205,9 @@ def plot_range(startdate, enddate):
 
     Author: Marcus Reaiche (https://github.com/jupyter-widgets/ipywidgets/issues/2855#issuecomment-966747483)
     """
-    if not isinstance(startdate, dt.datetime) or not isinstance(enddate, dt.datetime):
-        raise ValueError("Start and end dates have to be valid datetime objects")
     
     # dates = plot_range_interval(startdate=startdate, enddate=enddate)
-    if startdate - enddate < dt.timedelta(days=7):
+    if startdate - enddate <= dt.timedelta(days=7):
         dates = pd.date_range(start=startdate, end=enddate, freq="1h")
 
         # First and last dates are selected by default
@@ -241,57 +242,53 @@ def plot_range(startdate, enddate):
         
         options.plot_range = date_range
 
-        return date_range
+        display(options.plot_range)
     
     else:
         print("Plotting for more than 7 days not supported!")
         return None
+    
+
 
 
 def load_data():
-    options.startdate = dt.datetime(options.start_date.value.year,
-                                    options.start_date.value.month,
-                                    options.start_date.value.day,
-                                    options.start_time.value.hour,
-                                    options.start_time.value.minute)
-    options.enddate = dt.datetime(options.end_date.value.year,
-                                    options.end_date.value.month,
-                                    options.end_date.value.day,
-                                    options.end_time.value.hour,
-                                    options.end_time.value.minute)
+    options.startdt = dt.datetime(options.startdate.value.year,
+                                    options.startdate.value.month,
+                                    options.startdate.value.day,
+                                    options.starttime.value.hour,
+                                    options.starttime.value.minute)
+    options.enddt = dt.datetime(options.enddate.value.year,
+                                    options.enddate.value.month,
+                                    options.enddate.value.day,
+                                    options.endtime.value.hour,
+                                    options.endtime.value.minute)
     
-    if options.plot_range is None:
-        options.plot_start = options.startdate
-        options.plot_end = options.enddate
-    else:
-        options.plot_start = options.plot_range.children[0].value[0]
-        options.plot_end = options.plot_range.children[0].value[1]
     
     if options.spacecraft.value is None:
         print("You must choose a spacecraft first!")
         return
     
     if options.spacecraft.value == "PSP":
-        if options.startdate >= dt.datetime(2018, 10, 2):
+        if options.startdt >= dt.datetime(2018, 10, 2):
             psp.load_data(options)
         else:
             print("PSP: no data before 2 Oct 2018")
 
     if options.spacecraft.value == "SolO":
-        if options.startdate >= dt.datetime(2020, 2, 28):
+        if options.startdt >= dt.datetime(2020, 2, 28):
             solo.load_data(options)
         else:
             print("SolO: no data before 28 Feb 2020")
 
     if options.spacecraft.value == "L1 (Wind/SOHO)":
-        if options.startdate >= dt.datetime(1994, 11, 1):
+        if options.startdt >= dt.datetime(1994, 11, 1):
             l1.load_data(options)
         else:
             print("L1: no data before 1 Nov 1994 (Wind) / 2 Dec 1995 (SOHO)")
         
     if options.spacecraft.value == "STEREO":
-        if options.startdate >= dt.datetime(2006, 10, 26):
-            if options.enddate >= dt.datetime(2016, 9, 23) and options.ster_sc.value == "B":
+        if options.startdt >= dt.datetime(2006, 10, 26):
+            if options.enddt >= dt.datetime(2016, 9, 23) and options.ster_sc.value == "B":
                 print("STEREO B: no data after 23 Sep 2016")
             else:
                 stereo.load_data(options)
@@ -315,3 +312,4 @@ def make_plot():
     
 
 options = Options()
+

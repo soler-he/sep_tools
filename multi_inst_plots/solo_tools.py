@@ -16,10 +16,14 @@ from stixdcpy.quicklook import LightCurves
 from sunpy.coordinates import get_horizons_coord
 from sunpy.coordinates import frames
 
+import sunpy
 import sunpy.net.attrs as a
 import sunpy_soar
 from sunpy.net import Fido
 from sunpy.timeseries import TimeSeries
+from sunpy.net import Scraper
+from sunpy.time import TimeRange
+from sunpy.data.data_manager.downloader import ParfiveDownloader, DownloaderError
 
 from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
 
@@ -72,6 +76,76 @@ def swa_load_grnd_mom(startdate, enddate, path=None):
     df_solo_swa = solo_swa.to_dataframe()
     return df_solo_swa
 
+# def rpw_load_radio(startdate, enddate, freq, path=None):
+#     """
+#     Parameters
+#     ----------
+#     startdate: dt.datetime 
+#     enddate: dt.datetime
+#     freq: str
+#         TNR or HFR
+#     path: str
+#     """
+#     dl = ParfiveDownloader()
+    
+#     timerange = TimeRange(startdate, enddate)
+
+#     try:
+#         from packaging.version import Version
+#         if hasattr(sunpy, "__version__") and Version(sunpy.__version__) >= Version("6.1.0"):
+#             pattern = ("https://spdf.gsfc.nasa.gov/pub/data/solar-orbiter/rpw/science/l2/{freq}-surv/{{year:4d}}/solo_l2_rpw-{freq}-surv_{{year:4d}}{{month:2d}}{{day:2d}}_v{version}.cdf")
+
+#             scrap = Scraper(format=pattern, freq=freq.lower(), version="{:2d}") 
+#         else:
+#             pattern = "https://spdf.gsfc.nasa.gov/pub/data/solar-orbiter/rpw/science/l2/{freq}-surv/%Y/solo_l2_rpw-{freq}-surv_%Y%m%d_v{version}.cdf"
+ 
+#             scrap = Scraper(pattern=pattern, freq=freq.lower(), version="v\\d{2}")  # regex matching "v{any digit}{any digit}""
+        
+        
+#         filelist_urls = scrap.filelist(timerange=timerange)
+
+#         filelist_urls.sort()
+
+#         # After sorting, any multiple versions are next to each other in ascending order.
+#         # If there are files with same dates, assume multiple versions -> pop the first one and repeat.
+#         # Should end up with a list with highest version numbers. Magic number -7 is the index where 
+#         # version number starts
+
+#         i = 0
+#         while i < len(filelist_urls) - 1:
+#             if filelist_urls[i+1][:-7] == filelist_urls[i][:-7]:
+#                 filelist_urls.pop(i)
+#             else:
+#                 i += 1
+
+#         filelist = [url.split('/')[-1] for url in filelist_urls]
+
+#         if path is None:
+#             filelist = [sunpy.config.get('downloads', 'download_dir') + os.sep + file for file in filelist]
+#         elif type(path) is str:
+#             filelist = [path + os.sep + f for f in filelist]
+#         downloaded_files = filelist
+
+#         # Check if file with same name already exists in path
+#         for url, f in zip(filelist_urls, filelist):
+#             if os.path.exists(f) and os.path.getsize(f) == 0:
+#                 os.remove(f)
+#             if not os.path.exists(f):
+#                 dl.download(url=url, path=f)
+
+
+#         rpw = TimeSeries(downloaded_files, concatenate=True)
+#         df_rpw = rpw.to_dataframe()
+
+
+#     except (RuntimeError, IndexError):
+#         print(f'Unable to obtain SolO RPW-{freq} data for {startdate}-{enddate}!')
+#         df_rpw = []
+        
+#     return df_rpw
+    
+
+
 
 def load_data(options):
 
@@ -93,8 +167,8 @@ def load_data(options):
 
     path = options.path
 
-    startdate = options.startdate
-    enddate = options.enddate
+    startdate = options.startdt
+    enddate = options.enddt
 
     plot_electrons = options.solo_electrons.value
     plot_protons = options.solo_protons.value
@@ -125,6 +199,8 @@ def load_data(options):
     global electrons_ept
     global protons_ept
     global protons_het
+    # global df_rpw_tnr
+    # global df_rpw_hfr
     global df_stix
     global df_goes
     global goes_sat
@@ -163,6 +239,10 @@ def load_data(options):
         print('HET ion channels:')
         for i, e in enumerate(energies_het['H_Bins_Text']):
             print(i, e)
+
+    # if plot_radio:
+    #     df_rpw_hfr = rpw_load_radio(startdate=startdate, enddate=enddate, freq="HFR", path=path)
+    #     df_rpw_tnr = rpw_load_radio(startdate=startdate, enddate=enddate, freq="TNR", path=path)
 
     if plot_stix:
         df_stix = load_solo_stix(startdate, enddate, resample=resample_stixgoes, ltc = stix_ltc)
@@ -243,27 +323,30 @@ def make_plot(options):
 
     i = 0
 
-    # ### Radio
+    # # ### Radio
 
     # if plot_radio:
     #     vmin, vmax = 500, 1e7
     #     log_norm = LogNorm(vmin=vmin, vmax=vmax)
-        
-    #     TimeHFR2D, FreqHFR2D = np.meshgrid(data["df_waves_hfr"].index, data["df_waves_hfr"].columns, indexing='ij')
-    #     TimeLFR2D, FreqLFR2D = np.meshgrid(data["df_waves_lfr"].index, data["df_waves_lfr"].columns, indexing='ij')
 
-    #     # Create colormeshes. Shading option flat and thus the removal of last row and column are there to solve the time jump bar problem, 
-    #     # when resampling isn't used
-    #     mesh = axs[i].pcolormesh(TimeLFR2D, FreqLFR2D, data["df_waves_lfr"].iloc[:-1,:-1], shading='flat', cmap='jet', norm=log_norm)
-    #     axs[i].pcolormesh(TimeHFR2D, FreqHFR2D, data["df_waves_hfr"].iloc[:-1,:-1], shading='flat', cmap='jet', norm=log_norm) # TODO: check if on top
+    #     if isinstance(df_rpw_hfr, pd.DataFrame):
+    #         TimeHFR2D, FreqHFR2D = np.meshgrid(df_rpw_hfr.index, df_rpw_hfr.columns, indexing='ij')
+    #         TimeTNR2D, FreqTNR2D = np.meshgrid(df_rpw_tnr.index, df_rpw_tnr.columns, indexing='ij')
+
+    #         # Create colormeshes. Shading option flat and thus the removal of last row and column are there to solve the time jump bar problem, 
+    #         # when resampling isn't used
+    #         mesh = axs[i].pcolormesh(TimeTNR2D, FreqTNR2D, df_rpw_tnr.iloc[:-1,:-1], shading='flat', cmap='jet', norm=log_norm)
+    #         axs[i].pcolormesh(TimeHFR2D, FreqHFR2D, df_rpw_hfr.iloc[:-1,:-1], shading='flat', cmap='jet', norm=log_norm) 
+
+    #         # Add inset axes for colorbar
+    #         axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.05,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
+    #         cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
+    #         cbar.set_label("Intensity (sfu)", rotation=90, labelpad=10, fontsize=font_ylabel)
 
     #     axs[i].set_yscale('log')
     #     axs[i].set_ylabel("Frequency (MHz)", fontsize=font_ylabel)
         
-    #     # Add inset axes for colorbar
-    #     axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.05,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
-    #     cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
-    #     cbar.set_label("Intensity (sfu)", rotation=90, labelpad=10, fontsize=font_ylabel)
+        
     #     i += 1
 
     ### STIX
@@ -488,3 +571,6 @@ def make_plot(options):
     plt.show()
 
     return fig, axs
+
+
+

@@ -137,8 +137,8 @@ def load_data(options):
     global plot_polarity
     global stix_ltc
 
-    startdate = options.startdate
-    enddate = options.enddate
+    startdate = options.startdt
+    enddate = options.enddt
     
     sept_viewing = options.ster_sept_viewing.value
     sc = options.ster_sc.value

@@ -102,8 +102,9 @@ def load_data(options):
     global psp_epilo_ic_org
     global psp_epilo_org
 
-    enddate = options.enddate
-    startdate = options.startdate
+    
+    startdate = options.startdt
+    enddate = options.enddt
     
     file_path = options.path
 

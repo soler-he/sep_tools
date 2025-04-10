@@ -200,11 +200,11 @@ def make_fig_axs(options):
     plot_goes = options.goes.value
 
     if options.plot_range is None:
-        t_start = options.startdate
-        t_end = options.enddate
+        options.plot_start = options.startdt
+        options.plot_end = options.enddt
     else:
-        t_start = options.plot_range.children[0].value[0]
-        t_end = options.plot_range.children[0].value[1]
+        options.plot_start = options.plot_range.children[0].value[0]
+        options.plot_end = options.plot_range.children[0].value[1]
 
     if options.spacecraft.value == "L1 (Wind/SOHO)":
         plot_wind_e = options.l1_wind_e.value
@@ -275,15 +275,15 @@ def make_fig_axs(options):
 
     axs[-1].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M\n%b %d'))
     axs[-1].xaxis.set_tick_params(rotation=0)
-    axs[-1].set_xlabel(f"Time (UTC) / Date in {t_start.year}", fontsize=15)
-    axs[-1].set_xlim(t_start, t_end)
+    axs[-1].set_xlabel(f"Time (UTC) / Date in {options.plot_start.year}", fontsize=15)
+    axs[-1].set_xlim(options.plot_start, options.plot_end)
     fig.subplots_adjust(hspace=0.1)
     fig.patch.set_facecolor('white')
     fig.set_dpi(200)
 
     if options.spacecraft.value != "STEREO":
-        print(f"Plotting {options.spacecraft.value} data for timerange {t_start} - {t_end}")
+        print(f"Plotting {options.spacecraft.value} data for timerange {options.plot_start} - {options.plot_end}")
     else:
-        print(f"Plotting STEREO {options.ster_sc.value} data for timerange {t_start} - {t_end}")
+        print(f"Plotting STEREO {options.ster_sc.value} data for timerange {options.plot_start} - {options.plot_end}")
 
     return fig, axs

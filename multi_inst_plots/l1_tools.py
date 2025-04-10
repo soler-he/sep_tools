@@ -289,8 +289,8 @@ def load_data(options):
     plot_electrons = plot_wind_e or plot_ephin
     plot_protons = plot_wind_p or plot_erne
 
-    startdate = options.startdate
-    enddate = options.enddate
+    startdate = options.startdt
+    enddate = options.enddt
 
     if plot_ephin:
         l1_ch_eph_e = options.l1_ch_eph_e.value
