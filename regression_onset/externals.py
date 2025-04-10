@@ -9,6 +9,7 @@ __author__ = "Christian Palmroos"
 
 import pandas as pd
 
+
 def export_seppy_data(event, viewing=None, species=None) -> pd.DataFrame:
     """
     The data is contained inside SEPpy Event objects. This function
@@ -38,32 +39,40 @@ def export_seppy_data(event, viewing=None, species=None) -> pd.DataFrame:
     # Running choose_data() asserts the correct dataframes as
     event.choose_data(viewing=viewing)
 
-    # PSP data files 
-    if event.spacecraft=="psp":
-        if species=='e':
+    # PSP data files
+    if event.spacecraft == "psp":
+        if species == 'e':
             return event.df_e
         else:
             return event.df_i
 
     # Solar Orbiter data files have a MultiIndex-structure:
-    if event.spacecraft=="solo":
-        if species=='e':
+    elif event.spacecraft == "solo":
+        if species == 'e':
             return event.current_df_e.copy(deep=True)["Electron_Flux"]
         else:
-            if event.sensor=="ept":
+            if event.sensor == "ept":
                 return event.current_df_i.copy(deep=True)["Ion_Flux"]
-            if event.sensor=="het":
+            if event.sensor == "het":
                 return event.current_df_i.copy(deep=True)["H_Flux"]
 
-    # Now there are a maximum of two dataframes, one for positive and one 
+    # Wind/3DP intensities are per eV, not per MeV as the other datasets => multiply with 1e6
+    elif event.spacecraft == "wind":
+        if species == 'e':
+            return event.current_df_e.copy(deep=True)*1e6
+        else:
+            return event.current_df_i.copy(deep=True)*1e6
+
+    # Now there are a maximum of two dataframes, one for positive and one
     # for negative particle charges
-    if species=='e':
-        return event.current_df_e.copy(deep=True)
     else:
-        return event.current_df_i.copy(deep=True)
+        if species == 'e':
+            return event.current_df_e.copy(deep=True)
+        else:
+            return event.current_df_i.copy(deep=True)
 
 
-def save_figure(results:dict, name:str, facecolor="white", transparent=False) -> None:
+def save_figure(results: dict, name: str, facecolor="white", transparent=False) -> None:
     """
     Saves a figure to local directory with name.
     """
