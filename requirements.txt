@@ -6,6 +6,7 @@ numba
 numpy
 pandas
 piecewise_regression
+git+https://github.com/Christian-Palmroos/PyOnset/
 pyspedas
 scipy
 seppy>=0.1.19
