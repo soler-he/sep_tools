@@ -25,7 +25,8 @@ This repository contains multiple Python tools for the analysis of Solar Energet
 3. Open a terminal or the miniforge prompt and move to the directory where the code is.
 4. Create a new virtual environment (e.g., `conda create --name sep_tools python=3.12`, or `python -m venv venv_sep_tools` if you don't use miniforge/conda).
 5. Activate the just created virtual environment (e.g., `conda activate sep_tools`, or `source venv_sep_tools/bin/activate` if you don't use miniforge/conda).
-6. Install the Python dependencies from the *requirements.txt* file with `pip install -r requirements.txt`
+6. If you **don't** have `git` installed (try executing it), install it with `conda install conda-forge::git`.
+7. Install the Python dependencies from the *requirements.txt* file with `pip install -r requirements.txt`
 
 ### Update
 
