@@ -41,6 +41,7 @@ Activate the created virtual environment in the terminal (step 5. of [Installati
 - `SEP_Multi-Instrument-Plot.ipynb`<br>Makes multi-panel time-series plots of various different in-situ measurements, including also selected remote-sensing observations
 - `SEP_Multi-Spacecraft-Plot.ipynb`<br>Makes a plot of SEP intensity-time profiles combining observations by different spacecraft
 - `SEP_PADs-and-Anisotropy.ipynb`<br>Determines and visualizes SEP Pitch-Angle Distributions (PADs) and first-order anisotropies, including methods for background subtraction
+- `SEP_PyOnset.ipynb`<br>Determines SEP onset times and their uncertainties from in-situ intensity measurements using a hybrid Poisson-CUSUM-bootstrapping approach (see [PyOnset](https://github.com/Christian-Palmroos/PyOnset) for more details)
 - `SEP_Regression-Onset.ipynb`<br>Determines SEP onset times based on a regression method
 
 If you are new to Jupyter Notebooks, the official documentation will give you more info about [What is the Jupyter Notebook?](https://jupyter-notebook.readthedocs.io/en/stable/examples/Notebook/What%20is%20the%20Jupyter%20Notebook.html) and [Running Code](https://jupyter-notebook.readthedocs.io/en/stable/examples/Notebook/Running%20Code.html) with it.
