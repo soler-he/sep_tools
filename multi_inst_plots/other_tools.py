@@ -114,17 +114,17 @@ def plot_solo_stix(data, ax, ltc, legends_inside, font_ylabel):
     if isinstance(data, pd.DataFrame):
         for key in data.keys():
             ax.plot(data.index, data[key], ds="steps-mid", label=key)
-        if ltc:
-            title = 'SolO/STIX (light travel time corr.)'
-        else:
-            title = 'SolO/STIX'
-        if legends_inside:
-            ax.legend(loc='upper right', title=title)
-        else:
-            # axs[i].legend(loc='upper right', title=title, bbox_to_anchor=(1, 0.5))
-            ax.legend(bbox_to_anchor=(1.01, 1), loc='upper left', title=title)
-        ax.set_ylabel('Counts', fontsize=font_ylabel)
-        ax.set_yscale('log')
+    if ltc:
+        title = 'SolO/STIX (light travel time corr.)'
+    else:
+        title = 'SolO/STIX'
+    if legends_inside:
+        ax.legend(loc='upper right', title=title)
+    else:
+        # axs[i].legend(loc='upper right', title=title, bbox_to_anchor=(1, 0.5))
+        ax.legend(bbox_to_anchor=(1.01, 1), loc='upper left', title=title)
+    ax.set_ylabel('Counts', fontsize=font_ylabel)
+    ax.set_yscale('log')
 
 def load_goes_xrs(start, end, sat=None, resample=None, path=None):
     """
@@ -148,40 +148,47 @@ def load_goes_xrs(start, end, sat=None, resample=None, path=None):
     sat : int
         satellite number for which data was returned
     """
+    try:
+        if sat is None:
+            result_goes = Fido.search(a.Time(start, end), a.Instrument("XRS"), a.Resolution("flx1s"))
+            sat = max(result_goes["xrs"]["SatelliteNumber"])
+            print(f"Fetching GOES-{sat} data for {start} - {end}")
+            file_goes = Fido.fetch(result_goes["xrs"][result_goes["xrs", "SatelliteNumber"] == sat])
 
-    if sat is None:
-        result_goes = Fido.search(a.Time(start, end), a.Instrument("XRS"), a.Resolution("flx1s"))
-        sat = max(result_goes["xrs"]["SatelliteNumber"])
-        print(f"Fetching GOES-{sat} data for {start} - {end}")
-        file_goes = Fido.fetch(result_goes["xrs"][result_goes["xrs", "SatelliteNumber"] == sat])
+        else:
+            result_goes = Fido.search(a.Time(start, end), a.Instrument("XRS"), a.goes.SatelliteNumber(sat), a.Resolution("flx1s"))
+            print(f"Fetching GOES-{sat} data for {start} - {end}")
+            file_goes = Fido.fetch(result_goes, path=path)
 
-    else:
-        result_goes = Fido.search(a.Time(start, end), a.Instrument("XRS"), a.goes.SatelliteNumber(sat), a.Resolution("flx1s"))
-        print(f"Fetching GOES-{sat} data for {start} - {end}")
-        file_goes = Fido.fetch(result_goes, path=path)
+        goes = ts.TimeSeries(file_goes, concatenate=True)
+        df_goes = goes.to_dataframe()
+        
+        # Filter data
+        df_goes['xrsa'] = df_goes['xrsa'].mask((df_goes['xrsa_quality'] != 0), other=np.nan)   # mask non-zero quality flagged entries as NaN
+        df_goes['xrsb'] = df_goes['xrsb'].mask((df_goes['xrsb_quality'] != 0), other=np.nan)  
+        df_goes = df_goes[(df_goes['xrsa_quality'] == 0) | (df_goes['xrsb_quality'] == 0)]     # keep entries that have at least one good quality flag
 
-    goes = ts.TimeSeries(file_goes, concatenate=True)
-    df_goes = goes.to_dataframe()
-    
-    # Filter data
-    df_goes = df_goes[(df_goes["xrsa_quality"] == 0) & (df_goes["xrsb_quality"] == 0)]  # quality flags
+        # Resampling
+        if resample is not None:
+            df_goes = resample_df(df_goes, resample=resample)
 
-    # Resampling
-    if resample is not None:
-        df_goes = resample_df(df_goes, resample=resample)
-
-    return df_goes, sat
+        return df_goes, sat
+    except KeyError:
+        print(f"No GOES/XRS data found for {start} - {end}!")
+        df_goes = []
+        sat = ''
+        return df_goes, sat
 
 def plot_goes_xrs(data, sat, ax, legends_inside, font_ylabel):
     
     if isinstance(data, pd.DataFrame):
         for channel, wavelength in zip(["xrsa", "xrsb"], ["0.5 - 4.0 Å", "1.0 - 8.0 Å"]):
             ax.plot(data.index, data[channel], ds="steps-mid", label=wavelength)
-    title = f"GOES-{sat}/XRS"
-    if legends_inside:
-        ax.legend(loc="upper right", title=title)
-    else:
-        ax.legend(bbox_to_anchor=(1.01, 1), loc='upper left', title=title)
+        title = f"GOES-{sat}/XRS"
+        if legends_inside:
+            ax.legend(loc="upper right", title=title)
+        else:
+            ax.legend(bbox_to_anchor=(1.01, 1), loc='upper left', title=title)
 
     ax.set_yscale('log')
     ax.set_ylabel(r"Irradiance ($\mathrm{W/m^2}$)", fontsize=font_ylabel)
@@ -223,7 +230,7 @@ def make_fig_axs(options):
         plot_protons = plot_epilo_p or plot_epihi_p
 
     if options.spacecraft.value == "SolO":
-        plot_electrons = options.solo_electrons.value
+        plot_electrons = options.solo_electrons.value   # TODO separate instruments?
         plot_protons = options.solo_protons.value
 
     if options.spacecraft.value == "STEREO":
@@ -238,18 +245,32 @@ def make_fig_axs(options):
     font_legend = 10
 
     if options.spacecraft.value == "PSP":
-        panels = 1*plot_radio + 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T + 1*plot_Pdyn # + 1*plot_pad 
+        panels = 1*plot_radio + 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T + 1*plot_Pdyn 
+    elif options.spacecraft.value == "SolO":
+        panels = 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T
+        
     else: 
-        panels = 1*plot_radio + 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T # + 1*plot_pad 
+        panels = 1*plot_radio + 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T
 
     panel_ratios = list(np.zeros(panels)+1)
-    if plot_radio:
-        panel_ratios[0] = 2
-    if plot_electrons and plot_protons:
-        panel_ratios[0 + 1*plot_radio + 1*plot_stix + 1*plot_goes] = 2
-        panel_ratios[1 + 1*plot_radio + 1*plot_stix + 1*plot_goes] = 2
-    if plot_electrons or plot_protons:    
-        panel_ratios[0 + 1*plot_radio + 1*plot_stix + 1*plot_goes] = 2
+
+    if options.spacecraft.value == "SolO":      # TODO remove this once RPW is included
+        # if plot_radio:
+        #     panel_ratios[0] = 2
+        if plot_electrons and plot_protons:
+            panel_ratios[0 + 1*plot_stix + 1*plot_goes] = 2
+            panel_ratios[1 + 1*plot_stix + 1*plot_goes] = 2
+        if plot_electrons or plot_protons:    
+            panel_ratios[0 + 1*plot_stix + 1*plot_goes] = 2
+
+    else:
+        if plot_radio:
+            panel_ratios[0] = 2
+        if plot_electrons and plot_protons:
+            panel_ratios[0 + 1*plot_radio + 1*plot_stix + 1*plot_goes] = 2
+            panel_ratios[1 + 1*plot_radio + 1*plot_stix + 1*plot_goes] = 2
+        if plot_electrons or plot_protons:    
+            panel_ratios[0 + 1*plot_radio + 1*plot_stix + 1*plot_goes] = 2
     
     if panels == 3:
         fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 4*panels])#, gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")

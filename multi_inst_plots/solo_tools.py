@@ -204,41 +204,50 @@ def load_data(options):
     global df_stix
     global df_goes
     global goes_sat
-    global swa_data
-    global mag_data_org
+    global df_swa
+    global mag_data
     global energies_ept
     global energies_het
 
+    resample = str(options.resample.value) + "min"
+    resample_mag = str(options.resample_mag.value) + "min"
+    resample_particles = str(options.solo_resample_particles.value) + "min"
     resample_stixgoes = str(options.resample_stixgoes.value) + "min"
 
     if plot_electrons or plot_protons:
+        
         if ept_l3:
-            df_ept_org, df_rtn_ept, df_hci_ept, energies_ept, metadata_ept = epd_load(sensor='ept', level='l3', pos_timestamp=None,
-                                                                                    startdate=startdate, enddate=enddate,
-                                                                                    autodownload=True, path=path)
+            try:
+                df_ept_org, df_rtn_ept, df_hci_ept, energies_ept, metadata_ept = epd_load(sensor='ept', level='l3', pos_timestamp=None,
+                                                                                        startdate=startdate, enddate=enddate,
+                                                                                        autodownload=True, path=path)
+            except UnboundLocalError:
+                df_ept_org, df_rtn_ept, df_hci_ept, energies_ept, metadata_ept = [], [], [], [], []
+
         else:
             protons_ept, electrons_ept, energies_ept = epd_load(sensor='ept', level='l2', startdate=startdate, enddate=enddate, 
                                                                 pos_timestamp=None,viewing=viewing, path=path, autodownload=True)
+                
         protons_het, electrons_het, energies_het = epd_load(sensor='het', level='l2', startdate=startdate, enddate=enddate, 
                                                             pos_timestamp=None,viewing=viewing, path=path, autodownload=True)
 
-    if plot_electrons:
-        print('EPT electron channels:')
-        for i, e in enumerate(energies_ept['Electron_Bins_Text']):
-            print(i, e)
-        print('')
-        print('HET electron channels:')
-        for i, e in enumerate(energies_het['Electron_Bins_Text']):
-            print(i, e)
-        print('')
-    if plot_protons:
-        print('EPT ion channels:')
-        for i, e in enumerate(energies_ept['Ion_Bins_Text']):
-            print(i, e)
-        print('')
-        print('HET ion channels:')
-        for i, e in enumerate(energies_het['H_Bins_Text']):
-            print(i, e)
+    # if plot_electrons:
+    #     print('EPT electron channels:')
+    #     for i, e in enumerate(energies_ept['Electron_Bins_Text']):
+    #         print(i, e)
+    #     print('')
+    #     print('HET electron channels:')
+    #     for i, e in enumerate(energies_het['Electron_Bins_Text']):
+    #         print(i, e)
+    #     print('')
+    # if plot_protons:
+    #     print('EPT ion channels:')
+    #     for i, e in enumerate(energies_ept['Ion_Bins_Text']):
+    #         print(i, e)
+    #     print('')
+    #     print('HET ion channels:')
+    #     for i, e in enumerate(energies_het['H_Bins_Text']):
+    #         print(i, e)
 
     # if plot_radio:
     #     df_rpw_hfr = rpw_load_radio(startdate=startdate, enddate=enddate, freq="HFR", path=path)
@@ -251,16 +260,24 @@ def load_data(options):
         df_goes, goes_sat = load_goes_xrs(startdate, enddate, resample=resample_stixgoes)
 
     if plot_mag or plot_mag_angles or plot_polarity:
-        mag_data_org = mag_load(startdate, enddate, level='l2', frame='rtn', path=path)
-        mag_data_org['Bmag'] = np.sqrt(np.nansum((mag_data_org.B_RTN_0.values**2, mag_data_org.B_RTN_1.values**2, mag_data_org.B_RTN_2.values**2), axis=0))
+        try:
+            mag_data_org = mag_load(startdate, enddate, level='l2', frame='rtn', path=path)
+            mag_data_org['Bmag'] = np.sqrt(np.nansum((mag_data_org.B_RTN_0.values**2, mag_data_org.B_RTN_1.values**2, mag_data_org.B_RTN_2.values**2), axis=0))
+        except IndexError:
+            print("Unable to obtain MAG data!")
+            mag_data_org = []
 
     if plot_Vsw or plot_N or plot_T:
-        swa_data = swa_load_grnd_mom(startdate, enddate, path=path)
-        swa_vsw = np.sqrt(swa_data.V_RTN_0**2 + swa_data.V_RTN_1**2 + swa_data.V_RTN_2**2)
-        swa_data['vsw'] = swa_vsw
+        try:
+            swa_data = swa_load_grnd_mom(startdate, enddate, path=path)
+            swa_vsw = np.sqrt(swa_data.V_RTN_0**2 + swa_data.V_RTN_1**2 + swa_data.V_RTN_2**2)
+            swa_data['vsw'] = swa_vsw
 
-        temp = np.sqrt(swa_data.TxTyTz_RTN_0**2 + swa_data.TxTyTz_RTN_2**2 + swa_data.TxTyTz_RTN_2**2)
-        swa_data['temp'] = temp
+            temp = np.sqrt(swa_data.TxTyTz_RTN_0**2 + swa_data.TxTyTz_RTN_2**2 + swa_data.TxTyTz_RTN_2**2)
+            swa_data['temp'] = temp
+        except IndexError:
+            print("Unable to obtain SWA data!")
+            swa_data = []
 
     # correct EPT level 2 electron data for ion contamination:
     if plot_electrons and ion_conta_corr and not ept_l3:
@@ -268,12 +285,64 @@ def load_data(options):
         electrons_ept = calc_ept_corrected_e(electrons_ept, protons_ept)
         electrons_ept = electrons_ept.mask(electrons_ept < 0)
 
+    # Resampling
+    global df_electrons_het
+    global df_protons_het
+    global df_electrons_ept
+    global df_protons_ept
+    global view
+    global df_ept
+
+    if plot_electrons or plot_protons:
+        if plot_electrons:
+            if isinstance(electrons_het, pd.DataFrame) and resample_particles != "0min":
+                df_electrons_het = resample_df(electrons_het, resample_particles, pos_timestamp=None)
+            else:
+                df_electrons_het = electrons_het
+        if plot_protons:
+            if isinstance(protons_het, pd.DataFrame) and resample_particles != "0min":
+                df_protons_het = resample_df(protons_het, resample_particles, pos_timestamp=None)
+            else:
+                df_protons_het = protons_het
+
+        if ept_l3:
+            if isinstance(df_ept_org, pd.DataFrame) and resample_particles != "0min":
+                df_ept = resample_df(df_ept_org, resample_particles, pos_timestamp=None)
+            else:
+                df_ept = df_ept_org
+
+            if viewing.lower() == 'south':
+                view = 'D'
+            else:
+                view = viewing[0].upper()
+
+        else:
+            if isinstance(electrons_ept, pd.DataFrame) and resample_particles != "0min":
+                df_electrons_ept = resample_df(electrons_ept, resample_particles, pos_timestamp=None)
+            else:
+                df_electrons_ept = electrons_ept
+            if isinstance(protons_ept, pd.DataFrame) and resample_particles != "0min":
+                df_protons_ept = resample_df(protons_ept, resample_particles, pos_timestamp=None)
+            else:
+                df_protons_ept = protons_ept
+
+
+    if plot_Vsw or plot_N or plot_T:
+        if isinstance(swa_data, pd.DataFrame) and resample_mag != "0min":
+            df_swa = resample_df(swa_data, resample_mag, pos_timestamp=None)
+        else:
+            df_swa = swa_data
+
+    if plot_mag or plot_mag_angles or plot_polarity:
+        if isinstance(mag_data_org, pd.DataFrame) and resample_mag != "0min":
+            mag_data = resample_df(mag_data_org, resample_mag, pos_timestamp=None)
+        else:
+            mag_data = mag_data_org
+
 
 
 def make_plot(options):
-    resample = str(options.resample.value) + "min"
-    resample_mag = str(options.resample_mag.value) + "min"
-    resample_particles = str(options.solo_resample_particles.value) + "min"
+    
 
     ept_ele_channels = options.solo_ch_ept_e.value
     het_ele_channels = options.solo_ch_het_e.value
@@ -284,25 +353,7 @@ def make_plot(options):
     legends_inside = options.legends_inside.value
     cmap = options.radio_cmap.value
 
-    if plot_electrons or plot_protons:
-        df_electrons_het = resample_df(electrons_het, resample_particles, pos_timestamp=None)
-        df_protons_het = resample_df(protons_het, resample_particles, pos_timestamp=None)
-
-        if ept_l3:
-            df_ept = resample_df(df_ept_org, resample_particles, pos_timestamp=None)
-            if viewing.lower() == 'south':
-                view = 'D'
-            else:
-                view = viewing[0].upper()
-        else:
-            df_electrons_ept = resample_df(electrons_ept, resample_particles, pos_timestamp=None)
-            df_protons_ept = resample_df(protons_ept, resample_particles, pos_timestamp=None)
-
-    if plot_Vsw or plot_N or plot_T:
-        df_swa = resample_df(swa_data, resample_mag, pos_timestamp=None)
-
-    if plot_mag or plot_mag_angles or plot_polarity:
-        mag_data = resample_df(mag_data_org, resample_mag, pos_timestamp=None)
+    
 
     if plot_electrons or plot_protons:
         print("Chosen energy channels:")
@@ -366,24 +417,30 @@ def make_plot(options):
     #e_channels = np.arange(0, 15, 3) #[2, 10, 19, 25]
     if plot_electrons:        
         if av_en:
-            ch_start = 0
-            ch_end = len(energies_ept[ch_key])
-            ch_step = 4
-            num_channels = np.intc((ch_end-ch_start)/ch_step)
-            axs[i].set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0,1,num_channels+color_offset)))
+            try:
+                ch_start = 0
+                ch_end = len(energies_ept[ch_key])
+                ch_step = 4
+                num_channels = np.intc((ch_end-ch_start)/ch_step)
+                axs[i].set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0,1,num_channels+color_offset)))
 
-            for k in np.arange(ch_start, ch_end-ch_step, ch_step):
-                channel = [k, k+ch_step-1]
-                #av_flux, en_channel_string = calc_av_en_flux_EPD(df_electrons_ept, energies_ept, channel, 'e', 'ept')
-                av_flux, en_channel_string = combine_channels(df_electrons_ept, energies_ept, channel, 'ept', viewing=viewing, species='e')
-                axs[i].plot(av_flux, ds="steps-mid", label='EPT '+en_channel_string)    
+                for k in np.arange(ch_start, ch_end-ch_step, ch_step):
+                    channel = [k, k+ch_step-1]
+                    #av_flux, en_channel_string = calc_av_en_flux_EPD(df_electrons_ept, energies_ept, channel, 'e', 'ept')
+                    av_flux, en_channel_string = combine_channels(df_electrons_ept, energies_ept, channel, 'ept', viewing=viewing, species='e')
+                    axs[i].plot(av_flux, ds="steps-mid", label='EPT '+en_channel_string)    
+            except TypeError:
+                pass
 
         else:
             if ept_l3:
                 axs[i].set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0,1,len(ept_ele_channels)+color_offset)))
                 # for k, e in enumerate(energies_ept['Electron_Bins_Text']):
-                for chan in ept_ele_channels:
-                    axs[i].plot(df_ept[f'Electron_Corrected_Flux_{view}_{chan}'], ds="steps-mid", label=f"EPT {energies_ept['Electron_Bins_Text'][chan]}")
+                try:
+                    for chan in ept_ele_channels:
+                        axs[i].plot(df_ept[f'Electron_Corrected_Flux_{view}_{chan}'], ds="steps-mid", label=f"EPT {energies_ept['Electron_Bins_Text'][chan]}")
+                except TypeError:
+                    pass
             else:
                 ch_start = 0
                 ch_end = len(energies_ept[ch_key])
@@ -397,9 +454,12 @@ def make_plot(options):
                                     ds="steps-mid", label='EPT '+energies_ept[ch_key][k][0])                  
 
         axs[i].set_prop_cycle('color', plt.cm.Greys_r(np.linspace(0.,1,len(het_ele_channels)+color_offset)))
-        for channel in het_ele_channels:
-            axs[i].plot(df_electrons_het['Electron_Flux'][f'{e_key}_{channel}'],
-                        ds="steps-mid", label='HET '+energies_het[ch_key].flatten()[channel])
+        try:
+            for channel in het_ele_channels:
+                axs[i].plot(df_electrons_het['Electron_Flux'][f'{e_key}_{channel}'],
+                            ds="steps-mid", label='HET '+energies_het[ch_key].flatten()[channel])
+        except TypeError:
+            pass
         axs[i].set_yscale('log')
         axs[i].set_ylabel("Electron flux\n"+r"(cm$^2$ sr s MeV)$^{-1}$", fontsize=font_ylabel)
         
@@ -441,57 +501,49 @@ def make_plot(options):
                 #av_flux, en_channel_string = calc_av_en_flux_EPD(df_protons_het, energies_het, channel, 'p', 'het')
                 av_flux, en_channel_string = combine_channels(df_protons_het, energies_het, channel, 'het', viewing=None, species='p')
                 axs[i].plot(av_flux, ds="steps-mid", label='HET '+en_channel_string)
-            axs[i].set_yscale('log')
-            axs[i].set_ylabel("Ion flux\n"+r"(cm$^2$ sr s MeV)$^{-1}$", fontsize=font_ylabel)
-            title = f'Protons/Ions ({viewing})'
-            if legends_inside:
-                axs[i].legend(loc='upper right', borderaxespad=0., 
-                            title=title,
-                            fontsize=font_legend)
-            else:
-                axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0., 
-                            title=title,
-                            fontsize=font_legend)
-
-            i += 1 
+            
 
         else:
-            if ept_l3:
-                axs[i].set_prop_cycle('color', plt.cm.plasma(np.linspace(0,1,len(ept_ion_channels)+color_offset)))
-                # for k, e in enumerate(energies_ept['Ion_Bins_Text']):
-                for chan in ept_ion_channels:                    
-                    axs[i].plot(df_ept[f'Ion_Flux_{view}_{chan}'], ds="steps-mid", label=f"EPT {energies_ept['Ion_Bins_Text'][chan]}")
-            else:
-                p_channels = np.arange(0, 64, 6)
-                axs[i].set_prop_cycle('color', plt.cm.YlOrRd(np.linspace(0.2,1,len(p_channels))))
-                for channel in p_channels:
-                    axs[i].plot(df_protons_ept['Ion_Flux'][f'{p_key}_{channel}'],
-                                ds="steps-mid", label='EPT '+energies_ept[p_ch_key][channel][0])    
-                
-            axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0,1,len(het_ion_channels)+color_offset)))
-            for channel in het_ion_channels:
-                axs[i].plot(df_protons_het['H_Flux'][f'H_Flux_{channel}'],
-                            ds="steps-mid", label='HET '+energies_het["H_Bins_Text"].flatten()[channel])
-            axs[i].set_yscale('log')
-            axs[i].set_ylabel("Ion flux\n"+r"(cm$^2$ sr s MeV)$^{-1}$", fontsize=font_ylabel)
-            title = f'Protons/Ions ({viewing})'
-            if legends_inside:
-                axs[i].legend(loc='upper right', title=title, fontsize=font_legend)
-            else:
-                # axs[i].legend(loc='upper right', title=title, bbox_to_anchor=(1, 0.5))
-                axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', title=title, fontsize=font_legend)
-            
-            i += 1    
+            try:
+                if ept_l3:
+                    axs[i].set_prop_cycle('color', plt.cm.plasma(np.linspace(0,1,len(ept_ion_channels)+color_offset)))
+                    # for k, e in enumerate(energies_ept['Ion_Bins_Text']):
+                    for chan in ept_ion_channels:                    
+                        axs[i].plot(df_ept[f'Ion_Flux_{view}_{chan}'], ds="steps-mid", label=f"EPT {energies_ept['Ion_Bins_Text'][chan]}")
+                else:
+                    p_channels = np.arange(0, 64, 6)
+                    axs[i].set_prop_cycle('color', plt.cm.YlOrRd(np.linspace(0.2,1,len(p_channels))))
+                    for channel in p_channels:
+                        axs[i].plot(df_protons_ept['Ion_Flux'][f'{p_key}_{channel}'],
+                                    ds="steps-mid", label='EPT '+energies_ept[p_ch_key][channel][0])    
+                    
+                axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0,1,len(het_ion_channels)+color_offset)))
+                for channel in het_ion_channels:
+                    axs[i].plot(df_protons_het['H_Flux'][f'H_Flux_{channel}'],
+                                ds="steps-mid", label='HET '+energies_het["H_Bins_Text"].flatten()[channel])
+            except TypeError:
+                pass
+        axs[i].set_yscale('log')
+        axs[i].set_ylabel("Ion flux\n"+r"(cm$^2$ sr s MeV)$^{-1}$", fontsize=font_ylabel)
+        title = f'Protons/Ions ({viewing})'
+        if legends_inside:
+            axs[i].legend(loc='upper right', title=title, fontsize=font_legend)
+        else:
+            # axs[i].legend(loc='upper right', title=title, bbox_to_anchor=(1, 0.5))
+            axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', title=title, fontsize=font_legend)
+        
+        i += 1    
 
         
     ### Mag
     if plot_mag:
         ax = axs[i]
         # Bmag = np.sqrt(np.nansum((df_mag.B_r.values**2,mag_data.B_t.values**2,mag_data.B_n.values**2), axis=0))
-        ax.plot(mag_data.index, mag_data.Bmag, label='B', color='k', linewidth=1)
-        ax.plot(mag_data.index.values, mag_data.B_RTN_0.values, label='Br', color='dodgerblue')
-        ax.plot(mag_data.index.values, mag_data.B_RTN_1.values, label='Bt', color='limegreen')
-        ax.plot(mag_data.index.values, mag_data.B_RTN_2.values, label='Bn', color='deeppink')
+        if isinstance(mag_data, pd.DataFrame):
+            ax.plot(mag_data.index, mag_data.Bmag, label='B', color='k', linewidth=1)
+            ax.plot(mag_data.index.values, mag_data.B_RTN_0.values, label='Br', color='dodgerblue')
+            ax.plot(mag_data.index.values, mag_data.B_RTN_1.values, label='Bt', color='limegreen')
+            ax.plot(mag_data.index.values, mag_data.B_RTN_2.values, label='Bn', color='deeppink')
         ax.axhline(y=0, color='gray', linewidth=0.8, linestyle='--')
         # ax.legend(loc='upper right')#, bbox_to_anchor=(1, 0.5))
         if legends_inside:
@@ -505,7 +557,7 @@ def make_plot(options):
         ax.tick_params(axis="x",direction="in", which='both')#, pad=-15)
         i += 1
 
-        if plot_polarity:
+        if plot_polarity and isinstance(mag_data, pd.DataFrame):
             pos = get_horizons_coord('Solar Orbiter', time={'start':mag_data.index[0]-pd.Timedelta(minutes=15), 'stop':mag_data.index[-1]+pd.Timedelta(minutes=15), 'step':"1min"})  # (lon, lat, radius) in (deg, deg, AU)
             pos = pos.transform_to(frames.HeliographicStonyhurst())
             #Interpolate position data to magnetic field data cadence
@@ -530,8 +582,10 @@ def make_plot(options):
     if plot_mag_angles:
         ax = axs[i]
         # Bmag = np.sqrt(np.nansum((mag_data.B_RTN_0.values**2,mag_data.B_RTN_1.values**2,mag_data.B_RTN_2.values**2), axis=0))    
-        alpha, phi = mag_angles(mag_data['Bmag'], mag_data.B_RTN_0.values, mag_data.B_RTN_1.values, mag_data.B_RTN_2.values)
-        ax.plot(mag_data.index, alpha, '.k', label='alpha', ms=1)
+        
+        if isinstance(mag_data, pd.DataFrame):
+            alpha, phi = mag_angles(mag_data['Bmag'], mag_data.B_RTN_0.values, mag_data.B_RTN_1.values, mag_data.B_RTN_2.values)
+            ax.plot(mag_data.index, alpha, '.k', label='alpha', ms=1)
         ax.axhline(y=0, color='gray', linewidth=0.8, linestyle='--')
         ax.set_ylim(-90, 90)
         ax.set_ylabel(r"$\Theta_\mathrm{B}$ [°]", fontsize=font_ylabel)
@@ -540,7 +594,8 @@ def make_plot(options):
 
         i += 1
         ax = axs[i]
-        ax.plot(mag_data.index, phi, '.k', label='phi', ms=1)
+        if isinstance(mag_data, pd.DataFrame):
+            ax.plot(mag_data.index, phi, '.k', label='phi', ms=1)
         ax.axhline(y=0, color='gray', linewidth=0.8, linestyle='--')
         ax.set_ylim(-180, 180)
         ax.set_ylabel(r"$\Phi_\mathrm{B}$ [°]", fontsize=font_ylabel)
@@ -550,21 +605,24 @@ def make_plot(options):
     
     ### Temperature
     if plot_T:
-        axs[i].plot(df_swa.index, df_swa['T'], '-k', label="Temperature")
+        if isinstance(df_swa, pd.DataFrame):
+            axs[i].plot(df_swa.index, df_swa['T'], '-k', label="Temperature")
         axs[i].set_ylabel(r"T$_\mathrm{p}$ [K]", fontsize=font_ylabel)
         i += 1
 
     ### Density
     if plot_N:
-        axs[i].plot(df_swa.index, df_swa.N,
-                    '-k', label="Ion density")
+        if isinstance(df_swa, pd.DataFrame):
+            axs[i].plot(df_swa.index, df_swa.N,
+                        '-k', label="Ion density")
         axs[i].set_ylabel(r"N$_\mathrm{p}$ [cm$^{-3}$]", fontsize=font_ylabel)
         i += 1
 
     ### Sws
     if plot_Vsw:
-        axs[i].plot(df_swa.index, df_swa.vsw,
-                    '-k', label="Bulk speed")
+        if isinstance(df_swa, pd.DataFrame):
+            axs[i].plot(df_swa.index, df_swa.vsw,
+                        '-k', label="Bulk speed")
         axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km/s]", fontsize=font_ylabel)
         i += 1
     

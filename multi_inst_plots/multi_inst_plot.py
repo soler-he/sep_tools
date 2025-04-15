@@ -6,7 +6,11 @@
 # - download retrying (making weekly plots is going to be a nightmare)
 # - fontsize as options?
 # - SOLO/RPW
-# - GOES missing data handling
+
+# no PAD at all
+# no P_dyn for weekly plots
+
+# GOES satellite selection (print what's available and let user choose)
 
 
 import datetime as dt
@@ -25,7 +29,7 @@ style = {'description_width' : '60%'}
 
 common_attrs = ["spacecraft", "startdate", "enddate", "starttime", "endtime", "resample", "resample_mag", "resample_stixgoes", "radio_cmap", "legends_inside"] # , "resample_pol"
 
-variable_attrs = ['radio', 'mag', 'polarity', 'mag_angles', 'Vsw', 'N', 'T', 'p_dyn', "stix", "stix_ltc", "goes"] # ,'pad'
+variable_attrs = ['radio', 'mag', 'polarity', 'mag_angles', 'Vsw', 'N', 'T', 'p_dyn', "stix", "stix_ltc", "goes"] 
 
 psp_attrs = ['psp_epilo_e', 'psp_epilo_p', 'psp_epihi_e',
              'psp_epihi_p', 'psp_het_viewing', 'psp_epilo_viewing',
@@ -41,9 +45,9 @@ solo_attrs = ['solo_electrons', 'solo_protons', 'solo_viewing', 'solo_ch_ept_e',
 class Options:
     def __init__(self):
 
-        self.spacecraft = w.Dropdown(value="PSP", description="Spacecraft", options=["PSP", "SolO", "L1 (Wind/SOHO)", "STEREO"], style=style)
-        self.startdate = w.DatePicker(value=dt.date(2021, 7, 27), disabled=False, description="Start date/time:", style={'description_width': "40%"})   
-        self.enddate = w.DatePicker(value=dt.date(2021, 7, 28), disabled=False, description="End date/time:", style={'description_width': "40%"})
+        self.spacecraft = w.Dropdown(value="STEREO", description="Spacecraft", options=["PSP", "SolO", "L1 (Wind/SOHO)", "STEREO"], style=style)
+        self.startdate = w.DatePicker(value=dt.date(2025, 7, 27), disabled=False, description="Start date/time:", style={'description_width': "40%"})   
+        self.enddate = w.DatePicker(value=dt.date(2025, 7, 28), disabled=False, description="End date/time:", style={'description_width': "40%"})
         self.starttime = w.TimePicker(description="Start time:", value=dt.time(0,0), step=60, style=style)
         self.endtime = w.TimePicker(description="End time:", value=dt.time(0,0), step=60, style=style)
 
@@ -192,6 +196,9 @@ class Options:
         self._outs = w.HBox((w.VBox([self._out1, self._txt_out]), self._out2))         # side-by-side outputs
 
     def show(self):
+        self._out1.clear_output()
+        self._out2.clear_output()
+        self._txt_out.clear_output()
         display(self._outs)
 
         with self._out1:
