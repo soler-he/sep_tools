@@ -119,14 +119,14 @@ def plot_solo_stix(data, ax, ltc, legends_inside, font_ylabel):
     else:
         title = 'SolO/STIX'
     if legends_inside:
-        ax.legend(loc='upper right', title=title)
+        ax.legend(loc='upper right', borderaxespad = 0., title=title, fontsize=10)
     else:
         # axs[i].legend(loc='upper right', title=title, bbox_to_anchor=(1, 0.5))
-        ax.legend(bbox_to_anchor=(1.01, 1), loc='upper left', title=title)
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad = 0., title=title, fontsize=10)
     ax.set_ylabel('Counts', fontsize=font_ylabel)
     ax.set_yscale('log')
 
-def load_goes_xrs(start, end, sat=None, resample=None, path=None):
+def load_goes_xrs(start, end, pick_max=True, resample=None, path=None):
     """
     Load GOES high-cadence XRS data with Fido. Picks largest satellite number available, if none specified.
 
@@ -149,14 +149,16 @@ def load_goes_xrs(start, end, sat=None, resample=None, path=None):
         satellite number for which data was returned
     """
     try:
-        if sat is None:
+        if pick_max:
             result_goes = Fido.search(a.Time(start, end), a.Instrument("XRS"), a.Resolution("flx1s"))
             sat = max(result_goes["xrs"]["SatelliteNumber"])
             print(f"Fetching GOES-{sat} data for {start} - {end}")
             file_goes = Fido.fetch(result_goes["xrs"][result_goes["xrs", "SatelliteNumber"] == sat])
 
         else:
-            result_goes = Fido.search(a.Time(start, end), a.Instrument("XRS"), a.goes.SatelliteNumber(sat), a.Resolution("flx1s"))
+            result_goes = Fido.search(a.Time(start, end), a.Instrument("XRS"), a.Resolution("flx1s"))
+            print(result_goes)
+            sat = input("Choose preferred satellite number (integer):")
             print(f"Fetching GOES-{sat} data for {start} - {end}")
             file_goes = Fido.fetch(result_goes, path=path)
 
@@ -186,9 +188,9 @@ def plot_goes_xrs(data, sat, ax, legends_inside, font_ylabel):
             ax.plot(data.index, data[channel], ds="steps-mid", label=wavelength)
         title = f"GOES-{sat}/XRS"
         if legends_inside:
-            ax.legend(loc="upper right", title=title)
+            ax.legend(loc="upper right", title=title, borderaxespad = 0., fontsize = 10)
         else:
-            ax.legend(bbox_to_anchor=(1.01, 1), loc='upper left', title=title)
+            ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title=title, borderaxespad = 0., fontsize=10)
 
     ax.set_yscale('log')
     ax.set_ylabel(r"Irradiance ($\mathrm{W/m^2}$)", fontsize=font_ylabel)

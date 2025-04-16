@@ -39,6 +39,7 @@ import multi_inst_plots.cdaweb as cdaweb
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 warnings.filterwarnings(action='ignore', message='No units provided for variable', category=sunpy.util.SunpyUserWarning, module='sunpy.io._cdf')
 warnings.filterwarnings(action='ignore', message='astropy did not recognize units of', category=sunpy.util.SunpyUserWarning, module='sunpy.io._cdf')
+warnings.filterwarnings(action="ignore", message="No artists with labels found to put in legend.")
 
 
 
@@ -108,7 +109,7 @@ def load_data(options):
     global goes_sat
     global df_mag
     global df_magplas
-    global df_magplas_pol
+
     global meta_magplas
     global meta_mag
     global meta_se
@@ -146,6 +147,7 @@ def load_data(options):
     plot_stix = options.stix.value
     stix_ltc = options.stix_ltc.value
     plot_goes = options.goes.value
+    goes_pick_max = options.goes_pick_max.value
     plot_het_e = options.ster_het_e.value
     plot_het_p = options.ster_het_p.value
     plot_sept_e = options.ster_sept_e.value
@@ -200,7 +202,7 @@ def load_data(options):
         df_stix = load_solo_stix(start=startdate, end=enddate, ltc=stix_ltc, resample=resample_stixgoes)
 
     if plot_goes:
-        df_goes, goes_sat = load_goes_xrs(start=startdate, end=enddate, resample=resample_stixgoes)
+        df_goes, goes_sat = load_goes_xrs(start=startdate, end=enddate, pick_max=goes_pick_max, resample=resample_stixgoes)
 
 
     
@@ -225,7 +227,7 @@ def load_data(options):
             df_het = df_het_orig
             
         
-    if plot_Vsw or plot_N or plot_T:
+    if plot_Vsw or plot_N or plot_T or plot_polarity:
         if isinstance(df_magplasma, pd.DataFrame) and resample_mag != "0min":
             df_magplas = resample_df(df_magplasma, resample_mag)
              
@@ -235,12 +237,10 @@ def load_data(options):
     if plot_mag or plot_mag_angles:
         if isinstance(df_mag_orig, pd.DataFrame) and resample_mag != "0min":
             df_mag = resample_df(df_mag_orig, resample_mag)
-            if plot_polarity:
-                df_magplas_pol = resample_df(df_magplasma, resample_mag)
+            
         else:
             df_mag = df_mag_orig
-            if plot_polarity:
-                df_magplas_pol = df_magplasma
+            
     
 
 
@@ -332,7 +332,7 @@ def make_plot(options):
             axs[i].legend(loc='upper right', borderaxespad=0., 
                     title=f'Electrons (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
         else:
-            axs[i].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., 
+            axs[i].legend(bbox_to_anchor=(1.05, 1), loc="upper left", borderaxespad=0., 
                     title=f'Electrons (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
         axs[i].set_yscale('log')
         i +=1    
@@ -378,21 +378,21 @@ def make_plot(options):
             ax.plot(df_mag.index.values, df_mag.BFIELD_2.values, label='Bn', color='deeppink')
         ax.axhline(y=0, color='gray', linewidth=0.8, linestyle='--')
         if legends_inside:
-            ax.legend(loc='upper right')
+            ax.legend(loc='upper right', borderaxespad=0., fontsize=font_legend)
         else:
-            ax.legend(loc="center left", bbox_to_anchor=(1, 0.5), fontsize=font_legend)
+            ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1), fontsize=font_legend)
             
         ax.set_ylabel('B [nT]', fontsize=font_ylabel)
         ax.tick_params(axis="x", direction="in", which='both')#, pad=-15)
         
         
-        if plot_polarity and isinstance(df_magplas_pol, pd.DataFrame) and isinstance(df_magplas, pd.DataFrame):
-            pos = get_horizons_coord(f'STEREO-{sc}', time={'start':df_magplas_pol.index[0]-pd.Timedelta(minutes=15),'stop':df_magplas_pol.index[-1]+pd.Timedelta(minutes=15),'step':"1min"})  # (lon, lat, radius) in (deg, deg, AU)
+        if plot_polarity and isinstance(df_magplas, pd.DataFrame):
+            pos = get_horizons_coord(f'STEREO-{sc}', time={'start':df_magplas.index[0]-pd.Timedelta(minutes=15),'stop':df_magplas.index[-1]+pd.Timedelta(minutes=15),'step':"1min"})  # (lon, lat, radius) in (deg, deg, AU)
             pos = pos.transform_to(frames.HeliographicStonyhurst())
             #Interpolate position data to magnetic field data cadence
-            r = np.interp([t.timestamp() for t in df_magplas_pol.index],[t.timestamp() for t in pd.to_datetime(pos.obstime.value)],pos.radius.value)
-            lat = np.interp([t.timestamp() for t in df_magplas_pol.index],[t.timestamp() for t in pd.to_datetime(pos.obstime.value)],pos.lat.value)
-            pol, phi_relative = polarity_rtn(df_magplas_pol.BFIELDRTN_0.values, df_magplas_pol.BFIELDRTN_1.values, df_magplas_pol.BFIELDRTN_2.values,r,lat,V=400)
+            r = np.interp([t.timestamp() for t in df_magplas.index],[t.timestamp() for t in pd.to_datetime(pos.obstime.value)],pos.radius.value)
+            lat = np.interp([t.timestamp() for t in df_magplas.index],[t.timestamp() for t in pd.to_datetime(pos.obstime.value)],pos.lat.value)
+            pol, phi_relative = polarity_rtn(df_magplas.BFIELDRTN_0.values, df_magplas.BFIELDRTN_1.values, df_magplas.BFIELDRTN_2.values,r,lat,V=400)
             # create an inset axe in the current axe:
             pol_ax = inset_axes(ax, height="5%", width="100%", loc=9, bbox_to_anchor=(0.,0,1,1.1), bbox_transform=ax.transAxes) # center, you can check the different codes in plt.legend?
             pol_ax.get_xaxis().set_visible(False)
@@ -403,8 +403,8 @@ def make_plot(options):
             timestamp = df_magplas.index.values[2] - df_magplas.index.values[1]
             norm = Normalize(vmin=0, vmax=180, clip=True)
             mapper = cm.ScalarMappable(norm=norm, cmap=cm.bwr)
-            pol_ax.bar(df_magplas_pol.index.values[(phi_relative>=0) & (phi_relative<180)],pol_arr[(phi_relative>=0) & (phi_relative<180)],color=mapper.to_rgba(phi_relative[(phi_relative>=0) & (phi_relative<180)]),width=timestamp)
-            pol_ax.bar(df_magplas_pol.index.values[(phi_relative>=180) & (phi_relative<360)],pol_arr[(phi_relative>=180) & (phi_relative<360)],color=mapper.to_rgba(np.abs(360-phi_relative[(phi_relative>=180) & (phi_relative<360)])),width=timestamp)
+            pol_ax.bar(df_magplas.index.values[(phi_relative>=0) & (phi_relative<180)],pol_arr[(phi_relative>=0) & (phi_relative<180)],color=mapper.to_rgba(phi_relative[(phi_relative>=0) & (phi_relative<180)]),width=timestamp)
+            pol_ax.bar(df_magplas.index.values[(phi_relative>=180) & (phi_relative<360)],pol_arr[(phi_relative>=180) & (phi_relative<360)],color=mapper.to_rgba(np.abs(360-phi_relative[(phi_relative>=180) & (phi_relative<360)])),width=timestamp)
             pol_ax.set_xlim(options.plot_start, options.plot_end)
 
         i += 1

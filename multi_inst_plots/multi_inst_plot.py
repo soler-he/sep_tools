@@ -1,16 +1,11 @@
 # TODO:
 # - "choose all energy channels" checkbox (or choose every nth)
-# - Empty plots and appropriate print output for time ranges with no data (right now crashing is pretty much guaranteed every time this happens) (L1 and PSP done)
 # - legend overlapping with many energy channels
 # - fix polarity axes on top of title
 # - download retrying (making weekly plots is going to be a nightmare)
 # - fontsize as options?
 # - SOLO/RPW
 
-# no PAD at all
-# no P_dyn for weekly plots
-
-# GOES satellite selection (print what's available and let user choose)
 
 
 import datetime as dt
@@ -27,20 +22,28 @@ from multi_inst_plots import solo_tools as solo
 
 style = {'description_width' : '60%'} 
 
-common_attrs = ["spacecraft", "startdate", "enddate", "starttime", "endtime", "resample", "resample_mag", "resample_stixgoes", "radio_cmap", "legends_inside"] # , "resample_pol"
+common_attrs = ["spacecraft", "startdate", "enddate", "starttime",
+                "endtime", "resample", "resample_mag", "resample_stixgoes",
+                "radio_cmap", "legends_inside"]
 
-variable_attrs = ['radio', 'mag', 'polarity', 'mag_angles', 'Vsw', 'N', 'T', 'p_dyn', "stix", "stix_ltc", "goes"] 
+variable_attrs = ['radio', 'mag', 'polarity', 'mag_angles', 
+                  'Vsw', 'N', 'T', 'p_dyn', 
+                  "stix", "stix_ltc", "goes", "goes_pick_max"] 
 
 psp_attrs = ['psp_epilo_e', 'psp_epilo_p', 'psp_epihi_e',
              'psp_epihi_p', 'psp_het_viewing', 'psp_epilo_viewing',
              'psp_epilo_ic_viewing', 'psp_epilo_channel', 'psp_epilo_ic_channel', 
-              "psp_ch_het_e", "psp_ch_het_p", "psp_ch_epilo_ic", "psp_ch_epilo_e"] # 
+              "psp_ch_het_e", "psp_ch_het_p", "psp_ch_epilo_ic", "psp_ch_epilo_e"]
 
-stereo_attrs = ['ster_sc', 'ster_sept_e', 'ster_sept_p', 'ster_het_e', 'ster_het_p', 'ster_sept_viewing', 'ster_ch_sept_e', 'ster_ch_sept_p',  'ster_ch_het_p'] #'ster_ch_het_e',
+stereo_attrs = ['ster_sc', 'ster_sept_e', 'ster_sept_p', 'ster_het_e', 
+                'ster_het_p', 'ster_sept_viewing', 'ster_ch_sept_e', 'ster_ch_sept_p',  
+                'ster_ch_het_p'] #'ster_ch_het_e',
 
-l1_attrs = ['l1_wind_e', 'l1_wind_p', 'l1_ephin', 'l1_erne', 'l1_ch_eph_e', 'l1_intercal', 'l1_av_sep', 'l1_av_erne']   # 'l1_ch_eph_p'
+l1_attrs = ['l1_wind_e', 'l1_wind_p', 'l1_ephin', 'l1_erne', 
+            'l1_ch_eph_e', 'l1_intercal', 'l1_av_sep', 'l1_av_erne'] 
 
-solo_attrs = ['solo_electrons', 'solo_protons', 'solo_viewing', 'solo_ch_ept_e', 'solo_ch_ept_p', 'solo_ch_het_e', 'solo_ch_het_p', 'solo_resample_particles']
+solo_attrs = ['solo_electrons', 'solo_protons', 'solo_viewing', 'solo_ch_ept_e', 
+              'solo_ch_ept_p', 'solo_ch_het_e', 'solo_ch_het_p', 'solo_resample_particles']
 
 class Options:
     def __init__(self):
@@ -55,7 +58,7 @@ class Options:
         self.resample_mag = w.BoundedIntText(value=5, min=0, max=30, step=1, description='MAG averaging (min):', disabled=False, style=style)
         self.resample_stixgoes = w.BoundedIntText(value=5, min=0, max=30, step=1, description="STIX/GOES averaging (min):", style=style)
         #self.resample_pol = w.BoundedIntText(value=1, min=0, max=30, step=1, description='Polarity resampling (min):', disabled=False, style=style)
-        self.radio_cmap = w.Dropdown(options=['jet'], value='jet', description='Radio colormap', style=style)
+        self.radio_cmap = w.Dropdown(options=['jet', 'plasma'], value='jet', description='Radio colormap', style=style)
         self.pos_timestamp = 'center' #w.Dropdown(options=['center', 'start', 'original'], description='Timestamp position', style=style)
         self.legends_inside = w.Checkbox(value=False, description='Legends inside')
     
@@ -72,6 +75,7 @@ class Options:
         self.stix = w.Checkbox(value=True, description="SolO/STIX")
         self.stix_ltc = w.Checkbox(value=True, description="Correct STIX for light travel time")
         self.goes = w.Checkbox(value=True, description="GOES/XRS")
+        self.goes_pick_max = w.Checkbox(value=True, description="GOES: Pick highest sat number")
         
         self.path = f"{os.getcwd()}{os.sep}data"
         self.plot_range = None
@@ -169,6 +173,13 @@ class Options:
                 elif change.new == True:
                     self.stix_ltc.disabled = False
 
+            if change.owner == self.goes:
+                if change.new == False:
+                    self.goes_pick_max.disabled = True
+
+                elif change.new == True:
+                    self.goes_pick_max.disabled = False
+
         # def limit_time_range(change):
         #     self._txt_out.clear_output()
         #     if self.enddate.value - change.new > dt.timedelta(days=7) or change.new - self.startdate.value > dt.timedelta(days=7):
@@ -178,6 +189,7 @@ class Options:
 
         self.mag.observe(disable_checkbox, names="value")
         self.stix.observe(disable_checkbox, names="value")
+        self.goes.observe(disable_checkbox, names="value")
             
         # self.startdate.observe(limit_time_range, names="value")
         # self.enddate.observe(limit_time_range, names="value")

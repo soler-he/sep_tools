@@ -548,7 +548,7 @@ def make_plot(options):
         if legends_inside:
             ax.legend(loc="upper right", fontsize=font_legend)
         else:
-            ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize=font_legend)#, title='RTN')#, bbox_to_anchor=(1, 0.5))
+            ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1), fontsize=font_legend)
         ax.set_ylabel('B [nT]', fontsize=font_ylabel)
         ax.tick_params(axis="x",direction="in", which='both') #, pad=-15
         
