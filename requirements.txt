@@ -9,9 +9,9 @@ piecewise_regression
 git+https://github.com/Christian-Palmroos/PyOnset/
 pyspedas
 scipy
-seppy>=0.1.19
+seppy>=0.2.0
 solarmach
-solo-epd-loader>=0.4.2
+solo-epd-loader>=0.4.3
 speasy<1.5.0
 stixdcpy
 sunpy
