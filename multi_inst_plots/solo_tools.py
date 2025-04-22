@@ -209,6 +209,9 @@ def load_data(options):
     global energies_ept
     global energies_het
 
+    if not plot_mag:
+        plot_polarity = False
+
     resample = str(options.resample.value) + "min"
     resample_mag = str(options.resample_mag.value) + "min"
     resample_particles = str(options.solo_resample_particles.value) + "min"
@@ -465,13 +468,9 @@ def make_plot(options):
         
         title = f'Electrons ({viewing})'
         if legends_inside:
-            axs[i].legend(loc='upper right', borderaxespad=0., 
-                          title=title,
-                          fontsize=font_legend)
+            ax.legend(loc='upper right', borderaxespad=0., fontsize=font_legend, title=title)
         else:
-            axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad=0., 
-                          title=title,
-                          fontsize=font_legend)
+            ax.legend(loc='upper left', borderaxespad=0., fontsize=font_legend, bbox_to_anchor=(1.01, 1), title=title)
         i += 1
 
 
@@ -527,10 +526,9 @@ def make_plot(options):
         axs[i].set_ylabel("Ion flux\n"+r"(cm$^2$ sr s MeV)$^{-1}$", fontsize=font_ylabel)
         title = f'Protons/Ions ({viewing})'
         if legends_inside:
-            axs[i].legend(loc='upper right', title=title, fontsize=font_legend)
+            ax.legend(loc='upper right', borderaxespad=0., fontsize=font_legend, title=title)
         else:
-            # axs[i].legend(loc='upper right', title=title, bbox_to_anchor=(1, 0.5))
-            axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', title=title, fontsize=font_legend)
+            ax.legend(loc='upper left', borderaxespad=0., fontsize=font_legend, bbox_to_anchor=(1.01, 1), title=title)
         
         i += 1    
 

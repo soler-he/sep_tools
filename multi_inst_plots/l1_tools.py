@@ -471,7 +471,7 @@ def make_plot(options):
             axs[i].pcolormesh(time_rad2_2D, freq_rad2_2D, df_wind_wav_rad2.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
 
             # Add inset axes for colorbar
-            axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.05,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
+            axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.01,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
             cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
             cbar.set_label(r"Intensity ($\mathrm{V^2/Hz}$)", rotation=90, labelpad=10, fontsize=font_ylabel)
 
@@ -504,7 +504,7 @@ def make_plot(options):
             axs[i].legend(loc='upper right', borderaxespad=0., 
                     title=f'Electrons', fontsize=font_legend)
         else:
-            axs[i].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., 
+            axs[i].legend(bbox_to_anchor=(1.01, 1), loc="upper left", borderaxespad=0., 
                     title=f'Electrons', fontsize=font_legend)
         ax.set_yscale('log')
         ax.set_ylabel(intensity_label, fontsize=font_ylabel)
@@ -530,9 +530,9 @@ def make_plot(options):
                 ax.plot(erne_p.index, erne_p[f'PH_{ch}'], label='SOHO/ERNE/HED '+meta_erne['channels_dict_df_p']['ch_strings'][ch], 
                             drawstyle='steps-mid')
         if legends_inside:
-            ax.legend(title='Protons', loc="upper right", fontsize=font_legend)
+            ax.legend(loc='upper right', borderaxespad=0., fontsize=font_legend, title="Protons")
         else:
-            ax.legend(title='Protons', loc='center left', bbox_to_anchor=(1, 0.5), fontsize=font_legend)
+            ax.legend(loc='upper left', borderaxespad=0., fontsize=font_legend, bbox_to_anchor=(1.01, 1), title="Protons")
         ax.set_yscale('log')
         i += 1
 
@@ -546,9 +546,9 @@ def make_plot(options):
             ax.plot(df_mag.index, df_mag.BRTN_2.values, label='Bn', color='deeppink', linewidth=1)
         ax.axhline(y=0, color='gray', linewidth=0.8, linestyle='--')
         if legends_inside:
-            ax.legend(loc="upper right", fontsize=font_legend)
+            ax.legend(loc='upper right', borderaxespad=0., fontsize=font_legend)
         else:
-            ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1), fontsize=font_legend)
+            ax.legend(loc='upper left', borderaxespad=0., fontsize=font_legend, bbox_to_anchor=(1.01, 1))
         ax.set_ylabel('B [nT]', fontsize=font_ylabel)
         ax.tick_params(axis="x",direction="in", which='both') #, pad=-15
         

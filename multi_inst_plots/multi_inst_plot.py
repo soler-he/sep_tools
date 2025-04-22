@@ -5,6 +5,8 @@
 # - download retrying (making weekly plots is going to be a nightmare)
 # - fontsize as options?
 # - SOLO/RPW
+# - print energies?
+# - 
 
 
 
@@ -54,9 +56,9 @@ class Options:
         self.starttime = w.TimePicker(description="Start time:", value=dt.time(0,0), step=60, style=style)
         self.endtime = w.TimePicker(description="End time:", value=dt.time(0,0), step=60, style=style)
 
-        self.resample = w.BoundedIntText(value=15, min=0, max=30, step=1, description='Averaging (min):', disabled=False, style=style)
-        self.resample_mag = w.BoundedIntText(value=5, min=0, max=30, step=1, description='MAG averaging (min):', disabled=False, style=style)
-        self.resample_stixgoes = w.BoundedIntText(value=5, min=0, max=30, step=1, description="STIX/GOES averaging (min):", style=style)
+        self.resample = w.BoundedIntText(value=30, min=0, max=30, step=1, description='Averaging (min):', disabled=False, style=style)
+        self.resample_mag = w.BoundedIntText(value=15, min=0, max=30, step=1, description='MAG averaging (min):', disabled=False, style=style)
+        self.resample_stixgoes = w.BoundedIntText(value=30, min=0, max=30, step=1, description="STIX/GOES averaging (min):", style=style)
         #self.resample_pol = w.BoundedIntText(value=1, min=0, max=30, step=1, description='Polarity resampling (min):', disabled=False, style=style)
         self.radio_cmap = w.Dropdown(options=['jet', 'plasma'], value='jet', description='Radio colormap', style=style)
         self.pos_timestamp = 'center' #w.Dropdown(options=['center', 'start', 'original'], description='Timestamp position', style=style)
@@ -93,7 +95,7 @@ class Options:
         self.psp_ch_het_e = w.SelectMultiple(description="HET e channels", options=range(0,18+1), value=tuple(range(0,18+1,2)), rows=10, style=style)
         self.psp_ch_het_p = w.SelectMultiple(description="HET p channels", options=range(0,14+1), value=tuple(range(0,14+1,2)), rows=10, style=style)
         self.psp_ch_epilo_e =  w.SelectMultiple(description="EPI-Lo e channels", options=range(3,8+1), value=tuple(range(3,8+1,1)), rows=10, style=style)
-        self.psp_ch_epilo_ic = w.SelectMultiple(description="EPI-Lo ic channels", options=range(0,31+1), value=tuple(range(0,31+1,4)), rows=10, style=style)
+        self.psp_ch_epilo_ic = w.SelectMultiple(description="EPI-Lo ic channels", options=range(0,31+1), value=tuple(range(0,31+1,3)), rows=10, style=style)
         
         self.solo_electrons = w.Checkbox(value=True, description="HET+EPT electrons")
         self.solo_protons = w.Checkbox(value=True, description="HET+EPT ions")
@@ -122,8 +124,8 @@ class Options:
         self.ster_sept_viewing = w.Dropdown(description="SEPT viewing", options=['sun', 'asun', 'north', 'south'], style=style)
         
         self.ster_ch_sept_e = w.SelectMultiple(description="SEPT e channels", options=range(0,14+1), value=tuple(range(0,14+1, 2)), rows=10, style=style)
-        self.ster_ch_sept_p = w.SelectMultiple(description="SEPT p channels", options=range(0,29+1), value=tuple(range(0,29+1,3)), rows=10, style=style)
-        self.ster_ch_het_p =  w.SelectMultiple(description="HET p channels", options=range(0,10+1), value=tuple(range(0,10+1,1)), rows=10, style=style)
+        self.ster_ch_sept_p = w.SelectMultiple(description="SEPT p channels", options=range(0,29+1), value=tuple(range(0,29+1,4)), rows=10, style=style)
+        self.ster_ch_het_p =  w.SelectMultiple(description="HET p channels", options=range(0,10+1), value=tuple(range(0,10+1,2)), rows=10, style=style)
         self.ster_ch_het_e = w.SelectMultiple(description="HET e channels", options=(0, 1, 2), value=(0, 1, 2), disabled=True, style=style)
 
 
@@ -216,6 +218,9 @@ class Options:
         with self._out1:
             display(self._commons)
 
+    # def choose_n_channels(self, n):
+        
+
 
 
 def plot_range(startdate, enddate):
@@ -283,10 +288,13 @@ def load_data():
                                     options.endtime.value.minute)
     
     
+    
     if options.spacecraft.value is None:
         print("You must choose a spacecraft first!")
         return
     
+    print(f"Loading {options.spacecraft.value} data for range: {options.startdt} - {options.enddt}")
+
     if options.spacecraft.value == "PSP":
         if options.startdt >= dt.datetime(2018, 10, 2):
             psp.load_data(options)

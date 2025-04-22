@@ -130,6 +130,9 @@ def load_data(options):
     plot_electrons = plot_epilo_e or plot_epihi_e
     plot_protons = plot_epilo_p or plot_epihi_p
 
+    if not plot_mag:
+        plot_polarity = False
+
     resample = str(options.resample.value) + "min"         # convert to form that Pandas accepts
     resample_mag = str(options.resample_mag.value) + "min"
     resample_stixgoes = str(options.resample_stixgoes.value) + "min"
@@ -171,35 +174,39 @@ def load_data(options):
     if plot_radio:
         psp_rfs_lfr_psd = spz.get_data(spz.inventories.data_tree.cda.ParkerSolarProbe.PSP_FLD.RFS_LFR.PSP_FLD_L3_RFS_LFR.psp_fld_l3_rfs_lfr_PSD_SFU,
                                         startdate, enddate).replace_fillval_by_nan()
-        psp_rfs_hfr_psd = spz.get_data(spz.inventories.data_tree.cda.ParkerSolarProbe.PSP_FLD.RFS_HFR.PSP_FLD_L3_RFS_HFR.psp_fld_l3_rfs_hfr_PSD_SFU, 
-                                        startdate, enddate).replace_fillval_by_nan()
-
-        # Get frequency (MHz) bins, since metadata is lost upon conversion to df
-        try:
-            psp_rfs_lfr_freq = psp_rfs_lfr_psd.axes[1].values[0] / 1e6     
-            psp_rfs_hfr_freq = psp_rfs_hfr_psd.axes[1].values[0] / 1e6
         
-
+        try:
+            # Get frequency (MHz) bins, since metadata is lost upon conversion to df
+            psp_rfs_lfr_freq = psp_rfs_lfr_psd.axes[1].values[0] / 1e6     
+            
             # frequencies overlap, so leave the last seven out
             psp_rfs_lfr_psd = psp_rfs_lfr_psd.to_dataframe().iloc[:,:-6]
-            psp_rfs_hfr_psd = psp_rfs_hfr_psd.to_dataframe()
-        
+            
             # put frequencies into column names for easier access
             psp_rfs_lfr_psd.columns = psp_rfs_lfr_freq[:-6]
-            psp_rfs_hfr_psd.columns = psp_rfs_hfr_freq
-
+            
             # Remove bar artifacts caused by non-NaN values before time jumps
             for i in range(len(psp_rfs_lfr_psd.index) - 1):
                 if (psp_rfs_lfr_psd.index[i+1] - psp_rfs_lfr_psd.index[i]) > np.timedelta64(5, "m"):   
                     psp_rfs_lfr_psd.iloc[i,:] = np.nan
+            
+        except IndexError:
+            print("Unable to obtain FIELDS/RFS LFR data!")
+            psp_rfs_lfr_psd = []
+            
+        try:
+            psp_rfs_hfr_psd = spz.get_data(spz.inventories.data_tree.cda.ParkerSolarProbe.PSP_FLD.RFS_HFR.PSP_FLD_L3_RFS_HFR.psp_fld_l3_rfs_hfr_PSD_SFU, 
+                                        startdate, enddate).replace_fillval_by_nan()
+            psp_rfs_hfr_freq = psp_rfs_hfr_psd.axes[1].values[0] / 1e6
+            psp_rfs_hfr_psd = psp_rfs_hfr_psd.to_dataframe()
+            psp_rfs_hfr_psd.columns = psp_rfs_hfr_freq
             for i in range(len(psp_rfs_hfr_psd.index) - 1):
                 if (psp_rfs_hfr_psd.index[i+1] - psp_rfs_hfr_psd.index[i]) > np.timedelta64(5, "m"):
                     psp_rfs_hfr_psd.iloc[i,:] = np.nan
-        
         except IndexError:
-            print("Unable to obtain FIELDS/RFS data!")
-            psp_rfs_lfr_psd = []
+            print("Unable to obtain FIELDS/RFS HFR data!")
             psp_rfs_hfr_psd = []
+
 
     if plot_mag or plot_mag_angles:
         df_psp_mag_rtn = spz.get_data(spz.inventories.data_tree.amda.Parameters.PSP.FIELDS_MAG.psp_mag_1min.psp_b_1min, 
@@ -436,21 +443,23 @@ def make_plot(options):
     if plot_radio:
         vmin, vmax = 500, 1e7
         log_norm = LogNorm(vmin=vmin, vmax=vmax)
+        mesh = None
 
-        if isinstance(psp_rfs_hfr_psd, pd.DataFrame) and isinstance(psp_rfs_lfr_psd, pd.DataFrame):    
+        if isinstance(psp_rfs_hfr_psd, pd.DataFrame):
             TimeHFR2D, FreqHFR2D = np.meshgrid(psp_rfs_hfr_psd.index, psp_rfs_hfr_psd.columns, indexing='ij')
+            mesh = axs[i].pcolormesh(TimeHFR2D, FreqHFR2D, psp_rfs_hfr_psd.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
+
+        if isinstance(psp_rfs_lfr_psd, pd.DataFrame):    
             TimeLFR2D, FreqLFR2D = np.meshgrid(psp_rfs_lfr_psd.index, psp_rfs_lfr_psd.columns, indexing='ij')
-
-            # Create colormeshes. Shading option flat and thus the removal of last row and column are there to solve the time jump bar problem, 
-            # when resampling isn't used
             mesh = axs[i].pcolormesh(TimeLFR2D, FreqLFR2D, psp_rfs_lfr_psd.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
-            axs[i].pcolormesh(TimeHFR2D, FreqHFR2D, psp_rfs_hfr_psd.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
-
+        
+        if mesh is not None:
             # Add inset axes for colorbar
-            axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.05,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
+            axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.01,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
             cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
             cbar.set_label("Intensity (sfu)", rotation=90, labelpad=10, fontsize=font_ylabel)
 
+        axs[i].set_ylim((1.1e-2,1.9e1))
         axs[i].set_yscale('log')
         axs[i].set_ylabel("Frequency (MHz)", fontsize=font_ylabel)
         
@@ -556,10 +565,9 @@ def make_plot(options):
             ax.plot(mag.index.values, mag['bn'].values, label='Bn', color='deeppink')
         ax.axhline(y=0, color='gray', linewidth=0.8, linestyle='--')
         if legends_inside:
-            ax.legend(loc='upper right', fontsize=font_legend)
+            ax.legend(loc='upper right', borderaxespad=0., fontsize=font_legend)
         else:
-            # ax.legend(loc='upper right', bbox_to_anchor=(1.01, 0.5))
-            ax.legend(bbox_to_anchor=(1.01, 1), loc='upper left', fontsize=font_legend)
+            ax.legend(bbox_to_anchor=(1.01, 1), borderaxespad=0., loc='upper left', fontsize=font_legend)
             
         ax.set_ylabel('B [nT]', fontsize=font_ylabel)
         ax.tick_params(axis="x", direction="in", which='both')#, pad=-15)

@@ -67,7 +67,7 @@ def load_swaves(dataset, startdate, enddate, path=None):
     files = cdaweb.cdaweb_download_fido(dataset=dataset, startdate=startdate, enddate=enddate, path=path)
 
     if len(files) == 0:
-        print(f"No SWAVES radio data found between {startdate} and {enddate}")
+        print(f"No {dataset} data found between {startdate} and {enddate}")
         return None
     else:
         freq_mhz = cdflib.CDF(files[0]).varget("FREQUENCY") / 1e6
@@ -167,42 +167,62 @@ def load_data(options):
 
     plot_het = plot_het_p or plot_het_e
 
+    if not plot_mag:
+        plot_polarity = False
+
     resample = str(options.resample.value) + "min"
     resample_mag = str(options.resample_mag.value) + "min"
     resample_stixgoes = str(options.resample_stixgoes.value) + "min"
 
     if plot_sept_e:
+        print("loading sept_e...")
         df_sept_electrons_orig, meta_se = stereo_load(instrument='SEPT', startdate=startdate, enddate=enddate, 
                             sept_species='e', sept_viewing=sept_viewing,
                             path=path, spacecraft=sc)
+        print("sept_e loaded!")
         
     if plot_sept_p:
+        print("loading sept_p...")
         df_sept_protons_orig, meta_sp = stereo_load(instrument='SEPT', startdate=startdate, enddate=enddate, 
                                 sept_species='p', sept_viewing=sept_viewing,
                                 path=path, spacecraft=sc)
+        print("sept_p loaded!")
     
     if plot_het:
+        print("loading het...")
         df_het_orig, meta_het = stereo_load(instrument='HET', startdate=startdate, enddate=enddate,
                         path=path, spacecraft=sc)
+        print("het loaded!")
 
     if plot_mag or plot_mag_angles:
+        print("loading mag...")
         df_mag_orig, meta_mag = stereo_load(spacecraft=sc, instrument='MAG', startdate=startdate, enddate=enddate, mag_coord='RTN', 
                                         path=path)
+        print("mag loaded!")
 
     if plot_Vsw or plot_N or plot_T or plot_polarity:
+        
+        print("loading magplasma...")
         df_magplasma, meta_magplas = stereo_load(instrument='MAGPLASMA', startdate=startdate, enddate=enddate, 
                             path=path, spacecraft=sc)
+        print("magplasma loaded!")
         
 
     if plot_radio:
+        print("loading radio...")
         df_waves_hfr = load_swaves(f"ST{sc}_L3_WAV_HFR", startdate=startdate, enddate=enddate, path=path)
         df_waves_lfr = load_swaves(f"ST{sc}_L3_WAV_LFR", startdate=startdate, enddate=enddate, path=path)
+        print("radio loaded!")
 
     if plot_stix:
+        print("loading stix...")
         df_stix = load_solo_stix(start=startdate, end=enddate, ltc=stix_ltc, resample=resample_stixgoes)
+        print("stix loaded!")
 
     if plot_goes:
+        print("loading goes...")
         df_goes, goes_sat = load_goes_xrs(start=startdate, end=enddate, pick_max=goes_pick_max, resample=resample_stixgoes)
+        print("goes loaded!")
 
 
     
@@ -284,19 +304,19 @@ def make_plot(options):
     if plot_radio:
         vmin, vmax = 500, 1e7
         log_norm = LogNorm(vmin=vmin, vmax=vmax)
-        if isinstance(df_waves_hfr, pd.DataFrame) and isinstance(df_waves_lfr, pd.DataFrame):
+        mesh = None
+        if isinstance(df_waves_hfr, pd.DataFrame):
             TimeHFR2D, FreqHFR2D = np.meshgrid(df_waves_hfr.index, df_waves_hfr.columns, indexing='ij')
+            mesh = axs[i].pcolormesh(TimeHFR2D, FreqHFR2D, df_waves_hfr.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
+        if isinstance(df_waves_lfr, pd.DataFrame):
             TimeLFR2D, FreqLFR2D = np.meshgrid(df_waves_lfr.index, df_waves_lfr.columns, indexing='ij')
-
-            # Create colormeshes. Shading option flat and thus the removal of last row and column are there to solve the time jump bar problem, 
-            # when resampling isn't used
             mesh = axs[i].pcolormesh(TimeLFR2D, FreqLFR2D, df_waves_lfr.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
-            axs[i].pcolormesh(TimeHFR2D, FreqHFR2D, df_waves_hfr.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
+        if mesh is not None:    
             # Add inset axes for colorbar
-            axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.05,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
+            axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.01,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
             cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
             cbar.set_label("Intensity (sfu)", rotation=90, labelpad=10, fontsize=font_ylabel)
-
+        axs[i].set_ylim((2.61e-3,1.60e1))
         axs[i].set_yscale('log')
         axs[i].set_ylabel("Frequency (MHz)", fontsize=font_ylabel)
         
@@ -307,7 +327,7 @@ def make_plot(options):
         i += 1 
 
     if plot_goes:
-        plot_goes_xrs(df_goes, goes_sat, axs[i], legends_inside, font_ylabel)
+        plot_goes_xrs(options=options, data=df_goes, sat=goes_sat, ax=axs[i], font_legend=font_legend)
         i += 1
 
     if plot_electrons:
@@ -332,7 +352,7 @@ def make_plot(options):
             axs[i].legend(loc='upper right', borderaxespad=0., 
                     title=f'Electrons (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
         else:
-            axs[i].legend(bbox_to_anchor=(1.05, 1), loc="upper left", borderaxespad=0., 
+            axs[i].legend(bbox_to_anchor=(1.01, 1), loc="upper left", borderaxespad=0., 
                     title=f'Electrons (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
         axs[i].set_yscale('log')
         i +=1    
@@ -363,7 +383,7 @@ def make_plot(options):
             axs[i].legend(loc='upper right', borderaxespad=0., 
                     title=f'Ions (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
         else:
-            axs[i].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., 
+            axs[i].legend(bbox_to_anchor=(1.01, 1), loc="upper left", borderaxespad=0., 
                     title=f'Ions (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
         axs[i].set_yscale('log')
         i +=1    
@@ -380,7 +400,7 @@ def make_plot(options):
         if legends_inside:
             ax.legend(loc='upper right', borderaxespad=0., fontsize=font_legend)
         else:
-            ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1), fontsize=font_legend)
+            ax.legend(loc='upper left', borderaxespad=0., fontsize=font_legend, bbox_to_anchor=(1.01, 1))
             
         ax.set_ylabel('B [nT]', fontsize=font_ylabel)
         ax.tick_params(axis="x", direction="in", which='both')#, pad=-15)
