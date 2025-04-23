@@ -182,7 +182,7 @@ def load_goes_xrs(start, end, pick_max=True, resample=None, path=None):
         return df_goes, sat
 
 def plot_goes_xrs(options, data, sat, ax, font_legend):
-    
+    ax.hlines([1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2], color="#cccccc", xmin=options.plot_start, xmax=options.plot_end)
     if isinstance(data, pd.DataFrame):
         peak = 0
         for channel, wavelength in zip(["xrsa", "xrsb"], ["0.5 - 4.0 Å", "1.0 - 8.0 Å"]):
@@ -194,10 +194,7 @@ def plot_goes_xrs(options, data, sat, ax, font_legend):
         else:
             ax.legend(bbox_to_anchor=(1.03, 1), loc='upper left', title=title, borderaxespad = 0., fontsize=10)
 
-    
     ax.set_yscale('log')
-    ax.hlines([1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2], color="#cccccc", xmin=options.plot_start, xmax=options.plot_end)
-
     # flare class labels
     for i, cl in enumerate(["A", "B", "C", "M", "X"]):
         log_midpoint = 3.1e-8 * (10 ** i)
