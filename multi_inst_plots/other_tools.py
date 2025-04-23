@@ -104,7 +104,7 @@ def load_solo_stix(start, end, ltc=True, resample=None):
         if resample is not None:
             df_stix = resample_df(df_stix, resample=resample, pos_timestamp=None)
 
-    except TypeError:
+    except (TypeError, KeyError):
         print("Unable to load STIX data!")
         df_stix = []
 
@@ -183,8 +183,8 @@ def load_goes_xrs(start, end, pick_max=True, resample=None, path=None):
 
 def plot_goes_xrs(options, data, sat, ax, font_legend):
     ax.hlines([1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2], color="#cccccc", xmin=options.plot_start, xmax=options.plot_end)
+    peak = 0
     if isinstance(data, pd.DataFrame):
-        peak = 0
         for channel, wavelength in zip(["xrsa", "xrsb"], ["0.5 - 4.0 Å", "1.0 - 8.0 Å"]):
             ax.plot(data.index, data[channel], ds="steps-mid", label=wavelength)
             peak = max(data[channel])

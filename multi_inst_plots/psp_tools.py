@@ -169,10 +169,9 @@ def load_data(options):
     
 
     if plot_radio:
-        psp_rfs_lfr_psd = spz.get_data(spz.inventories.data_tree.cda.ParkerSolarProbe.PSP_FLD.RFS_LFR.PSP_FLD_L3_RFS_LFR.psp_fld_l3_rfs_lfr_PSD_SFU,
-                                        startdate, enddate).replace_fillval_by_nan()
-        
         try:
+            psp_rfs_lfr_psd = spz.get_data(spz.inventories.data_tree.cda.ParkerSolarProbe.PSP_FLD.RFS_LFR.PSP_FLD_L3_RFS_LFR.psp_fld_l3_rfs_lfr_PSD_SFU,
+                                        startdate, enddate).replace_fillval_by_nan()
             # Get frequency (MHz) bins, since metadata is lost upon conversion to df
             psp_rfs_lfr_freq = psp_rfs_lfr_psd.axes[1].values[0] / 1e6     
             
@@ -187,7 +186,7 @@ def load_data(options):
                 if (psp_rfs_lfr_psd.index[i+1] - psp_rfs_lfr_psd.index[i]) > np.timedelta64(5, "m"):   
                     psp_rfs_lfr_psd.iloc[i,:] = np.nan
             
-        except IndexError:
+        except (AttributeError, IndexError):
             print("Unable to obtain FIELDS/RFS LFR data!")
             psp_rfs_lfr_psd = []
             
@@ -200,31 +199,35 @@ def load_data(options):
             for i in range(len(psp_rfs_hfr_psd.index) - 1):
                 if (psp_rfs_hfr_psd.index[i+1] - psp_rfs_hfr_psd.index[i]) > np.timedelta64(5, "m"):
                     psp_rfs_hfr_psd.iloc[i,:] = np.nan
-        except IndexError:
+        except (AttributeError, IndexError):
             print("Unable to obtain FIELDS/RFS HFR data!")
             psp_rfs_hfr_psd = []
 
 
     if plot_mag or plot_mag_angles:
-        df_psp_mag_rtn = spz.get_data(spz.inventories.data_tree.amda.Parameters.PSP.FIELDS_MAG.psp_mag_1min.psp_b_1min, 
-                                    startdate, enddate, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
-        df_psp_mag_phi = spz.get_data(spz.inventories.data_tree.amda.Parameters.PSP.FIELDS_MAG.psp_mag_1min.psp_b_1min_phi, 
-                                    startdate, enddate, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
-        df_psp_mag_theta = spz.get_data(spz.inventories.data_tree.amda.Parameters.PSP.FIELDS_MAG.psp_mag_1min.psp_b_1min_theta, 
-                                    startdate, enddate, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
-        df_psp_mag_tot = spz.get_data(spz.inventories.data_tree.amda.Parameters.PSP.FIELDS_MAG.psp_mag_1min.psp_b_1min_tot, 
-                                    startdate, enddate, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
-        
-        psp_mag = pd.concat([df_psp_mag_rtn, df_psp_mag_phi, df_psp_mag_theta, df_psp_mag_tot], axis=1)
-        psp_mag['phi_mod'] = ((psp_mag['phi'].values - 180) % 360) - 180
+        try:
+            df_psp_mag_rtn = spz.get_data(spz.inventories.data_tree.amda.Parameters.PSP.FIELDS_MAG.psp_mag_1min.psp_b_1min, 
+                                        startdate, enddate, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
+            df_psp_mag_phi = spz.get_data(spz.inventories.data_tree.amda.Parameters.PSP.FIELDS_MAG.psp_mag_1min.psp_b_1min_phi, 
+                                        startdate, enddate, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
+            df_psp_mag_theta = spz.get_data(spz.inventories.data_tree.amda.Parameters.PSP.FIELDS_MAG.psp_mag_1min.psp_b_1min_theta, 
+                                        startdate, enddate, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
+            df_psp_mag_tot = spz.get_data(spz.inventories.data_tree.amda.Parameters.PSP.FIELDS_MAG.psp_mag_1min.psp_b_1min_tot, 
+                                        startdate, enddate, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
+            
+            psp_mag = pd.concat([df_psp_mag_rtn, df_psp_mag_phi, df_psp_mag_theta, df_psp_mag_tot], axis=1)
+            psp_mag['phi_mod'] = ((psp_mag['phi'].values - 180) % 360) - 180
 
 
-        if plot_mag_angles:
-            theta, phi = mag_angles(psp_mag['|b|'].values, psp_mag['br'].values, psp_mag['bt'].values, psp_mag['bn'].values)
-            psp_mag['theta2'] = theta
-            psp_mag['phi2'] = phi
+            if plot_mag_angles:
+                theta, phi = mag_angles(psp_mag['|b|'].values, psp_mag['br'].values, psp_mag['bt'].values, psp_mag['bn'].values)
+                psp_mag['theta2'] = theta
+                psp_mag['phi2'] = phi
 
-        if len(psp_mag) == 0:
+            if len(psp_mag) == 0:
+                psp_mag = []
+        except AttributeError:
+            print("Unable to obtain MAG data!")
             psp_mag = []
 
     if plot_Vsw or plot_N or plot_T or plot_p_dyn:
@@ -333,7 +336,7 @@ def load_data(options):
             # Drop binary version of Quality Flag because otherwise resampling will crash later
             df_psp_spani.drop(columns='Quality Flag binary', inplace=True)
 
-        except TypeError:
+        except (AttributeError, TypeError):
             print("Unable to obtain SPC and SPAN-i data!")
             df_psp_spc = []
             df_psp_spani = []

@@ -2,13 +2,10 @@
 # - "choose all energy channels" checkbox (or choose every nth)
 # - legend overlapping with many energy channels
 # - fix polarity axes on top of title
-# - download retrying (making weekly plots is going to be a nightmare)
 # - fontsize as options?
 # - SOLO/RPW
 # - print energies?
 # - 
-
-
 
 import datetime as dt
 import pandas as pd
@@ -51,15 +48,15 @@ class Options:
     def __init__(self):
 
         self.spacecraft = w.Dropdown(value="STEREO", description="Spacecraft", options=["PSP", "SolO", "L1 (Wind/SOHO)", "STEREO"], style=style)
-        self.startdate = w.DatePicker(value=dt.date(2025, 7, 27), disabled=False, description="Start date/time:", style={'description_width': "40%"})   
-        self.enddate = w.DatePicker(value=dt.date(2025, 7, 28), disabled=False, description="End date/time:", style={'description_width': "40%"})
+        self.startdate = w.DatePicker(value=dt.date(2022, 3, 14), disabled=False, description="Start date/time:", style={'description_width': "40%"})   
+        self.enddate = w.DatePicker(value=dt.date(2022, 3, 16), disabled=False, description="End date/time:", style={'description_width': "40%"})
         self.starttime = w.TimePicker(description="Start time:", value=dt.time(0,0), step=60, style=style)
         self.endtime = w.TimePicker(description="End time:", value=dt.time(0,0), step=60, style=style)
 
-        self.resample = w.BoundedIntText(value=30, min=0, max=30, step=1, description='Averaging (min):', disabled=False, style=style)
-        self.resample_mag = w.BoundedIntText(value=15, min=0, max=30, step=1, description='MAG averaging (min):', disabled=False, style=style)
-        self.resample_stixgoes = w.BoundedIntText(value=30, min=0, max=30, step=1, description="STIX/GOES averaging (min):", style=style)
-        #self.resample_pol = w.BoundedIntText(value=1, min=0, max=30, step=1, description='Polarity resampling (min):', disabled=False, style=style)
+        self.resample = w.BoundedIntText(value=10, min=0, max=60, step=1, description='Averaging (min):', disabled=False, style=style)
+        self.resample_mag = w.BoundedIntText(value=10, min=0, max=60, step=1, description='MAG averaging (min):', disabled=False, style=style)
+        self.resample_stixgoes = w.BoundedIntText(value=10, min=0, max=60, step=1, description="STIX/GOES averaging (min):", style=style)
+        #self.resample_pol = w.BoundedIntText(value=1, min=0, max=60, step=1, description='Polarity resampling (min):', disabled=False, style=style)
         self.radio_cmap = w.Dropdown(options=['jet', 'plasma'], value='jet', description='Radio colormap', style=style)
         self.pos_timestamp = 'center' #w.Dropdown(options=['center', 'start', 'original'], description='Timestamp position', style=style)
         self.legends_inside = w.Checkbox(value=False, description='Legends inside')
@@ -92,15 +89,15 @@ class Options:
         self.psp_epilo_ic_viewing = w.Dropdown(description="EPI-Lo ic viewing:", options=["3"], style=style, disabled=True, value="3")
         self.psp_epilo_channel = w.Dropdown(description="EPI-Lo channel", options=['F'], style=style, disabled=True, value='F')
         self.psp_epilo_ic_channel = w.Dropdown(description="EPI-Lo ic channel", options=['T'], style=style, disabled=True, value='T')
-        self.psp_ch_het_e = w.SelectMultiple(description="HET e channels", options=range(0,18+1), value=tuple(range(0,18+1,2)), rows=10, style=style)
+        self.psp_ch_het_e = w.SelectMultiple(description="HET e channels", options=range(0,18+1), value=tuple(range(0,18+1,3)), rows=10, style=style)
         self.psp_ch_het_p = w.SelectMultiple(description="HET p channels", options=range(0,14+1), value=tuple(range(0,14+1,2)), rows=10, style=style)
         self.psp_ch_epilo_e =  w.SelectMultiple(description="EPI-Lo e channels", options=range(3,8+1), value=tuple(range(3,8+1,1)), rows=10, style=style)
-        self.psp_ch_epilo_ic = w.SelectMultiple(description="EPI-Lo ic channels", options=range(0,31+1), value=tuple(range(0,31+1,3)), rows=10, style=style)
+        self.psp_ch_epilo_ic = w.SelectMultiple(description="EPI-Lo ic channels", options=range(0,31+1), value=tuple(range(0,31+1,4)), rows=10, style=style)
         
         self.solo_electrons = w.Checkbox(value=True, description="HET+EPT electrons")
         self.solo_protons = w.Checkbox(value=True, description="HET+EPT ions")
         self.solo_viewing = w.Dropdown(options=['sun', 'asun', 'north', 'south'], value='sun', style=style, description="HET+EPT viewing:")
-        self.solo_resample_particles = w.BoundedIntText(value=5, min=0, max=30, description="HET+EPT averaging:", style=style)
+        self.solo_resample_particles = w.BoundedIntText(value=10, min=0, max=60, description="HET+EPT averaging:", style=style)
         self.solo_ch_ept_e = w.SelectMultiple(description="EPT e channels", options=range(0,15+1), value=tuple(range(0,15+1,2)), rows=10, style=style)
         self.solo_ch_het_e = w.SelectMultiple(description="HET e channels", options=range(0,3+1), value=tuple(range(0,3+1,1)), rows=10, style=style)
         self.solo_ch_ept_p = w.SelectMultiple(description="EPT ion channels", options=range(0,30+1), value=tuple(range(0,30+1,5)), rows=10, style=style)
@@ -113,8 +110,8 @@ class Options:
         self.l1_ch_eph_e = w.Dropdown(description="EPHIN e channel:", options=["E150", "E1300", "E3000"], value="E150", disabled=False, style=style)
         #self.l1_ch_eph_p = w.Dropdown(description="EPHIN p channel:", options=["P25"], value="P25", disabled=True, style=style)
         self.l1_intercal = w.BoundedIntText(value=1, min=1, max=14, description="Intercal", disabled=True, style=style)
-        self.l1_av_sep = w.BoundedIntText(value=20, min=0, max=30, description="3DP+EPHIN averaging:", style=style)
-        self.l1_av_erne = w.BoundedIntText(value=10, min=0, max=30, description="ERNE averaging:", style=style)
+        self.l1_av_sep = w.BoundedIntText(value=10, min=0, max=60, description="3DP+EPHIN averaging:", style=style)
+        self.l1_av_erne = w.BoundedIntText(value=10, min=0, max=60, description="ERNE averaging:", style=style)
         
         self.ster_sc = w.Dropdown(description="STEREO A/B:", options=["A", "B"], style=style)
         self.ster_sept_e = w.Checkbox(description="SEPT electrons", value=True)
