@@ -122,7 +122,7 @@ def plot_solo_stix(data, ax, ltc, legends_inside, font_ylabel):
         ax.legend(loc='upper right', borderaxespad = 0., title=title, fontsize=10)
     else:
         # axs[i].legend(loc='upper right', title=title, bbox_to_anchor=(1, 0.5))
-        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad = 0., title=title, fontsize=10)
+        ax.legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad = 0., title=title, fontsize=10)
     ax.set_ylabel('Counts', fontsize=font_ylabel)
     ax.set_yscale('log')
 
@@ -181,19 +181,41 @@ def load_goes_xrs(start, end, pick_max=True, resample=None, path=None):
         sat = ''
         return df_goes, sat
 
-def plot_goes_xrs(data, sat, ax, legends_inside, font_ylabel):
+def plot_goes_xrs(options, data, sat, ax, font_legend):
     
     if isinstance(data, pd.DataFrame):
+        peak = 0
         for channel, wavelength in zip(["xrsa", "xrsb"], ["0.5 - 4.0 Å", "1.0 - 8.0 Å"]):
             ax.plot(data.index, data[channel], ds="steps-mid", label=wavelength)
+            peak = max(data[channel])
         title = f"GOES-{sat}/XRS"
-        if legends_inside:
+        if options.legends_inside.value == True:
             ax.legend(loc="upper right", title=title, borderaxespad = 0., fontsize = 10)
         else:
-            ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title=title, borderaxespad = 0., fontsize=10)
+            ax.legend(bbox_to_anchor=(1.03, 1), loc='upper left', title=title, borderaxespad = 0., fontsize=10)
 
+    
     ax.set_yscale('log')
-    ax.set_ylabel(r"Irradiance ($\mathrm{W/m^2}$)", fontsize=font_ylabel)
+    ax.hlines([1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2], color="#cccccc", xmin=options.plot_start, xmax=options.plot_end)
+
+    # flare class labels
+    for i, cl in enumerate(["A", "B", "C", "M", "X"]):
+        log_midpoint = 3.1e-8 * (10 ** i)
+        ax.annotate(text=cl, xy=(options.plot_end, log_midpoint), xycoords="data", xytext=(5, 0), textcoords="offset points", fontsize=font_legend, va="center")
+
+    # ax.annotate(text="A", xy=(options.plot_end, 3.1e-8), xycoords="data", xytext=(5, 0), textcoords="offset points", fontsize=font_legend, va="center")
+    # ax.annotate(text="B", xy=(options.plot_end, 3.1e-7), xycoords="data", xytext=(5, 0), textcoords="offset points", fontsize=font_legend, va="center")
+    # ax.annotate(text="C", xy=(options.plot_end, 3.1e-6), xycoords="data", xytext=(5, 0), textcoords="offset points", fontsize=font_legend, va="center")
+    # ax.annotate(text="M", xy=(options.plot_end, 3.1e-5), xycoords="data", xytext=(5, 0), textcoords="offset points", fontsize=font_legend, va="center")
+    # ax.annotate(text="X", xy=(options.plot_end, 3.1e-4), xycoords="data", xytext=(5, 0), textcoords="offset points", fontsize=font_legend, va="center")
+    
+    # set minimum y-limits of (1e-9, 1e-5)
+    if peak > 1e-5:
+        ax.set_ylim((1e-9, peak*10))
+    else:
+        ax.set_ylim((1e-9, 1e-5))
+
+    
 
 def make_fig_axs(options):
 
@@ -288,7 +310,7 @@ def make_fig_axs(options):
         return (None, None)
 
     if options.spacecraft.value == "L1 (Wind/SOHO)":
-        axs[0].set_title('Near-Earth spacecraft (Wind, SOHO)', fontsize=font_ylabel)
+        axs[0].set_title('Near-Earth spacecraft (Wind, SOHO)', fontsize=font_ylabel) # TODO: add padding
     elif options.spacecraft.value == "PSP":
         axs[0].set_title('Parker Solar Probe', fontsize=font_ylabel)
     elif options.spacecraft.value == "STEREO":

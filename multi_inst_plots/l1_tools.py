@@ -393,7 +393,7 @@ def load_data(options):
         df_stix = load_solo_stix(startdate, enddate, resample=av_stixgoes, ltc = stix_ltc)
 
     if plot_goes:
-        df_goes, goes_sat = load_goes_xrs(startdate, enddate, resample=av_stixgoes)
+        df_goes, goes_sat = load_goes_xrs(startdate, enddate, pick_max=options.goes_pick_max.value, resample=av_stixgoes, path=path)
     
     # AVERAGING
     if plot_mag or plot_mag_angles:
@@ -485,7 +485,7 @@ def make_plot(options):
         i += 1 
 
     if plot_goes:
-        plot_goes_xrs(df_goes, goes_sat, axs[i], legends_inside, font_ylabel)
+        plot_goes_xrs(options=options, data=df_goes, sat=goes_sat, ax=axs[i], font_legend=font_legend)
         i += 1
 
     if plot_electrons:

@@ -260,7 +260,7 @@ def load_data(options):
         df_stix = load_solo_stix(startdate, enddate, resample=resample_stixgoes, ltc = stix_ltc)
 
     if plot_goes:
-        df_goes, goes_sat = load_goes_xrs(startdate, enddate, resample=resample_stixgoes)
+        df_goes, goes_sat = load_goes_xrs(startdate, enddate, pick_max=options.goes_pick_max.value, resample=resample_stixgoes, path=path)
 
     if plot_mag or plot_mag_angles or plot_polarity:
         try:
@@ -409,7 +409,7 @@ def make_plot(options):
         i += 1 
 
     if plot_goes:
-        plot_goes_xrs(df_goes, goes_sat, axs[i], legends_inside, font_ylabel)
+        plot_goes_xrs(options=options, data=df_goes, sat=goes_sat, ax=axs[i], font_legend=font_legend)
         i += 1
 
     ### Electrons
@@ -468,9 +468,9 @@ def make_plot(options):
         
         title = f'Electrons ({viewing})'
         if legends_inside:
-            ax.legend(loc='upper right', borderaxespad=0., fontsize=font_legend, title=title)
+            axs[i].legend(loc='upper right', borderaxespad=0., fontsize=font_legend, title=title)
         else:
-            ax.legend(loc='upper left', borderaxespad=0., fontsize=font_legend, bbox_to_anchor=(1.01, 1), title=title)
+            axs[i].legend(loc='upper left', borderaxespad=0., fontsize=font_legend, bbox_to_anchor=(1.01, 1), title=title)
         i += 1
 
 
@@ -526,9 +526,9 @@ def make_plot(options):
         axs[i].set_ylabel("Ion flux\n"+r"(cm$^2$ sr s MeV)$^{-1}$", fontsize=font_ylabel)
         title = f'Protons/Ions ({viewing})'
         if legends_inside:
-            ax.legend(loc='upper right', borderaxespad=0., fontsize=font_legend, title=title)
+            axs[i].legend(loc='upper right', borderaxespad=0., fontsize=font_legend, title=title)
         else:
-            ax.legend(loc='upper left', borderaxespad=0., fontsize=font_legend, bbox_to_anchor=(1.01, 1), title=title)
+            axs[i].legend(loc='upper left', borderaxespad=0., fontsize=font_legend, bbox_to_anchor=(1.01, 1), title=title)
         
         i += 1    
 

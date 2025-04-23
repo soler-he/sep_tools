@@ -139,13 +139,10 @@ def load_data(options):
 
 
     if plot_stix:
-        if enddate-startdate > dt.timedelta(days=7):
-            print('WARNING: STIX loading for more than 7 days not supported at the moment!')
-            print('')
         df_stix = load_solo_stix(startdate, enddate, ltc=stix_ltc, resample=resample_stixgoes)
     
     if plot_goes:
-        df_goes, goes_sat = load_goes_xrs(startdate, enddate, resample=resample_stixgoes, path=file_path)
+        df_goes, goes_sat = load_goes_xrs(startdate, enddate, pick_max=options.goes_pick_max.value, resample=resample_stixgoes, path=file_path)
 
     if plot_epihi_p or plot_epihi_e:
         
@@ -472,7 +469,7 @@ def make_plot(options):
         i += 1 
 
     if plot_goes:
-        plot_goes_xrs(df_goes, goes_sat, axs[i], legends_inside, font_ylabel)
+        plot_goes_xrs(options=options, data=df_goes, sat=goes_sat, ax=axs[i], font_legend=font_legend)
         i += 1
     
     

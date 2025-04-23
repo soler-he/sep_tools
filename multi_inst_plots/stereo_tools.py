@@ -175,54 +175,54 @@ def load_data(options):
     resample_stixgoes = str(options.resample_stixgoes.value) + "min"
 
     if plot_sept_e:
-        print("loading sept_e...")
+        # print("loading sept_e...")
         df_sept_electrons_orig, meta_se = stereo_load(instrument='SEPT', startdate=startdate, enddate=enddate, 
                             sept_species='e', sept_viewing=sept_viewing,
                             path=path, spacecraft=sc)
-        print("sept_e loaded!")
+        # print("sept_e loaded!")
         
     if plot_sept_p:
-        print("loading sept_p...")
+        # print("loading sept_p...")
         df_sept_protons_orig, meta_sp = stereo_load(instrument='SEPT', startdate=startdate, enddate=enddate, 
                                 sept_species='p', sept_viewing=sept_viewing,
                                 path=path, spacecraft=sc)
-        print("sept_p loaded!")
+        # print("sept_p loaded!")
     
     if plot_het:
-        print("loading het...")
+        # print("loading het...")
         df_het_orig, meta_het = stereo_load(instrument='HET', startdate=startdate, enddate=enddate,
                         path=path, spacecraft=sc)
-        print("het loaded!")
+        # print("het loaded!")
 
     if plot_mag or plot_mag_angles:
-        print("loading mag...")
+        # print("loading mag...")
         df_mag_orig, meta_mag = stereo_load(spacecraft=sc, instrument='MAG', startdate=startdate, enddate=enddate, mag_coord='RTN', 
                                         path=path)
-        print("mag loaded!")
+        # print("mag loaded!")
 
     if plot_Vsw or plot_N or plot_T or plot_polarity:
         
-        print("loading magplasma...")
+        # print("loading magplasma...")
         df_magplasma, meta_magplas = stereo_load(instrument='MAGPLASMA', startdate=startdate, enddate=enddate, 
                             path=path, spacecraft=sc)
-        print("magplasma loaded!")
+        # print("magplasma loaded!")
         
 
     if plot_radio:
-        print("loading radio...")
+        # print("loading radio...")
         df_waves_hfr = load_swaves(f"ST{sc}_L3_WAV_HFR", startdate=startdate, enddate=enddate, path=path)
         df_waves_lfr = load_swaves(f"ST{sc}_L3_WAV_LFR", startdate=startdate, enddate=enddate, path=path)
-        print("radio loaded!")
+        # print("radio loaded!")
 
     if plot_stix:
-        print("loading stix...")
+        # print("loading stix...")
         df_stix = load_solo_stix(start=startdate, end=enddate, ltc=stix_ltc, resample=resample_stixgoes)
-        print("stix loaded!")
+        # print("stix loaded!")
 
     if plot_goes:
-        print("loading goes...")
-        df_goes, goes_sat = load_goes_xrs(start=startdate, end=enddate, pick_max=goes_pick_max, resample=resample_stixgoes)
-        print("goes loaded!")
+        # print("loading goes...")
+        df_goes, goes_sat = load_goes_xrs(startdate, enddate, pick_max=options.goes_pick_max.value, resample=resample_stixgoes, path=path)
+        # print("goes loaded!")
 
 
     
