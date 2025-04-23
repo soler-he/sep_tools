@@ -73,8 +73,8 @@ class Options:
         self.p_dyn = w.Checkbox(value=True, description="p_dyn")
         self.stix = w.Checkbox(value=True, description="SolO/STIX")
         self.stix_ltc = w.Checkbox(value=True, description="Correct STIX for light travel time")
-        self.goes = w.Checkbox(value=True, description="GOES/XRS")
-        self.goes_pick_max = w.Checkbox(value=True, description="GOES: Pick highest sat number")
+        self.goes = w.Checkbox(value=False, description="GOES/XRS")
+        self.goes_pick_max = w.Checkbox(value=False, description="GOES: Pick highest sat number")
         
         self.path = f"{os.getcwd()}{os.sep}data"
         self.plot_range = None
@@ -239,7 +239,7 @@ def plot_range(startdate, enddate):
             options=dates,
             description="Plot range",
             index=initial_selection,
-            continous_update=False,
+            continuous_update=False,
             readout=False
         )
 
