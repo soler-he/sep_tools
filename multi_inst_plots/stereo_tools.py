@@ -305,17 +305,21 @@ def make_plot(options):
         vmin, vmax = 500, 1e7
         log_norm = LogNorm(vmin=vmin, vmax=vmax)
         mesh = None
+
         if isinstance(df_waves_hfr, pd.DataFrame):
             TimeHFR2D, FreqHFR2D = np.meshgrid(df_waves_hfr.index, df_waves_hfr.columns, indexing='ij')
             mesh = axs[i].pcolormesh(TimeHFR2D, FreqHFR2D, df_waves_hfr.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
+
         if isinstance(df_waves_lfr, pd.DataFrame):
             TimeLFR2D, FreqLFR2D = np.meshgrid(df_waves_lfr.index, df_waves_lfr.columns, indexing='ij')
             mesh = axs[i].pcolormesh(TimeLFR2D, FreqLFR2D, df_waves_lfr.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
+
         if mesh is not None:    
             # Add inset axes for colorbar
             axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.01,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
             cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
             cbar.set_label("Intensity (sfu)", rotation=90, labelpad=10, fontsize=font_ylabel)
+
         axs[i].set_ylim((2.61e-3,1.60e1))
         axs[i].set_yscale('log')
         axs[i].set_ylabel("Frequency (MHz)", fontsize=font_ylabel)
@@ -347,7 +351,7 @@ def make_plot(options):
                                 label='HET '+meta_het['channels_dict_df_e'].ch_strings[channel],
                             ds="steps-mid")
         
-        axs[i].set_ylabel("Flux\n"+r"[(cm$^2$ sr s MeV)$^{-1}]$", fontsize=font_ylabel)
+        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}]$", fontsize=font_ylabel)
         if legends_inside:
             axs[i].legend(loc='upper right', borderaxespad=0., 
                     title=f'Electrons (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
@@ -378,7 +382,7 @@ def make_plot(options):
                     axs[i].plot(df_het.index, df_het[f'Proton_Flux_{channel}'], 
                             label='HET '+meta_het['channels_dict_df_p'].ch_strings[channel], ds="steps-mid")
         
-        axs[i].set_ylabel("Flux\n"+r"[(cm$^2$ sr s MeV)$^{-1}]$", fontsize=font_ylabel)
+        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}]$", fontsize=font_ylabel)
         if legends_inside:
             axs[i].legend(loc='upper right', borderaxespad=0., 
                     title=f'Ions (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)

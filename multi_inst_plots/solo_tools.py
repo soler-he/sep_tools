@@ -464,7 +464,7 @@ def make_plot(options):
         except TypeError:
             pass
         axs[i].set_yscale('log')
-        axs[i].set_ylabel("Electron flux\n"+r"(cm$^2$ sr s MeV)$^{-1}$", fontsize=font_ylabel)
+        axs[i].set_ylabel("Intensity\n"+r"(cm$^2$ sr s MeV)$^{-1}$", fontsize=font_ylabel)
         
         title = f'Electrons ({viewing})'
         if legends_inside:
@@ -523,7 +523,7 @@ def make_plot(options):
             except TypeError:
                 pass
         axs[i].set_yscale('log')
-        axs[i].set_ylabel("Ion flux\n"+r"(cm$^2$ sr s MeV)$^{-1}$", fontsize=font_ylabel)
+        axs[i].set_ylabel("Intensity\n"+r"(cm$^2$ sr s MeV)$^{-1}$", fontsize=font_ylabel)
         title = f'Protons/Ions ({viewing})'
         if legends_inside:
             axs[i].legend(loc='upper right', borderaxespad=0., fontsize=font_legend, title=title)

@@ -1,4 +1,3 @@
-from matplotlib.colors import Normalize
 import numpy as np
 import pandas as pd
 from matplotlib.colors import Normalize
@@ -11,6 +10,7 @@ from sunpy import timeseries as ts
 from sunpy.net import Fido
 from sunpy.net import attrs as a
 import matplotlib.dates as mdates
+
 
 def polarity_rtn(Br,Bt,Bn,r,lat,V=400,delta_angle=10):
     """
@@ -182,12 +182,12 @@ def load_goes_xrs(start, end, pick_max=True, resample=None, path=None):
         return df_goes, sat
 
 def plot_goes_xrs(options, data, sat, ax, font_legend):
-    ax.hlines([1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2], color="#cccccc", xmin=options.plot_start, xmax=options.plot_end)
+    ax.hlines([1e-7, 1e-6, 1e-5, 1e-4], color="#cccccc", xmin=options.plot_start, xmax=options.plot_end)
     peak = 0
     if isinstance(data, pd.DataFrame):
+        peak = max(data["xrsb"])
         for channel, wavelength in zip(["xrsa", "xrsb"], ["0.5 - 4.0 Å", "1.0 - 8.0 Å"]):
             ax.plot(data.index, data[channel], ds="steps-mid", label=wavelength)
-            peak = max(data[channel])
         title = f"GOES-{sat}/XRS"
         if options.legends_inside.value == True:
             ax.legend(loc="upper right", title=title, borderaxespad = 0., fontsize = 10)
@@ -195,22 +195,17 @@ def plot_goes_xrs(options, data, sat, ax, font_legend):
             ax.legend(bbox_to_anchor=(1.03, 1), loc='upper left', title=title, borderaxespad = 0., fontsize=10)
 
     ax.set_yscale('log')
+
     # flare class labels
     for i, cl in enumerate(["A", "B", "C", "M", "X"]):
         log_midpoint = 3.1e-8 * (10 ** i)
         ax.annotate(text=cl, xy=(options.plot_end, log_midpoint), xycoords="data", xytext=(5, 0), textcoords="offset points", fontsize=font_legend, va="center")
-
-    # ax.annotate(text="A", xy=(options.plot_end, 3.1e-8), xycoords="data", xytext=(5, 0), textcoords="offset points", fontsize=font_legend, va="center")
-    # ax.annotate(text="B", xy=(options.plot_end, 3.1e-7), xycoords="data", xytext=(5, 0), textcoords="offset points", fontsize=font_legend, va="center")
-    # ax.annotate(text="C", xy=(options.plot_end, 3.1e-6), xycoords="data", xytext=(5, 0), textcoords="offset points", fontsize=font_legend, va="center")
-    # ax.annotate(text="M", xy=(options.plot_end, 3.1e-5), xycoords="data", xytext=(5, 0), textcoords="offset points", fontsize=font_legend, va="center")
-    # ax.annotate(text="X", xy=(options.plot_end, 3.1e-4), xycoords="data", xytext=(5, 0), textcoords="offset points", fontsize=font_legend, va="center")
     
-    # set minimum y-limits of (1e-9, 1e-5)
-    if peak > 1e-5:
+    # set minimum y-limits
+    if peak > 1e-3:
         ax.set_ylim((1e-9, peak*10))
     else:
-        ax.set_ylim((1e-9, 1e-5))
+        ax.set_ylim((1e-9, 1e-3))
 
     
 
@@ -315,6 +310,7 @@ def make_fig_axs(options):
     else:
         axs[0].set_title(f'Solar Orbiter', fontsize=font_ylabel)
 
+    
     axs[-1].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M\n%b %d'))
     axs[-1].xaxis.set_tick_params(rotation=0)
     axs[-1].set_xlabel(f"Time (UTC) / Date in {options.plot_start.year}", fontsize=15)

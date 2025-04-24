@@ -537,7 +537,7 @@ def make_plot(options):
                 for channel in ch_het_p:
                     axs[i].plot(psp_het.index, psp_het[f'{psp_het_viewing}_H_Flux_{channel}'], label=f'HET {psp_het_viewing}'+psp_het_energies['H_ENERGY_LABL'].flatten()[channel], ds="steps-mid")
         
-        axs[i].set_ylabel("Flux\n"+r"[(cm$^2$ sr s MeV)$^{-1}]$", fontsize=font_ylabel)
+        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}]$", fontsize=font_ylabel)
         # title = f'Ions (HET {psp_het_viewing})'
         title = f'Ions (Pixel)'
         if legends_inside:

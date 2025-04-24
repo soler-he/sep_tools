@@ -1,6 +1,5 @@
 # TODO:
 # - "choose all energy channels" checkbox (or choose every nth)
-# - legend overlapping with many energy channels
 # - fix polarity axes on top of title
 # - fontsize as options?
 # - SOLO/RPW
@@ -17,6 +16,9 @@ from multi_inst_plots import stereo_tools as stereo
 from multi_inst_plots import psp_tools as psp
 from multi_inst_plots import l1_tools as l1
 from multi_inst_plots import solo_tools as solo
+
+import locale
+locale.setlocale(locale.LC_ALL, "en_US")
 
 
 style = {'description_width' : '60%'} 

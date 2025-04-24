@@ -340,11 +340,14 @@ def load_data(options):
         
     if plot_radio:
         try:
-            df_wind_wav_rad2 = load_waves_rad(dataset="RAD2", startdate=startdate, enddate=enddate, file_path=path)
             df_wind_wav_rad1 = load_waves_rad(dataset="RAD1", startdate=startdate, enddate=enddate, file_path=path)
         except IndexError:
-            print(f'Unable to obtain Wind WAVES data for {startdate} - {enddate}!')
+            print(f'Unable to obtain Wind RAD1 data for {startdate} - {enddate}!')
             df_wind_wav_rad1 = []
+        try:
+            df_wind_wav_rad2 = load_waves_rad(dataset="RAD2", startdate=startdate, enddate=enddate, file_path=path)
+        except IndexError:
+            print(f'Unable to obtain Wind RAD2 data for {startdate} - {enddate}!')
             df_wind_wav_rad2 = []
 
 
@@ -460,16 +463,17 @@ def make_plot(options):
     if plot_radio:
         vmin, vmax = 1e-15, 1e-10
         log_norm = LogNorm(vmin=vmin, vmax=vmax)
+        mesh = None
         
-        if isinstance(df_wind_wav_rad1, pd.DataFrame) and isinstance(df_wind_wav_rad2, pd.DataFrame):
-            time_rad2_2D, freq_rad2_2D = np.meshgrid(df_wind_wav_rad2.index, df_wind_wav_rad2.columns, indexing='ij')
+        if isinstance(df_wind_wav_rad1, pd.DataFrame):
             time_rad1_2D, freq_rad1_2D = np.meshgrid(df_wind_wav_rad1.index, df_wind_wav_rad1.columns, indexing='ij')
-
-            # Create colormeshes. Shading option flat and thus the removal of last row and column are there to solve the time jump bar problem, 
-            # when resampling isn't used
             mesh = axs[i].pcolormesh(time_rad1_2D, freq_rad1_2D, df_wind_wav_rad1.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
-            axs[i].pcolormesh(time_rad2_2D, freq_rad2_2D, df_wind_wav_rad2.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
 
+        if isinstance(df_wind_wav_rad2, pd.DataFrame):
+            time_rad2_2D, freq_rad2_2D = np.meshgrid(df_wind_wav_rad2.index, df_wind_wav_rad2.columns, indexing='ij')
+            mesh = axs[i].pcolormesh(time_rad2_2D, freq_rad2_2D, df_wind_wav_rad2.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
+
+        if mesh is not None:
             # Add inset axes for colorbar
             axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.01,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
             cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
