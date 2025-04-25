@@ -20,7 +20,7 @@ pytest -rP --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-gene
 def test_SEP_Multi_Instrument_Plot_PSP():
     m.options.path = f"{os.getcwd()}{os.sep}data"
     display(m.plot_range(m.options.startdate.value, m.options.enddate.value))
-    m.options.spacecraft.value = 'PSP'
+    m.options.spacecraft.value = 'Parker Solar Probe'
     # deactivate STIX for now as it crashes on GitHub
     m.options.stix.value = False
     m.load_data()
@@ -32,7 +32,7 @@ def test_SEP_Multi_Instrument_Plot_PSP():
 def test_SEP_Multi_Instrument_Plot_SolO():
     m.options.path = f"{os.getcwd()}{os.sep}data"
     display(m.plot_range(m.options.startdate.value, m.options.enddate.value))
-    m.options.spacecraft.value = 'SolO'
+    m.options.spacecraft.value = 'Solar Orbiter'
     # deactivate STIX for now as it crashes on GitHub
     m.options.stix.value = False
     m.load_data()
@@ -45,6 +45,7 @@ def test_SEP_Multi_Instrument_Plot_STEREO():
     m.options.path = f"{os.getcwd()}{os.sep}data"
     display(m.plot_range(m.options.startdate.value, m.options.enddate.value))
     m.options.spacecraft.value = 'STEREO'
+    m.options.stix.value = False
     m.load_data()
     fig, axs = m.make_plot()
     return fig
@@ -55,6 +56,7 @@ def test_SEP_Multi_Instrument_Plot_L1():
     m.options.path = f"{os.getcwd()}{os.sep}data"
     display(m.plot_range(m.options.startdate.value, m.options.enddate.value))
     m.options.spacecraft.value = 'L1 (Wind/SOHO)'
+    m.options.stix.value = False
     m.load_data()
     fig, axs = m.make_plot()
     return fig
