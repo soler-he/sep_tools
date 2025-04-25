@@ -237,7 +237,7 @@ def make_fig_axs(options):
         plot_electrons = plot_wind_e or plot_ephin
         plot_protons = plot_wind_p or plot_erne
 
-    if options.spacecraft.value == "PSP":
+    if options.spacecraft.value == "Parker Solar Probe":
         plot_epilo_e = options.psp_epilo_e.value
         plot_epihi_e = options.psp_epihi_e.value
         plot_epilo_p = options.psp_epilo_p.value
@@ -245,7 +245,7 @@ def make_fig_axs(options):
         plot_electrons = plot_epilo_e or plot_epihi_e
         plot_protons = plot_epilo_p or plot_epihi_p
 
-    if options.spacecraft.value == "SolO":
+    if options.spacecraft.value == "Solar Orbiter":
         plot_electrons = options.solo_electrons.value   # TODO separate instruments?
         plot_protons = options.solo_protons.value
 
@@ -260,9 +260,9 @@ def make_fig_axs(options):
     font_ylabel = 20
     font_legend = 10
 
-    if options.spacecraft.value == "PSP":
+    if options.spacecraft.value == "Parker Solar Probe":
         panels = 1*plot_radio + 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T + 1*plot_Pdyn 
-    elif options.spacecraft.value == "SolO":
+    elif options.spacecraft.value == "Solar Orbiter":
         panels = 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T
         
     else: 
@@ -303,7 +303,7 @@ def make_fig_axs(options):
 
     if options.spacecraft.value == "L1 (Wind/SOHO)":
         axs[0].set_title('Near-Earth spacecraft (Wind, SOHO)', fontsize=font_ylabel) # TODO: add padding
-    elif options.spacecraft.value == "PSP":
+    elif options.spacecraft.value == "Parker Solar Probe":
         axs[0].set_title('Parker Solar Probe', fontsize=font_ylabel)
     elif options.spacecraft.value == "STEREO":
         axs[0].set_title(f'STEREO {options.ster_sc.value}', fontsize=font_ylabel)

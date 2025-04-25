@@ -2,9 +2,10 @@
 # - "choose all energy channels" checkbox (or choose every nth)
 # - fix polarity axes on top of title
 # - fontsize as options?
-# - SOLO/RPW
+# - SOLO/RPW still under development
 # - print energies?
-# - 
+# - WEEKLY PLOTS: 60 min particle avg, 15 min mag, 30 min else. Use only instruments at same location (GOES for L1, STIX for SolO)
+# - EPHIN: use all channels
 
 import datetime as dt
 import pandas as pd
@@ -17,8 +18,6 @@ from multi_inst_plots import psp_tools as psp
 from multi_inst_plots import l1_tools as l1
 from multi_inst_plots import solo_tools as solo
 
-import locale
-locale.setlocale(locale.LC_ALL, "en_US")
 
 
 style = {'description_width' : '60%'} 
@@ -28,10 +27,10 @@ common_attrs = ["spacecraft", "startdate", "enddate", "starttime",
                 "radio_cmap", "legends_inside"]
 
 variable_attrs = ['radio', 'mag', 'polarity', 'mag_angles', 
-                  'Vsw', 'N', 'T', 'p_dyn', 
+                  'Vsw', 'N', 'T', 
                   "stix", "stix_ltc", "goes", "goes_pick_max"] 
 
-psp_attrs = ['psp_epilo_e', 'psp_epilo_p', 'psp_epihi_e',
+psp_attrs = ["p_dyn", 'psp_epilo_e', 'psp_epilo_p', 'psp_epihi_e',
              'psp_epihi_p', 'psp_het_viewing', 'psp_epilo_viewing',
              'psp_epilo_ic_viewing', 'psp_epilo_channel', 'psp_epilo_ic_channel', 
               "psp_ch_het_e", "psp_ch_het_p", "psp_ch_epilo_ic", "psp_ch_epilo_e"]
@@ -49,15 +48,15 @@ solo_attrs = ['solo_electrons', 'solo_protons', 'solo_viewing', 'solo_ch_ept_e',
 class Options:
     def __init__(self):
 
-        self.spacecraft = w.Dropdown(value="STEREO", description="Spacecraft", options=["PSP", "SolO", "L1 (Wind/SOHO)", "STEREO"], style=style)
+        self.spacecraft = w.Dropdown(value=None, description="Spacecraft", options=["Parker Solar Probe", "Solar Orbiter", "L1 (Wind/SOHO)", "STEREO"], style=style)
         self.startdate = w.DatePicker(value=dt.date(2022, 3, 14), disabled=False, description="Start date/time:", style={'description_width': "40%"})   
         self.enddate = w.DatePicker(value=dt.date(2022, 3, 16), disabled=False, description="End date/time:", style={'description_width': "40%"})
         self.starttime = w.TimePicker(description="Start time:", value=dt.time(0,0), step=60, style=style)
         self.endtime = w.TimePicker(description="End time:", value=dt.time(0,0), step=60, style=style)
 
-        self.resample = w.BoundedIntText(value=10, min=0, max=60, step=1, description='Averaging (min):', disabled=False, style=style)
-        self.resample_mag = w.BoundedIntText(value=10, min=0, max=60, step=1, description='MAG averaging (min):', disabled=False, style=style)
-        self.resample_stixgoes = w.BoundedIntText(value=10, min=0, max=60, step=1, description="STIX/GOES averaging (min):", style=style)
+        self.resample = w.BoundedIntText(value=10, min=0, step=1, description='Averaging (min):', disabled=False, style=style)
+        self.resample_mag = w.BoundedIntText(value=10, min=0, step=1, description='MAG averaging (min):', disabled=False, style=style)
+        self.resample_stixgoes = w.BoundedIntText(value=10, min=0, step=1, description="STIX/GOES averaging (min):", style=style)
         #self.resample_pol = w.BoundedIntText(value=1, min=0, max=60, step=1, description='Polarity resampling (min):', disabled=False, style=style)
         self.radio_cmap = w.Dropdown(options=['jet', 'plasma'], value='jet', description='Radio colormap', style=style)
         self.pos_timestamp = 'center' #w.Dropdown(options=['center', 'start', 'original'], description='Timestamp position', style=style)
@@ -72,7 +71,7 @@ class Options:
         self.Vsw = w.Checkbox(value=True, description="V_sw")
         self.N = w.Checkbox(value=True, description="N")
         self.T = w.Checkbox(value=True, description="T")
-        self.p_dyn = w.Checkbox(value=True, description="p_dyn")
+        self.p_dyn = w.Checkbox(value=True, description="P_dyn")
         self.stix = w.Checkbox(value=True, description="SolO/STIX")
         self.stix_ltc = w.Checkbox(value=True, description="Correct STIX for light travel time")
         self.goes = w.Checkbox(value=False, description="GOES/XRS")
@@ -99,7 +98,7 @@ class Options:
         self.solo_electrons = w.Checkbox(value=True, description="HET+EPT electrons")
         self.solo_protons = w.Checkbox(value=True, description="HET+EPT ions")
         self.solo_viewing = w.Dropdown(options=['sun', 'asun', 'north', 'south'], value='sun', style=style, description="HET+EPT viewing:")
-        self.solo_resample_particles = w.BoundedIntText(value=10, min=0, max=60, description="HET+EPT averaging:", style=style)
+        self.solo_resample_particles = w.BoundedIntText(value=10, min=0, description="HET+EPT averaging:", style=style)
         self.solo_ch_ept_e = w.SelectMultiple(description="EPT e channels", options=range(0,15+1), value=tuple(range(0,15+1,2)), rows=10, style=style)
         self.solo_ch_het_e = w.SelectMultiple(description="HET e channels", options=range(0,3+1), value=tuple(range(0,3+1,1)), rows=10, style=style)
         self.solo_ch_ept_p = w.SelectMultiple(description="EPT ion channels", options=range(0,30+1), value=tuple(range(0,30+1,5)), rows=10, style=style)
@@ -112,8 +111,8 @@ class Options:
         self.l1_ch_eph_e = w.Dropdown(description="EPHIN e channel:", options=["E150", "E1300", "E3000"], value="E150", disabled=False, style=style)
         #self.l1_ch_eph_p = w.Dropdown(description="EPHIN p channel:", options=["P25"], value="P25", disabled=True, style=style)
         self.l1_intercal = w.BoundedIntText(value=1, min=1, max=14, description="Intercal", disabled=True, style=style)
-        self.l1_av_sep = w.BoundedIntText(value=10, min=0, max=60, description="3DP+EPHIN averaging:", style=style)
-        self.l1_av_erne = w.BoundedIntText(value=10, min=0, max=60, description="ERNE averaging:", style=style)
+        self.l1_av_sep = w.BoundedIntText(value=10, min=0, description="3DP+EPHIN averaging:", style=style)
+        self.l1_av_erne = w.BoundedIntText(value=10, min=0, description="ERNE averaging:", style=style)
         
         self.ster_sc = w.Dropdown(description="STEREO A/B:", options=["A", "B"], style=style)
         self.ster_sept_e = w.Checkbox(description="SEPT electrons", value=True)
@@ -142,10 +141,10 @@ class Options:
             self._out2.clear_output()
 
             with self._out2:
-                if change.new == "PSP":
+                if change.new == "Parker Solar Probe":
                     display(self.psp_box)
 
-                if change.new == "SolO":
+                if change.new == "Solar Orbiter":
                     display(self.solo_box)    # display(self.solo_vbox)
 
                 if change.new == "L1 (Wind/SOHO)":
@@ -181,6 +180,7 @@ class Options:
                 elif change.new == True:
                     self.goes_pick_max.disabled = False
 
+
         # def limit_time_range(change):
         #     self._txt_out.clear_output()
         #     if self.enddate.value - change.new > dt.timedelta(days=7) or change.new - self.startdate.value > dt.timedelta(days=7):
@@ -191,6 +191,7 @@ class Options:
         self.mag.observe(disable_checkbox, names="value")
         self.stix.observe(disable_checkbox, names="value")
         self.goes.observe(disable_checkbox, names="value")
+        
             
         # self.startdate.observe(limit_time_range, names="value")
         # self.enddate.observe(limit_time_range, names="value")
@@ -294,17 +295,17 @@ def load_data():
     
     print(f"Loading {options.spacecraft.value} data for range: {options.startdt} - {options.enddt}")
 
-    if options.spacecraft.value == "PSP":
+    if options.spacecraft.value == "Parker Solar Probe":
         if options.startdt >= dt.datetime(2018, 10, 2):
             psp.load_data(options)
         else:
-            print("PSP: no data before 2 Oct 2018")
+            print("Parker Solar Probe: no data before 2 Oct 2018")
 
-    if options.spacecraft.value == "SolO":
+    if options.spacecraft.value == "Solar Orbiter":
         if options.startdt >= dt.datetime(2020, 2, 28):
             solo.load_data(options)
         else:
-            print("SolO: no data before 28 Feb 2020")
+            print("Solar Orbiter: no data before 28 Feb 2020")
 
     if options.spacecraft.value == "L1 (Wind/SOHO)":
         if options.startdt >= dt.datetime(1994, 11, 1):
@@ -324,10 +325,10 @@ def load_data():
 
 
 def make_plot():
-    if options.spacecraft.value == "PSP":
+    if options.spacecraft.value == "Parker Solar Probe":
         return psp.make_plot(options)
     
-    if options.spacecraft.value == "SolO":
+    if options.spacecraft.value == "Solar Orbiter":
         return solo.make_plot(options)
 
     if options.spacecraft.value == "L1 (Wind/SOHO)":
