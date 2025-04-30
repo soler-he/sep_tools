@@ -2,6 +2,7 @@ import os
 import datetime as dt
 import pytest
 from multi_sc_plots import Event
+from seppy.util import jupyterhub_data_path
 
 
 """
@@ -32,9 +33,10 @@ def test_SEP_Multi_Spacecraft_Plot():
     E.viewing['Solar Orbiter/HET'] = 'sun'  # 'asun', 'sun', 'north', 'south'
     E.viewing['STEREO-A/SEPT'] = 'sun'  # 'asun', 'sun', 'north', 'south'
     #
-    path = os.getcwd()+os.sep+'data'
+    data_path = f"{os.getcwd()}{os.sep}data"
+    data_path = jupyterhub_data_path(data_path)
     #
-    E.load_data(startdate, enddate, instruments, data_path=path)
+    E.load_data(startdate, enddate, instruments, data_path=data_path)
     #
     E.print_energies()
     #
