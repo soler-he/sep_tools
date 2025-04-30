@@ -6,6 +6,7 @@ numba
 numpy
 pandas
 piecewise_regression
+pillow>=11.0.0
 git+https://github.com/Christian-Palmroos/PyOnset/
 pyspedas
 scipy
