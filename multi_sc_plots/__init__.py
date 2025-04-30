@@ -394,7 +394,7 @@ class Event:
         intensity_label = 'Flux\n/(s cm² sr MeV)'
         linewidth = 1.5
 
-        sixs_resample = averaging
+        # sixs_resample = averaging
         soho_erne_resample = averaging
         soho_ephin_resample = averaging
         solo_ept_resample = averaging

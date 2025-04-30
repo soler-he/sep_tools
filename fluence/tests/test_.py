@@ -3,6 +3,7 @@ import datetime as dt
 # import pandas as pd
 from fluence import Event
 import fluence.widgets as w
+from seppy.util import jupyterhub_data_path
 from IPython.display import display
 import pytest
 
@@ -42,7 +43,8 @@ def test_SEP_Fluence_Spectra():
     resample = '30min'  # '60s'
     #
     # set your local path where you want to save the data files:
-    data_path = f"{os.getcwd()}/data/"
+    data_path = f"{os.getcwd()}{os.sep}data"
+    data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
     E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)

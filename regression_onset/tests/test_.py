@@ -4,6 +4,7 @@ import pandas as pd
 from seppy.tools import Event
 import regression_onset as reg
 from regression_onset import select_data
+from seppy.util import jupyterhub_data_path
 from IPython.display import display
 import pytest
 
@@ -28,7 +29,7 @@ def test_SEP_Regression_Analysis():
     # select_data.data_file.value = 'SEPpy'
     #
     # This is the path to your data directory
-    path = f"{os.getcwd()}{os.sep}data"
+    data_path = f"{os.getcwd()}{os.sep}data"
     # The name of your data file, if you're loading in your own data.
     filename = "solo_ept_sun_e.csv"
     # To download (or load if files are locally present) SEPpy data, one needs to provide a time span.
@@ -47,15 +48,16 @@ def test_SEP_Regression_Analysis():
     # w.species_drop.value = 'electrons'
     #
     if select_data._seppy_selected(select_data.data_file):
+        data_path = jupyterhub_data_path(data_path)
         # Initializes the SEPpy Event object
         seppy_data = Event(spacecraft=w.spacecraft_drop.value, sensor=w.sensor_drop.value, species=w.species_drop.value,
                            start_date=start_date, end_date=end_date, data_level="l2",
-                           data_path=path, viewing=w.view_drop.value)
+                           data_path=data_path, viewing=w.view_drop.value)
         # Exports the data to a pandas dataframe
         df = reg.externals.export_seppy_data(event=seppy_data)
     else:
         # Uses pandas to_csv() to load in a local data file:
-        df = pd.read_csv(f"{path}{os.sep}{filename}", parse_dates=True, index_col=0)
+        df = pd.read_csv(f"{data_path}{os.sep}{filename}", parse_dates=True, index_col=0)
     #
     display(df)
     #

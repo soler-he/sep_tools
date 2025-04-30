@@ -1,4 +1,5 @@
 from anisotropy import run_SEPevent, select_sc_inst
+from seppy.util import jupyterhub_data_path
 import os
 import pandas as pd
 import pytest
@@ -18,7 +19,8 @@ pytest -rP --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-gene
 
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
 def test_SEP_PADs_and_Anisotropy():
-    path = os.getcwd()+os.sep+'data'
+    data_path = f"{os.getcwd()}{os.sep}data"
+    data_path = jupyterhub_data_path(data_path)
     spacecraft_instrument = select_sc_inst()
     spacecraft_instrument.value = 'Wind 3DP'
     #
@@ -28,7 +30,7 @@ def test_SEP_PADs_and_Anisotropy():
     #
     start_time = pd.to_datetime('2021-10-31 16:00:00')
     end_time = pd.to_datetime('2021-11-01 18:00:00')
-    event = run_SEPevent(path, spacecraft_instrument.value, start_time, end_time, species=species, channels=channels, averaging=averaging)
+    event = run_SEPevent(data_path, spacecraft_instrument.value, start_time, end_time, species=species, channels=channels, averaging=averaging)
     fig, axes = event.overview_plot()
 
     # chose a background window. Setting these to None will set default window [start_time, start_time + 5 hours]
