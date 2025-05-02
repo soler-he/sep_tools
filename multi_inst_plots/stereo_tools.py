@@ -24,11 +24,14 @@ import matplotlib.dates as mdates
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.colors import LogNorm, Normalize
 
-from seppy.loader.stereo import stereo_load
+from seppy.loader.stereo import stereo_load, _get_metadata
 from seppy.util import resample_df
 
 from sunpy.coordinates import get_horizons_coord
 from sunpy.coordinates import frames
+from sunpy.net import Fido
+from sunpy.net import attrs as a
+from sunpy.timeseries import TimeSeries
 
 
 from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
@@ -41,7 +44,52 @@ warnings.filterwarnings(action='ignore', message='No units provided for variable
 warnings.filterwarnings(action='ignore', message='astropy did not recognize units of', category=sunpy.util.SunpyUserWarning, module='sunpy.io._cdf')
 warnings.filterwarnings(action="ignore", message="No artists with labels found to put in legend.")
 
+def load_stereo_mag(dataset, startdate, enddate, path=None, max_conn=5):
+    """
+    Workaround for loading weekly MAG data from monthly CDF files.
+    (doesnt work as of 2.5.2025, don't use this!)
+    """
 
+    trange = a.Time(startdate, enddate)
+    if trange.min==trange.max:
+        print(f'"startdate" and "enddate" might need to be different!')
+
+    # Catch old default value for pos_timestamp
+    if pos_timestamp is None:
+        pos_timestamp = 'center'
+
+    if not (pos_timestamp=='center' or pos_timestamp=='start' or pos_timestamp=='original'):
+        raise ValueError(f'"pos_timestamp" must be either "original", "center", or "start"!')
+    cda_dataset = a.cdaweb.Dataset(dataset)
+    try:
+        result = Fido.search(trange, cda_dataset)
+        filelist = [i[0].split('/')[-1] for i in result.show('URL')[0]]
+        filelist.sort()
+        if path is None:
+            filelist = [sunpy.config.get('downloads', 'download_dir') + os.sep + file for file in filelist]
+        elif type(path) is str:
+            filelist = [path + os.sep + f for f in filelist]
+        downloaded_files = filelist
+
+        for i, f in enumerate(filelist):
+            if os.path.exists(f) and os.path.getsize(f) == 0:
+                os.remove(f)
+            if not os.path.exists(f):
+                downloaded_file = Fido.fetch(result[0][i], path=path, max_conn=max_conn)
+
+        # downloaded_files = Fido.fetch(result, path=path, max_conn=max_conn)
+        data = TimeSeries(downloaded_files, concatenate=True)
+        df = data.to_dataframe()
+
+        metadata = _get_metadata(dataset, downloaded_files[0])
+
+    except (RuntimeError, IndexError):
+            print(f'Unable to obtain "{dataset}" data for {startdate}-{enddate}!')
+            downloaded_files = []
+            df = []
+            metadata = []
+
+    return df, metadata
 
 def load_swaves(dataset, startdate, enddate, path=None):
     """
@@ -318,11 +366,11 @@ def make_plot(options):
             # Add inset axes for colorbar
             axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.01,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
             cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
-            cbar.set_label("Intensity (sfu)", rotation=90, labelpad=10, fontsize=font_ylabel)
+            cbar.set_label("Intensity [sfu]", rotation=90, labelpad=10, fontsize=font_ylabel)
 
         axs[i].set_ylim((2.61e-3,1.60e1))
         axs[i].set_yscale('log')
-        axs[i].set_ylabel("Frequency (MHz)", fontsize=font_ylabel)
+        axs[i].set_ylabel("Frequency [MHz]", fontsize=font_ylabel)
         
         i += 1
 
@@ -337,27 +385,28 @@ def make_plot(options):
     if plot_electrons:
         if plot_sept_e:
             # plot sept electron channels
-            axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0,1,len(ch_sept_e)+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0,1,len(ch_sept_e)+color_offset)))
             if isinstance(df_sept_electrons, pd.DataFrame):
                 for channel in ch_sept_e:
                     axs[i].plot(df_sept_electrons.index, df_sept_electrons[f'ch_{channel+2}'],
                                 ds="steps-mid", label='SEPT '+meta_se.ch_strings[channel+2])
         if plot_het_e:
             # plot het electron channels
-            axs[i].set_prop_cycle('color', plt.cm.PuRd_r(np.linspace(0,1,4+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.plasma(np.linspace(0,1,4+color_offset)))
             if isinstance(df_het, pd.DataFrame):
                 for channel in ch_het_e:
                     axs[i].plot(df_het[f'Electron_Flux_{channel}'], 
                                 label='HET '+meta_het['channels_dict_df_e'].ch_strings[channel],
                             ds="steps-mid")
         
-        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}]$", fontsize=font_ylabel)
+        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}$]", fontsize=font_ylabel)
         if legends_inside:
             axs[i].legend(loc='upper right', borderaxespad=0., 
                     title=f'Electrons (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
         else:
             axs[i].legend(bbox_to_anchor=(1.01, 1), loc="upper left", borderaxespad=0., 
                     title=f'Electrons (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
+        
         axs[i].set_yscale('log')
         i +=1    
 
@@ -367,28 +416,31 @@ def make_plot(options):
         if plot_sept_p:
             # plot sept proton channels
             num_channels = len(ch_sept_p)# + len(n_het_p)
-            axs[i].set_prop_cycle('color', plt.cm.plasma(np.linspace(0,1,num_channels+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Wistia_r(np.linspace(0,1,num_channels+color_offset)))
             if isinstance(df_sept_protons, pd.DataFrame):
                 for channel in ch_sept_p:
                     axs[i].plot(df_sept_protons.index, df_sept_protons[f'ch_{channel+2}'], 
                             label='SEPT '+meta_sp.ch_strings[channel+2], ds="steps-mid")
             
-        color_offset = 0 
+            
+        color_offset = 3 
         if plot_het_p:
             # plot het proton channels
-            axs[i].set_prop_cycle('color', plt.cm.YlOrRd(np.linspace(0.2,1,len(ch_het_p)+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0.2,1,len(ch_het_p)+color_offset)))
             if isinstance(df_het, pd.DataFrame):
                 for channel in ch_het_p:
                     axs[i].plot(df_het.index, df_het[f'Proton_Flux_{channel}'], 
                             label='HET '+meta_het['channels_dict_df_p'].ch_strings[channel], ds="steps-mid")
+            axs[i].set_ylim(bottom=1e-5)
         
-        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}]$", fontsize=font_ylabel)
+        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}$]", fontsize=font_ylabel)
         if legends_inside:
             axs[i].legend(loc='upper right', borderaxespad=0., 
                     title=f'Ions (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
         else:
             axs[i].legend(bbox_to_anchor=(1.01, 1), loc="upper left", borderaxespad=0., 
                     title=f'Ions (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
+        
         axs[i].set_yscale('log')
         i +=1    
         
@@ -478,7 +530,7 @@ def make_plot(options):
         if isinstance(df_magplas, pd.DataFrame):
             axs[i].plot(df_magplas.index, df_magplas.Vp,
                         '-k', label="Bulk speed")
-        axs[i].set_ylabel(r"V$_\mathrm{sw}$ [kms$^{-1}$]", fontsize=font_ylabel)
+        axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km s$^{-1}$]", fontsize=font_ylabel)
         #i += 1
         
     plt.show()

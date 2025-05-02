@@ -1,10 +1,10 @@
 # TODO:
-# - "choose all energy channels" checkbox (or choose every nth)
+# - "choose all energy channels" checkbox (or choose every nth) OR do a separate cell for printing and choosing channels
 # - fix polarity axes on top of title
 # - fontsize as options?
 # - SOLO/RPW still under development
 # - print energies?
-# - WEEKLY PLOTS: 60 min particle avg, 15 min mag, 30 min else. Use only instruments at same location (GOES for L1, STIX for SolO)
+# - WEEKLY PLOTS: 60 min particle avg, 15 min mag, 0 min STIX/GOES. Use only instruments at same location (GOES for L1, STIX for SolO)
 # - EPHIN: use all channels
 
 import datetime as dt
@@ -35,12 +35,12 @@ psp_attrs = ["p_dyn", 'psp_epilo_e', 'psp_epilo_p', 'psp_epihi_e',
              'psp_epilo_ic_viewing', 'psp_epilo_channel', 'psp_epilo_ic_channel', 
               "psp_ch_het_e", "psp_ch_het_p", "psp_ch_epilo_ic", "psp_ch_epilo_e"]
 
-stereo_attrs = ['ster_sc', 'ster_sept_e', 'ster_sept_p', 'ster_het_e', 
+stereo_attrs = ['ster_sc', 'ster_sept_e', 'ster_sept_p', 
                 'ster_het_p', 'ster_sept_viewing', 'ster_ch_sept_e', 'ster_ch_sept_p',  
                 'ster_ch_het_p'] #'ster_ch_het_e',
 
 l1_attrs = ['l1_wind_e', 'l1_wind_p', 'l1_ephin', 'l1_erne', 
-            'l1_ch_eph_e', 'l1_intercal', 'l1_av_sep', 'l1_av_erne'] 
+             'l1_ch_erne_p', 'l1_av_sep', 'l1_av_erne'] 
 
 solo_attrs = ['solo_electrons', 'solo_protons', 'solo_viewing', 'solo_ch_ept_e', 
               'solo_ch_ept_p', 'solo_ch_het_e', 'solo_ch_het_p', 'solo_resample_particles']
@@ -100,7 +100,7 @@ class Options:
         self.solo_viewing = w.Dropdown(options=['sun', 'asun', 'north', 'south'], value='sun', style=style, description="HET+EPT viewing:")
         self.solo_resample_particles = w.BoundedIntText(value=10, min=0, description="HET+EPT averaging:", style=style)
         self.solo_ch_ept_e = w.SelectMultiple(description="EPT e channels", options=range(0,15+1), value=tuple(range(0,15+1,2)), rows=10, style=style)
-        self.solo_ch_het_e = w.SelectMultiple(description="HET e channels", options=range(0,3+1), value=tuple(range(0,3+1,1)), rows=10, style=style)
+        self.solo_ch_het_e = w.SelectMultiple(description="HET e channels", options=range(0,3+1), value=tuple(range(0,3+1,1)), style=style)
         self.solo_ch_ept_p = w.SelectMultiple(description="EPT ion channels", options=range(0,30+1), value=tuple(range(0,30+1,5)), rows=10, style=style)
         self.solo_ch_het_p = w.SelectMultiple(description="HET ion channels", options=range(0,35+1), value=tuple(range(0,35+1,5)), rows=10, style=style)
 
@@ -108,9 +108,10 @@ class Options:
         self.l1_wind_p = w.Checkbox(value=True, description="Wind/3DP protons")
         self.l1_ephin = w.Checkbox(value=True, description="SOHO/EPHIN electrons")
         self.l1_erne = w.Checkbox(value=True, description="SOHO/ERNE protons")
-        self.l1_ch_eph_e = w.Dropdown(description="EPHIN e channel:", options=["E150", "E1300", "E3000"], value="E150", disabled=False, style=style)
+        #self.l1_ch_eph_e = w.SelectMultiple(description="EPHIN e energy channels:", options=["E150", "E1300"], value=tuple(["E150", "E1300"]), disabled=False, style=style)
+        self.l1_ch_erne_p = w.SelectMultiple(description="ERNE p energy channels:", options=range(0, 9+1, 1), value=tuple(range(0,9+1,2)), rows=10, disabled=False, style=style)
         #self.l1_ch_eph_p = w.Dropdown(description="EPHIN p channel:", options=["P25"], value="P25", disabled=True, style=style)
-        self.l1_intercal = w.BoundedIntText(value=1, min=1, max=14, description="Intercal", disabled=True, style=style)
+        #self.l1_intercal = w.BoundedIntText(value=1, min=1, max=14, description="Intercal", disabled=False, style=style)
         self.l1_av_sep = w.BoundedIntText(value=10, min=0, description="3DP+EPHIN averaging:", style=style)
         self.l1_av_erne = w.BoundedIntText(value=10, min=0, description="ERNE averaging:", style=style)
         
@@ -124,7 +125,7 @@ class Options:
         self.ster_ch_sept_e = w.SelectMultiple(description="SEPT e channels", options=range(0,14+1), value=tuple(range(0,14+1, 2)), rows=10, style=style)
         self.ster_ch_sept_p = w.SelectMultiple(description="SEPT p channels", options=range(0,29+1), value=tuple(range(0,29+1,4)), rows=10, style=style)
         self.ster_ch_het_p =  w.SelectMultiple(description="HET p channels", options=range(0,10+1), value=tuple(range(0,10+1,2)), rows=10, style=style)
-        self.ster_ch_het_e = w.SelectMultiple(description="HET e channels", options=(0, 1, 2), value=(0, 1, 2), disabled=True, style=style)
+        # self.ster_ch_het_e = w.SelectMultiple(description="HET e channels", options=(0, 1, 2), value=(0, 1, 2), disabled=True, style=style)
 
 
         self.psp_box = w.VBox([getattr(self, attr) for attr in psp_attrs])
@@ -293,7 +294,10 @@ def load_data():
         print("You must choose a spacecraft first!")
         return
     
-    print(f"Loading {options.spacecraft.value} data for range: {options.startdt} - {options.enddt}")
+    if options.spacecraft.value == "STEREO":
+        print(f"Loading {options.spacecraft.value} {options.ster_sc.value} data for range: {options.startdt} - {options.enddt}")
+    else:
+        print(f"Loading {options.spacecraft.value} data for range: {options.startdt} - {options.enddt}")
 
     if options.spacecraft.value == "Parker Solar Probe":
         if options.startdt >= dt.datetime(2018, 10, 2):

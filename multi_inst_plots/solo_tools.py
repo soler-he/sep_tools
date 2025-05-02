@@ -456,7 +456,7 @@ def make_plot(options):
                         axs[i].plot(df_electrons_ept['Electron_Flux'][f'{e_key}_{k}'],
                                     ds="steps-mid", label='EPT '+energies_ept[ch_key][k][0])                  
 
-        axs[i].set_prop_cycle('color', plt.cm.Greys_r(np.linspace(0.,1,len(het_ele_channels)+color_offset)))
+        axs[i].set_prop_cycle('color', plt.cm.plasma(np.linspace(0.,1,len(het_ele_channels)+color_offset)))
         try:
             for channel in het_ele_channels:
                 axs[i].plot(df_electrons_het['Electron_Flux'][f'{e_key}_{channel}'],
@@ -464,7 +464,7 @@ def make_plot(options):
         except TypeError:
             pass
         axs[i].set_yscale('log')
-        axs[i].set_ylabel("Intensity\n"+r"(cm$^2$ sr s MeV)$^{-1}$", fontsize=font_ylabel)
+        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}]$", fontsize=font_ylabel)
         
         title = f'Electrons ({viewing})'
         if legends_inside:
@@ -482,7 +482,7 @@ def make_plot(options):
             ch_end = 64
             ch_step = 7
             num_channels = np.intc((ch_end-ch_start)/ch_step)
-            axs[i].set_prop_cycle('color', plt.cm.plasma(np.linspace(0,1,num_channels+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Wistia_r(np.linspace(0,1,num_channels+color_offset)))
 
             for k in np.arange(ch_start, ch_end-ch_step, ch_step):
                 channel = [k, k+ch_step-1]
@@ -494,7 +494,7 @@ def make_plot(options):
             ch_end = len(energies_het['H_Bins_Text'])-1
             ch_step = 5
             num_channels = np.intc((ch_end-ch_start)/ch_step)                
-            axs[i].set_prop_cycle('color', plt.cm.YlOrRd(np.linspace(0.3,1,num_channels)))
+            axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0.3,1,num_channels)))
             for k in np.arange(ch_start, ch_end-ch_step, ch_step):
                 channel = [k, k+ch_step-1]
                 #av_flux, en_channel_string = calc_av_en_flux_EPD(df_protons_het, energies_het, channel, 'p', 'het')
@@ -505,13 +505,13 @@ def make_plot(options):
         else:
             try:
                 if ept_l3:
-                    axs[i].set_prop_cycle('color', plt.cm.plasma(np.linspace(0,1,len(ept_ion_channels)+color_offset)))
+                    axs[i].set_prop_cycle('color', plt.cm.Wistia_r(np.linspace(0,1,len(ept_ion_channels)+color_offset)))
                     # for k, e in enumerate(energies_ept['Ion_Bins_Text']):
                     for chan in ept_ion_channels:                    
                         axs[i].plot(df_ept[f'Ion_Flux_{view}_{chan}'], ds="steps-mid", label=f"EPT {energies_ept['Ion_Bins_Text'][chan]}")
                 else:
                     p_channels = np.arange(0, 64, 6)
-                    axs[i].set_prop_cycle('color', plt.cm.YlOrRd(np.linspace(0.2,1,len(p_channels))))
+                    axs[i].set_prop_cycle('color', plt.cm.Wistia_r(np.linspace(0.2,1,len(p_channels))))
                     for channel in p_channels:
                         axs[i].plot(df_protons_ept['Ion_Flux'][f'{p_key}_{channel}'],
                                     ds="steps-mid", label='EPT '+energies_ept[p_ch_key][channel][0])    
@@ -523,7 +523,7 @@ def make_plot(options):
             except TypeError:
                 pass
         axs[i].set_yscale('log')
-        axs[i].set_ylabel("Intensity\n"+r"(cm$^2$ sr s MeV)$^{-1}$", fontsize=font_ylabel)
+        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}$]", fontsize=font_ylabel)
         title = f'Protons/Ions ({viewing})'
         if legends_inside:
             axs[i].legend(loc='upper right', borderaxespad=0., fontsize=font_legend, title=title)
@@ -621,7 +621,7 @@ def make_plot(options):
         if isinstance(df_swa, pd.DataFrame):
             axs[i].plot(df_swa.index, df_swa.vsw,
                         '-k', label="Bulk speed")
-        axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km/s]", fontsize=font_ylabel)
+        axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km s$^{-1}$]", fontsize=font_ylabel)
         i += 1
     
     plt.show()

@@ -41,7 +41,7 @@ from seppy.tools import resample_df
 
 
 #intensity_label = 'Intensity\n/(s cm² sr MeV)'
-intensity_label = 'Intensity\n'+r'[(s cm² sr MeV)$^{-1}$]'
+intensity_label = 'Intensity\n'+r'[(cm² sr s MeV)$^{-1}$]'
 
 
 
@@ -157,13 +157,7 @@ def load_waves_rad(dataset, startdate, enddate, file_path=None):
 
         psd_v2hz = np.append(psd_v2hz, psd_raw, axis=0)
 
-    # remove bar artifacts caused by non-NaN values before time jumps
-    # for each time step except the last one:
-    for i in range(len(time_dt)-1):
-        # check if time increases by more than 5 min:
-        if time_dt[i+1] - time_dt[i] > np.timedelta64(5, "m"):
-            psd_v2hz[i,:] = np.nan
-
+    
     # Some files use a fill value ~ -9.9999998e+30
     fill_val = -9.999999848243207e+30
     valid_mask = (freq_hz > 0) & (freq_hz != fill_val) 
@@ -196,6 +190,14 @@ def load_waves_rad(dataset, startdate, enddate, file_path=None):
     if len(f_unique) < len(freq_mhz):
         freq_mhz = f_unique
         psd_v2hz  = psd_v2hz[:, f_uidx]
+
+    # remove bar artifacts caused by non-NaN values before time jumps
+    # for each time step except the last one:
+    for i in range(len(time_dt)-1):
+        # check if time increases by more than 5 min:
+        if time_dt[i+1] - time_dt[i] > np.timedelta64(5, "m"):
+            psd_v2hz[i,:] = np.nan
+
 
     data = pd.DataFrame(psd_v2hz, index=time_dt, columns=freq_mhz)
 
@@ -246,7 +248,8 @@ def load_data(options):
     global meta_erne
     global meta_e
     global meta_p
-    global l1_ch_eph_e
+    # global l1_ch_eph_e
+    global l1_ch_erne_p
     global intercal
     global df_stix
     global df_goes
@@ -263,7 +266,7 @@ def load_data(options):
     global plot_wind_p
     global plot_ephin
     global plot_erne
-    #global plot_pad
+    # global plot_pad
     global plot_mag_angles
     global plot_mag
     global plot_Vsw
@@ -293,8 +296,11 @@ def load_data(options):
     enddate = options.enddt
 
     if plot_ephin:
-        l1_ch_eph_e = options.l1_ch_eph_e.value
-        intercal = options.l1_intercal.value
+        #l1_ch_eph_e = options.l1_ch_eph_e.value
+        intercal = 1
+
+    if plot_erne:
+        l1_ch_erne_p = options.l1_ch_erne_p.value
     
     wind_flux_thres = None
 
@@ -477,10 +483,10 @@ def make_plot(options):
             # Add inset axes for colorbar
             axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.01,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
             cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
-            cbar.set_label(r"Intensity ($\mathrm{V^2/Hz}$)", rotation=90, labelpad=10, fontsize=font_ylabel)
+            cbar.set_label(r"Intensity [$\mathrm{V^2/Hz}$]", rotation=90, labelpad=10, fontsize=font_ylabel)
 
         axs[i].set_yscale('log')
-        axs[i].set_ylabel("Frequency (MHz)", fontsize=font_ylabel)
+        axs[i].set_ylabel("Frequency [MHz]", fontsize=font_ylabel)
         
         i += 1
 
@@ -496,20 +502,24 @@ def make_plot(options):
         # electrons
         ax = axs[i]
         if plot_wind and isinstance(edic, pd.DataFrame):
-            axs[i].set_prop_cycle('color', plt.cm.Greens_r(np.linspace(0,1, len(meta_e['channels_dict_df'])+color_offset)))
+            ax.set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0,1, len(meta_e['channels_dict_df'])+color_offset)))
             for ch in np.arange(1, len(meta_e['channels_dict_df'])):
                 ax.plot(edic.index, edic[f'FLUX_{ch}'] * wind_ev2MeV_fac, label='Wind/3DP '+meta_e['channels_dict_df']['Bins_Text'].values[ch], drawstyle='steps-mid')
         
-        
+        color_offset = 2
         if plot_ephin and isinstance(ephin, pd.DataFrame):
-            ax.plot(ephin.index, ephin[l1_ch_eph_e]*intercal, '-k', label='SOHO/EPHIN '+meta_ephin[l1_ch_eph_e]+f' / {intercal}', drawstyle='steps-mid')
+                ax.set_prop_cycle('color', plt.cm.plasma(np.linspace(0, 1, 2+color_offset)))
+                for ch in ["E150", "E1300"]:
+                    ax.plot(ephin.index, ephin[ch]*intercal, label='SOHO/EPHIN '+meta_ephin[ch], drawstyle='steps-mid')
+
         # ax.set_ylim(1e0, 1e4)
         if legends_inside:
-            axs[i].legend(loc='upper right', borderaxespad=0., 
+            ax.legend(loc='upper right', borderaxespad=0., 
                     title=f'Electrons', fontsize=font_legend)
         else:
-            axs[i].legend(bbox_to_anchor=(1.01, 1), loc="upper left", borderaxespad=0., 
+            ax.legend(bbox_to_anchor=(1.01, 1), loc="upper left", borderaxespad=0., 
                     title=f'Electrons', fontsize=font_legend)
+            
         ax.set_yscale('log')
         ax.set_ylabel(intensity_label, fontsize=font_ylabel)
         i += 1
@@ -519,24 +529,24 @@ def make_plot(options):
         # protons low en:
         ax = axs[i]
         if plot_wind and isinstance(pdic, pd.DataFrame):
-            ax.set_prop_cycle('color', plt.cm.plasma(np.linspace(0,1, len(meta_p['channels_dict_df'])+color_offset)))
+            ax.set_prop_cycle('color', plt.cm.Wistia_r(np.linspace(0,1, len(meta_p['channels_dict_df'])+color_offset)))
             for ch in np.arange(2, len(meta_p['channels_dict_df'])):
                 ax.plot(pdic.index, pdic[f'FLUX_{ch}'] * wind_ev2MeV_fac, label='Wind/3DP '+meta_p['channels_dict_df']['Bins_Text'].values[ch],
                         drawstyle='steps-mid')
-        ax.legend(title='Protons', loc='center left', bbox_to_anchor=(1, 0.5))
-        ax.set_yscale('log')
-        ax.set_ylabel(intensity_label, fontsize=font_ylabel)
 
         # protons high en:
         if plot_erne and isinstance(erne_p, pd.DataFrame):
-            ax.set_prop_cycle('color', plt.cm.YlOrRd(np.linspace(0.2,1,10))) #cm.RdPu_r
-            for ch in np.arange(0, 10):
+            ax.set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0.2,1,10))) #cm.RdPu_r
+            for ch in range(0, len(l1_ch_erne_p)):
                 ax.plot(erne_p.index, erne_p[f'PH_{ch}'], label='SOHO/ERNE/HED '+meta_erne['channels_dict_df_p']['ch_strings'][ch], 
                             drawstyle='steps-mid')
+                
         if legends_inside:
             ax.legend(loc='upper right', borderaxespad=0., fontsize=font_legend, title="Protons")
         else:
             ax.legend(loc='upper left', borderaxespad=0., fontsize=font_legend, bbox_to_anchor=(1.01, 1), title="Protons")
+
+        ax.set_ylabel(intensity_label, fontsize=font_ylabel)
         ax.set_yscale('log')
         i += 1
 
@@ -622,7 +632,7 @@ def make_plot(options):
         if isinstance(df_vsw, pd.DataFrame):
             axs[i].plot(df_vsw.index, df_vsw.vsw,
                         '-k', label="Bulk speed")
-        axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km/s]", fontsize=font_ylabel)
+        axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km s$^{-1}$]", fontsize=font_ylabel)
         i += 1
             
     plt.show()

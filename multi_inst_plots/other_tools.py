@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import datetime as dt
 from matplotlib.colors import Normalize
 from matplotlib import cm
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -96,12 +97,14 @@ def mag_angles(B,Br,Bt,Bn):
     return alpha, phi
 
 def load_solo_stix(start, end, ltc=True, resample=None):
-    
+    if end - start > dt.timedelta(7):
+        print("STIX loading for more than 7 days not supported, no data was fetched")
+        return []
     try:
         lc = LightCurves.from_sdc(start_utc=start, end_utc=end, ltc=ltc)
         df_stix = lc.to_pandas()
 
-        if resample is not None:
+        if resample != "0min" and resample is not None:
             df_stix = resample_df(df_stix, resample=resample, pos_timestamp=None)
 
     except (TypeError, KeyError):
@@ -171,7 +174,7 @@ def load_goes_xrs(start, end, pick_max=True, resample=None, path=None):
         df_goes = df_goes[(df_goes['xrsa_quality'] == 0) | (df_goes['xrsb_quality'] == 0)]     # keep entries that have at least one good quality flag
 
         # Resampling
-        if resample is not None:
+        if resample != "0min" and resample is not None:
             df_goes = resample_df(df_goes, resample=resample)
 
         return df_goes, sat
@@ -194,6 +197,7 @@ def plot_goes_xrs(options, data, sat, ax, font_legend):
         else:
             ax.legend(bbox_to_anchor=(1.03, 1), loc='upper left', title=title, borderaxespad = 0., fontsize=10)
 
+    ax.set_ylabel(r"[W m$^{-2}$]")
     ax.set_yscale('log')
 
     # flare class labels
@@ -202,12 +206,13 @@ def plot_goes_xrs(options, data, sat, ax, font_legend):
         ax.annotate(text=cl, xy=(options.plot_end, log_midpoint), xycoords="data", xytext=(5, 0), textcoords="offset points", fontsize=font_legend, va="center")
     
     # set minimum y-limits
-    if peak > 1e-3:
-        ax.set_ylim((1e-9, peak*10))
+    if peak > 1e-2:
+        ax.set_ylim(bottom=1e-9)
     else:
-        ax.set_ylim((1e-9, 1e-3))
+        ax.set_ylim((1e-9, 1e-2))
 
-    
+def energy_labels_to_MeV(energies):
+    return
 
 def make_fig_axs(options):
 
@@ -270,7 +275,7 @@ def make_fig_axs(options):
 
     panel_ratios = list(np.zeros(panels)+1)
 
-    if options.spacecraft.value == "SolO":      # TODO remove this once RPW is included
+    if options.spacecraft.value == "Solar Orbiter":      # TODO remove this once RPW is included
         # if plot_radio:
         #     panel_ratios[0] = 2
         if plot_electrons and plot_protons:

@@ -13,11 +13,9 @@ from matplotlib import cm
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib.colors import Normalize
-import matplotlib.dates as mdates
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from seppy.loader.psp import calc_av_en_flux_PSP_EPIHI, psp_isois_load
 from seppy.tools import resample_df
-from stixdcpy.quicklook import LightCurves # https://github.com/i4Ds/stixdcpy
 from sunpy.coordinates import frames, get_horizons_coord
 
 from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
@@ -77,6 +75,7 @@ def load_data(options):
     global plot_radio
     global plot_mag
     global plot_mag_angles
+    global plot_polarity
     global plot_Vsw
     global plot_N
     global plot_T
@@ -117,6 +116,7 @@ def load_data(options):
     stix_ltc = options.stix_ltc.value
     plot_radio = options.radio.value
     plot_mag = options.mag.value
+    plot_polarity = options.polarity.value
     plot_mag_angles = options.mag_angles.value
     plot_Vsw = options.Vsw.value
     plot_N = options.N.value
@@ -399,7 +399,6 @@ def make_plot(options):
     Plot chosen data with user-specified parameters.
     """
    
-    plot_polarity = options.polarity.value
     plot_epihi_p_combined_pixels = options.psp_epihi_p_combined_pixels.value
     
     psp_het_viewing = options.psp_het_viewing.value
@@ -457,11 +456,11 @@ def make_plot(options):
             # Add inset axes for colorbar
             axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.01,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
             cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
-            cbar.set_label("Intensity (sfu)", rotation=90, labelpad=10, fontsize=font_ylabel)
+            cbar.set_label("Intensity [sfu]", rotation=90, labelpad=10, fontsize=font_ylabel)
 
         axs[i].set_ylim((1.1e-2,1.9e1))
         axs[i].set_yscale('log')
-        axs[i].set_ylabel("Frequency (MHz)", fontsize=font_ylabel)
+        axs[i].set_ylabel("Frequency [MHz]", fontsize=font_ylabel)
         
         
         i += 1
@@ -480,20 +479,20 @@ def make_plot(options):
     
     if plot_electrons:
         if plot_epilo_e and isinstance(psp_epilo, pd.DataFrame):
-            axs[i].set_prop_cycle('color', plt.cm.viridis_r(np.linspace(0, 1, len(ch_epilo_e)+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0, 1, len(ch_epilo_e)+color_offset)))
             for channel in ch_epilo_e:
                 psp_epilo_energy = np.round(psp_epilo_energies_org[f'Electron_Chan{epilo_channel}_Energy'][f'Electron_Chan{epilo_channel}_Energy_E{channel}_P{epilo_viewing}'], 2).astype(str)
                 axs[i].plot(psp_epilo.index, psp_epilo[f'Electron_CountRate_Chan{epilo_channel}_E{channel}_P{epilo_viewing}'],
                             ds="steps-mid", label=f'EPI-lo PE {epilo_channel}{epilo_viewing} {psp_epilo_energy} keV')
     
         if plot_epihi_e and isinstance(psp_het, pd.DataFrame):
-            axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0, 1, len(ch_het_e)+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.plasma(np.linspace(0, 1, len(ch_het_e)+color_offset)))
             for channel in ch_het_e:
                 axs[i].plot(psp_het.index, psp_het[f'{psp_het_viewing}_Electrons_Rate_{channel}'],
                             ds="steps-mid", label=f'HET {psp_het_viewing}'+psp_het_energies['Electrons_ENERGY_LABL'].flatten()[channel])
                 
         # axs[i].set_ylabel("Flux\n"+r"[(cm$^2$ sr s MeV)$^{-1}]$", fontsize=FONT_YLABEL)
-        axs[i].set_ylabel("Count rates", fontsize=font_ylabel)
+        axs[i].set_ylabel(r"Count rates [s$^{-1}$]", fontsize=font_ylabel)
         if legends_inside:
             axs[i].legend(loc='upper right', borderaxespad=0., 
                           title=f'Electrons',
@@ -510,7 +509,7 @@ def make_plot(options):
     color_offset = 2    
     if plot_protons:
         if plot_epilo_p and isinstance(psp_epilo_ic, pd.DataFrame):
-            axs[i].set_prop_cycle('color', plt.cm.viridis_r(np.linspace(0, 1, len(ch_epilo_ic)+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Wistia_r(np.linspace(0, 1, len(ch_epilo_ic)+color_offset)))
             # [::-1] to reverse list
             for channel in ch_epilo_ic[::-1]:
                 # print(f'H_Flux_Chan{epilo_ic_channel}_E{channel}_P{epilo_ic_viewing}')
@@ -528,16 +527,16 @@ def make_plot(options):
             if plot_epihi_p_combined_pixels:
                 # comb_channels = [[1,2], [3,5], [5,7], [4,5], [7], [9]]
                 comb_channels = [[3,5], [5,7], [4,5], [7], [9]]
-                axs[i].set_prop_cycle('color', plt.cm.Greys_r(np.linspace(0, 1, len(comb_channels)+5)))
+                axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0, 1, len(comb_channels)+5)))
                 for channel in comb_channels:
                     df_psp_epihi, df_psp_epihi_name = calc_av_en_flux_PSP_EPIHI(psp_het, psp_het_energies, channel, 'p', 'het', psp_het_viewing)
                     axs[i].plot(df_psp_epihi.index, df_psp_epihi.flux, label=f'HET {psp_het_viewing}{df_psp_epihi_name}', lw=1, ds="steps-mid")
             else:
-                axs[i].set_prop_cycle('color', plt.cm.plasma(np.linspace(0, 1, len(ch_het_p)+color_offset)))
+                axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0, 1, len(ch_het_p)+color_offset)))
                 for channel in ch_het_p:
-                    axs[i].plot(psp_het.index, psp_het[f'{psp_het_viewing}_H_Flux_{channel}'], label=f'HET {psp_het_viewing}'+psp_het_energies['H_ENERGY_LABL'].flatten()[channel], ds="steps-mid")
+                    axs[i].plot(psp_het.index, psp_het[f'{psp_het_viewing}_H_Flux_{channel}'], label=f'HET {psp_het_viewing} '+psp_het_energies['H_ENERGY_LABL'].flatten()[channel], ds="steps-mid")
         
-        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}]$", fontsize=font_ylabel)
+        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}$]", fontsize=font_ylabel)
         # title = f'Ions (HET {psp_het_viewing})'
         title = f'Ions (Pixel)'
         if legends_inside:
@@ -635,9 +634,9 @@ def make_plot(options):
             pass
     
         if legends_inside:
-            axs[i].legend(loc='upper right', fontsize=font_legend)
+            axs[i].legend(loc='upper right', borderaxespad=0., fontsize=font_legend)
         else:
-            axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', fontsize=font_legend)
+            axs[i].legend(bbox_to_anchor=(1.01, 1), borderaxespad=0., loc='upper left', fontsize=font_legend)
         i += 1
     
     ### Dynamic pressure
@@ -648,9 +647,9 @@ def make_plot(options):
             axs[i].plot(df_magplas_spc.index, df_magplas_spc['p_dyn'], '-r', label="SPC")
         axs[i].set_ylabel(r"P$_\mathrm{dyn}$ [nPa]", fontsize=font_ylabel)
         if legends_inside:
-            axs[i].legend(loc='upper right', fontsize=font_legend)
+            axs[i].legend(loc='upper right', borderaxespad=0., fontsize=font_legend)
         else:
-            axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', fontsize=font_legend)
+            axs[i].legend(bbox_to_anchor=(1.01, 1), borderaxespad=0., loc='upper left', fontsize=font_legend)
         axs[i].set_yscale('log')
         i += 1
     
@@ -662,9 +661,9 @@ def make_plot(options):
             axs[i].plot(df_magplas_spc.index, df_magplas_spc['np_tot'], '-r', label="SPC")
         axs[i].set_ylabel(r"N$_\mathrm{p}$ [cm$^{-3}$]", fontsize=font_ylabel)
         if legends_inside:
-            axs[i].legend(loc='upper right', fontsize=font_legend)
+            axs[i].legend(loc='upper right', borderaxespad=0., fontsize=font_legend)
         else:
-            axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', fontsize=font_legend)
+            axs[i].legend(bbox_to_anchor=(1.01, 1), borderaxespad=0., loc='upper left', fontsize=font_legend)
         axs[i].set_yscale('log')
         i += 1
     
@@ -674,11 +673,11 @@ def make_plot(options):
             axs[i].plot(df_magplas_spani.index, df_magplas_spani['V_tot_rtn'], '-k', label="SPAN-i")
         if isinstance(df_magplas_spc, pd.DataFrame):
             axs[i].plot(df_magplas_spc.index, df_magplas_spc['|vp_tot|'], '-r', label="SPC")
-        axs[i].set_ylabel(r"V$_\mathrm{sw}$ [kms$^{-1}$]", fontsize=font_ylabel)
+        axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km s$^{-1}$]", fontsize=font_ylabel)
         if legends_inside:
-            axs[i].legend(loc='upper right', fontsize=font_legend)
+            axs[i].legend(loc='upper right', borderaxespad=0., fontsize=font_legend)
         else:
-            axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', fontsize=font_legend)
+            axs[i].legend(bbox_to_anchor=(1.01, 1), borderaxespad=0., loc='upper left', fontsize=font_legend)
         # i += 1     
             
     plt.show()
