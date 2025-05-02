@@ -44,52 +44,52 @@ warnings.filterwarnings(action='ignore', message='No units provided for variable
 warnings.filterwarnings(action='ignore', message='astropy did not recognize units of', category=sunpy.util.SunpyUserWarning, module='sunpy.io._cdf')
 warnings.filterwarnings(action="ignore", message="No artists with labels found to put in legend.")
 
-def load_stereo_mag(dataset, startdate, enddate, path=None, max_conn=5):
-    """
-    Workaround for loading weekly MAG data from monthly CDF files.
-    (doesnt work as of 2.5.2025, don't use this!)
-    """
+# def load_stereo_mag(dataset, startdate, enddate, path=None, max_conn=5):
+#     """
+#     Workaround for loading weekly MAG data from monthly CDF files.
+#     (doesnt work as of 2.5.2025, don't use this!)
+#     """
 
-    trange = a.Time(startdate, enddate)
-    if trange.min==trange.max:
-        print(f'"startdate" and "enddate" might need to be different!')
+#     trange = a.Time(startdate, enddate)
+#     if trange.min==trange.max:
+#         print(f'"startdate" and "enddate" might need to be different!')
 
-    # Catch old default value for pos_timestamp
-    if pos_timestamp is None:
-        pos_timestamp = 'center'
+#     # Catch old default value for pos_timestamp
+#     if pos_timestamp is None:
+#         pos_timestamp = 'center'
 
-    if not (pos_timestamp=='center' or pos_timestamp=='start' or pos_timestamp=='original'):
-        raise ValueError(f'"pos_timestamp" must be either "original", "center", or "start"!')
-    cda_dataset = a.cdaweb.Dataset(dataset)
-    try:
-        result = Fido.search(trange, cda_dataset)
-        filelist = [i[0].split('/')[-1] for i in result.show('URL')[0]]
-        filelist.sort()
-        if path is None:
-            filelist = [sunpy.config.get('downloads', 'download_dir') + os.sep + file for file in filelist]
-        elif type(path) is str:
-            filelist = [path + os.sep + f for f in filelist]
-        downloaded_files = filelist
+#     if not (pos_timestamp=='center' or pos_timestamp=='start' or pos_timestamp=='original'):
+#         raise ValueError(f'"pos_timestamp" must be either "original", "center", or "start"!')
+#     cda_dataset = a.cdaweb.Dataset(dataset)
+#     try:
+#         result = Fido.search(trange, cda_dataset)
+#         filelist = [i[0].split('/')[-1] for i in result.show('URL')[0]]
+#         filelist.sort()
+#         if path is None:
+#             filelist = [sunpy.config.get('downloads', 'download_dir') + os.sep + file for file in filelist]
+#         elif type(path) is str:
+#             filelist = [path + os.sep + f for f in filelist]
+#         downloaded_files = filelist
 
-        for i, f in enumerate(filelist):
-            if os.path.exists(f) and os.path.getsize(f) == 0:
-                os.remove(f)
-            if not os.path.exists(f):
-                downloaded_file = Fido.fetch(result[0][i], path=path, max_conn=max_conn)
+#         for i, f in enumerate(filelist):
+#             if os.path.exists(f) and os.path.getsize(f) == 0:
+#                 os.remove(f)
+#             if not os.path.exists(f):
+#                 downloaded_file = Fido.fetch(result[0][i], path=path, max_conn=max_conn)
 
-        # downloaded_files = Fido.fetch(result, path=path, max_conn=max_conn)
-        data = TimeSeries(downloaded_files, concatenate=True)
-        df = data.to_dataframe()
+#         # downloaded_files = Fido.fetch(result, path=path, max_conn=max_conn)
+#         data = TimeSeries(downloaded_files, concatenate=True)
+#         df = data.to_dataframe()
 
-        metadata = _get_metadata(dataset, downloaded_files[0])
+#         metadata = _get_metadata(dataset, downloaded_files[0])
 
-    except (RuntimeError, IndexError):
-            print(f'Unable to obtain "{dataset}" data for {startdate}-{enddate}!')
-            downloaded_files = []
-            df = []
-            metadata = []
+#     except (RuntimeError, IndexError):
+#             print(f'Unable to obtain "{dataset}" data for {startdate}-{enddate}!')
+#             downloaded_files = []
+#             df = []
+#             metadata = []
 
-    return df, metadata
+#     return df, metadata
 
 def load_swaves(dataset, startdate, enddate, path=None):
     """
