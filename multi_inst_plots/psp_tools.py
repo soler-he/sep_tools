@@ -1,6 +1,4 @@
 import astropy.units as u
-import datetime as dt
-# import math
 import numpy as np
 import os
 import pandas as pd
@@ -48,13 +46,7 @@ def load_data(options):
 
     options : Options object
 
-    Returns
-    -------
-
-    list of dataframes
-
     """
-    # TODO figure out where speasy caches data
 
     #####################################################################
     ######## Data loading ###############################################
@@ -399,11 +391,11 @@ def make_plot(options):
     Plot chosen data with user-specified parameters.
     """
    
-    plot_epihi_p_combined_pixels = options.psp_epihi_p_combined_pixels.value
+    plot_epihi_p_combined_pixels = True #options.psp_epihi_p_combined_pixels.value
     
     psp_het_viewing = options.psp_het_viewing.value
-    epilo_ic_viewing = options.psp_epilo_ic_viewing.value
-    epilo_viewing = options.psp_epilo_viewing.value
+    epilo_ic_viewing = str(options.psp_epilo_ic_viewing.value)
+    epilo_viewing = str(options.psp_epilo_viewing.value)
 
     ch_het_p = options.psp_ch_het_p.value
     ch_epilo_ic = options.psp_ch_epilo_ic.value
@@ -423,7 +415,7 @@ def make_plot(options):
             if plot_epihi_p:
                 print('HET protons:', ch_het_p, ',', len(ch_het_p))
             if plot_epilo_p:
-                print('EPI-Lo ic:', ch_epilo_ic, ',', len(ch_epilo_ic))
+                print('EPI-Lo ions:', ch_epilo_ic, ',', len(ch_epilo_ic))
 
         if plot_electrons:
             if plot_epihi_e:
@@ -479,14 +471,14 @@ def make_plot(options):
     
     if plot_electrons:
         if plot_epilo_e and isinstance(psp_epilo, pd.DataFrame):
-            axs[i].set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0, 1, len(ch_epilo_e)+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Greens_r(np.linspace(0, 1, len(ch_epilo_e)+color_offset)))
             for channel in ch_epilo_e:
                 psp_epilo_energy = np.round(psp_epilo_energies_org[f'Electron_Chan{epilo_channel}_Energy'][f'Electron_Chan{epilo_channel}_Energy_E{channel}_P{epilo_viewing}'], 2).astype(str)
                 axs[i].plot(psp_epilo.index, psp_epilo[f'Electron_CountRate_Chan{epilo_channel}_E{channel}_P{epilo_viewing}'],
                             ds="steps-mid", label=f'EPI-lo PE {epilo_channel}{epilo_viewing} {psp_epilo_energy} keV')
     
         if plot_epihi_e and isinstance(psp_het, pd.DataFrame):
-            axs[i].set_prop_cycle('color', plt.cm.plasma(np.linspace(0, 1, len(ch_het_e)+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0, 1, len(ch_het_e)+color_offset)))
             for channel in ch_het_e:
                 axs[i].plot(psp_het.index, psp_het[f'{psp_het_viewing}_Electrons_Rate_{channel}'],
                             ds="steps-mid", label=f'HET {psp_het_viewing}'+psp_het_energies['Electrons_ENERGY_LABL'].flatten()[channel])
@@ -530,11 +522,11 @@ def make_plot(options):
                 axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0, 1, len(comb_channels)+5)))
                 for channel in comb_channels:
                     df_psp_epihi, df_psp_epihi_name = calc_av_en_flux_PSP_EPIHI(psp_het, psp_het_energies, channel, 'p', 'het', psp_het_viewing)
-                    axs[i].plot(df_psp_epihi.index, df_psp_epihi.flux, label=f'HET {psp_het_viewing}{df_psp_epihi_name}', lw=1, ds="steps-mid")
+                    axs[i].plot(df_psp_epihi.index, df_psp_epihi.flux, label=f'HET {psp_het_viewing} {df_psp_epihi_name}', lw=1, ds="steps-mid")
             else:
                 axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0, 1, len(ch_het_p)+color_offset)))
                 for channel in ch_het_p:
-                    axs[i].plot(psp_het.index, psp_het[f'{psp_het_viewing}_H_Flux_{channel}'], label=f'HET {psp_het_viewing} '+psp_het_energies['H_ENERGY_LABL'].flatten()[channel], ds="steps-mid")
+                    axs[i].plot(psp_het.index, psp_het[f'{psp_het_viewing}_H_Flux_{channel}'], label=f'HET {psp_het_viewing}'+psp_het_energies['H_ENERGY_LABL'].flatten()[channel], ds="steps-mid")
         
         axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}$]", fontsize=font_ylabel)
         # title = f'Ions (HET {psp_het_viewing})'

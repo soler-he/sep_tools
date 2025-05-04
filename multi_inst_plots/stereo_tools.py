@@ -1,13 +1,7 @@
-# from IPython.core.display import display, HTML
-# display(HTML(data="""<style> div#notebook-container { width: 80%; } div#menubar-container { width: 85%; } div#maintoolbar-container { width: 90%; } </style>"""))
 import numpy as np
-import os
 import pandas as pd
-import datetime as dt
 import warnings
-import math
 import cdflib
-import sys
 import sunpy
 
 from matplotlib import pyplot as plt
@@ -20,18 +14,14 @@ plt.rc('axes', labelsize=20)    # fontsize of the x and y labels
 plt.rcParams['agg.path.chunksize'] = 20000
 
 from matplotlib import cm
-import matplotlib.dates as mdates
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.colors import LogNorm, Normalize
 
-from seppy.loader.stereo import stereo_load, _get_metadata
+from seppy.loader.stereo import stereo_load
 from seppy.util import resample_df
 
 from sunpy.coordinates import get_horizons_coord
 from sunpy.coordinates import frames
-from sunpy.net import Fido
-from sunpy.net import attrs as a
-from sunpy.timeseries import TimeSeries
 
 
 from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
@@ -385,14 +375,14 @@ def make_plot(options):
     if plot_electrons:
         if plot_sept_e:
             # plot sept electron channels
-            axs[i].set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0,1,len(ch_sept_e)+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Greens_r(np.linspace(0,1,len(ch_sept_e)+color_offset)))
             if isinstance(df_sept_electrons, pd.DataFrame):
                 for channel in ch_sept_e:
                     axs[i].plot(df_sept_electrons.index, df_sept_electrons[f'ch_{channel+2}'],
                                 ds="steps-mid", label='SEPT '+meta_se.ch_strings[channel+2])
         if plot_het_e:
             # plot het electron channels
-            axs[i].set_prop_cycle('color', plt.cm.plasma(np.linspace(0,1,4+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0,1,4+color_offset)))
             if isinstance(df_het, pd.DataFrame):
                 for channel in ch_het_e:
                     axs[i].plot(df_het[f'Electron_Flux_{channel}'], 

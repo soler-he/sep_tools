@@ -32,8 +32,8 @@ variable_attrs = ['radio', 'mag', 'polarity', 'mag_angles',
 
 psp_attrs = ["p_dyn", 'psp_epilo_e', 'psp_epilo_p', 'psp_epihi_e',
              'psp_epihi_p', 'psp_het_viewing', 'psp_epilo_viewing',
-             'psp_epilo_ic_viewing', 'psp_epilo_channel', 'psp_epilo_ic_channel', 
-              "psp_ch_het_e", "psp_ch_het_p", "psp_ch_epilo_ic", "psp_ch_epilo_e"]
+             'psp_epilo_ic_viewing',
+              "psp_ch_het_e", "psp_ch_epilo_ic", "psp_ch_epilo_e"]
 
 stereo_attrs = ['ster_sc', 'ster_sept_e', 'ster_sept_p', 
                 'ster_het_p', 'ster_sept_viewing', 'ster_ch_sept_e', 'ster_ch_sept_p',  
@@ -86,10 +86,10 @@ class Options:
         self.psp_epihi_p = w.Checkbox(description="EPI-Hi protons", value=True)
         self.psp_epihi_p_combined_pixels = w.Checkbox(description="EPI-Hi protons combined pixels", value=True)
         self.psp_het_viewing = w.Dropdown(description="HET viewing", options=["A", "B"], style=style)
-        self.psp_epilo_viewing = w.Dropdown(description="EPI-Lo viewing:", options=["3"], style=style, disabled=True, value="3")          # TODO fill in correct channels and viewings
-        self.psp_epilo_ic_viewing = w.Dropdown(description="EPI-Lo ic viewing:", options=["3"], style=style, disabled=True, value="3")
-        self.psp_epilo_channel = w.Dropdown(description="EPI-Lo channel", options=['F'], style=style, disabled=True, value='F')
-        self.psp_epilo_ic_channel = w.Dropdown(description="EPI-Lo ic channel", options=['T'], style=style, disabled=True, value='T')
+        self.psp_epilo_viewing = w.Dropdown(description="EPI-Lo viewing:", options=range(0,8), style=style, disabled=False, value=3)       
+        self.psp_epilo_ic_viewing = w.Dropdown(description="EPI-Lo ic viewing:", options=range(0,80), style=style, disabled=False, value=3)
+        self.psp_epilo_channel = w.Dropdown(description="EPI-Lo channel", options=['F', 'E', 'G'], style=style, disabled=True, value='F')
+        self.psp_epilo_ic_channel = w.Dropdown(description="EPI-Lo ic channel", options=['T', 'D', 'R', 'P', 'C'], style=style, disabled=True, value='T')
         self.psp_ch_het_e = w.SelectMultiple(description="HET e channels", options=range(0,18+1), value=tuple(range(0,18+1,3)), rows=10, style=style)
         self.psp_ch_het_p = w.SelectMultiple(description="HET p channels", options=range(0,14+1), value=tuple(range(0,14+1,2)), rows=10, style=style)
         self.psp_ch_epilo_e =  w.SelectMultiple(description="EPI-Lo e channels", options=range(3,8+1), value=tuple(range(3,8+1,1)), rows=10, style=style)

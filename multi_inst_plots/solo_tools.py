@@ -1,29 +1,21 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-import datetime as dt
-import os
 
-import matplotlib.dates as mdates
-from matplotlib.colors import Normalize, LogNorm
+from matplotlib.colors import Normalize
 from matplotlib import cm
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from seppy.loader.solo import mag_load
 from seppy.tools import resample_df
 from solo_epd_loader import epd_load, calc_ept_corrected_e, combine_channels
-from stixdcpy.quicklook import LightCurves
 from sunpy.coordinates import get_horizons_coord
 from sunpy.coordinates import frames
 
-import sunpy
 import sunpy.net.attrs as a
 import sunpy_soar
 from sunpy.net import Fido
 from sunpy.timeseries import TimeSeries
-from sunpy.net import Scraper
-from sunpy.time import TimeRange
-from sunpy.data.data_manager.downloader import ParfiveDownloader, DownloaderError
 
 from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
 
@@ -437,7 +429,7 @@ def make_plot(options):
 
         else:
             if ept_l3:
-                axs[i].set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0,1,len(ept_ele_channels)+color_offset)))
+                axs[i].set_prop_cycle('color', plt.cm.Greens_r(np.linspace(0,1,len(ept_ele_channels)+color_offset)))
                 # for k, e in enumerate(energies_ept['Electron_Bins_Text']):
                 try:
                     for chan in ept_ele_channels:
@@ -456,7 +448,7 @@ def make_plot(options):
                         axs[i].plot(df_electrons_ept['Electron_Flux'][f'{e_key}_{k}'],
                                     ds="steps-mid", label='EPT '+energies_ept[ch_key][k][0])                  
 
-        axs[i].set_prop_cycle('color', plt.cm.plasma(np.linspace(0.,1,len(het_ele_channels)+color_offset)))
+        axs[i].set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0.,1,len(het_ele_channels)+color_offset)))
         try:
             for channel in het_ele_channels:
                 axs[i].plot(df_electrons_het['Electron_Flux'][f'{e_key}_{channel}'],

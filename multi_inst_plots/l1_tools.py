@@ -1,9 +1,3 @@
-
-
-# from IPython.core.display import display, HTML
-# display(HTML(data="""<style> div#notebook-container { width: 80%; } div#menubar-container { width: 85%; } div#maintoolbar-container { width: 90%; } </style>"""))
-from matplotlib.ticker import AutoMinorLocator#, LogLocator, NullFormatter, LinearLocator, MultipleLocator, 
-import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 plt.rcParams['axes.linewidth'] = 1.5
 plt.rcParams['font.size'] = 12
@@ -15,7 +9,6 @@ plt.rcParams['agg.path.chunksize'] = 20000
 import numpy as np
 import os
 import pandas as pd
-import datetime as dt
 import sunpy
 import cdflib
 
@@ -502,13 +495,13 @@ def make_plot(options):
         # electrons
         ax = axs[i]
         if plot_wind and isinstance(edic, pd.DataFrame):
-            ax.set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0,1, len(meta_e['channels_dict_df'])+color_offset)))
+            ax.set_prop_cycle('color', plt.cm.Greens_r(np.linspace(0,1, len(meta_e['channels_dict_df'])+color_offset)))
             for ch in np.arange(1, len(meta_e['channels_dict_df'])):
                 ax.plot(edic.index, edic[f'FLUX_{ch}'] * wind_ev2MeV_fac, label='Wind/3DP '+meta_e['channels_dict_df']['Bins_Text'].values[ch], drawstyle='steps-mid')
         
         color_offset = 2
         if plot_ephin and isinstance(ephin, pd.DataFrame):
-                ax.set_prop_cycle('color', plt.cm.plasma(np.linspace(0, 1, 2+color_offset)))
+                ax.set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0, 1, 2+color_offset)))
                 for ch in ["E150", "E1300"]:
                     ax.plot(ephin.index, ephin[ch]*intercal, label='SOHO/EPHIN '+meta_ephin[ch], drawstyle='steps-mid')
 
