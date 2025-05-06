@@ -134,12 +134,12 @@ def load_data(options):
         df_stix = load_solo_stix(startdate, enddate, ltc=stix_ltc, resample=resample_stixgoes)
     
     if plot_goes:
-        df_goes, goes_sat = load_goes_xrs(startdate, enddate, pick_max=options.goes_pick_max.value, resample=resample_stixgoes, path=file_path)
+        df_goes, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, resample=resample_stixgoes, path=file_path)
 
     if plot_epihi_p or plot_epihi_e:
-        
         psp_het_org, psp_het_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-HET-RATES60', startdate, enddate, 
                                                                     path=file_path, resample=None)
+        
         if isinstance(psp_het_org, str) or len(psp_het_org) == 0:
             psp_het_org = []
             psp_het_energies = []
@@ -149,6 +149,7 @@ def load_data(options):
         psp_epilo_org, psp_epilo_energies_org = psp_isois_load('PSP_ISOIS-EPILO_L2-PE', startdate, enddate, 
                                                                             path=file_path, resample=None, epilo_channel=epilo_channel, 
                                                                             epilo_threshold=None)
+        
         if isinstance(psp_epilo_org, pd.DataFrame):
             electron_countrate_keys = psp_epilo_org.filter(like='Electron_CountRate_ChanF_E').keys()
             psp_epilo_org[electron_countrate_keys] = psp_epilo_org[electron_countrate_keys].mask(psp_epilo_org[electron_countrate_keys] < 0.0)
@@ -530,7 +531,7 @@ def make_plot(options):
         
         axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}$]", fontsize=font_ylabel)
         # title = f'Ions (HET {psp_het_viewing})'
-        title = f'Ions (Pixel)'
+        title = f'Protons/Ions'
         if legends_inside:
             axs[i].legend(loc='upper right', borderaxespad=0., 
                           title=title,

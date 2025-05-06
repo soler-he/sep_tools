@@ -395,7 +395,7 @@ def load_data(options):
         df_stix = load_solo_stix(startdate, enddate, resample=av_stixgoes, ltc = stix_ltc)
 
     if plot_goes:
-        df_goes, goes_sat = load_goes_xrs(startdate, enddate, pick_max=options.goes_pick_max.value, resample=av_stixgoes, path=path)
+        df_goes, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, resample=av_stixgoes, path=path)
     
     # AVERAGING
     if plot_mag or plot_mag_angles:
@@ -535,9 +535,9 @@ def make_plot(options):
                             drawstyle='steps-mid')
                 
         if legends_inside:
-            ax.legend(loc='upper right', borderaxespad=0., fontsize=font_legend, title="Protons")
+            ax.legend(loc='upper right', borderaxespad=0., fontsize=font_legend, title="Protons/Ions")
         else:
-            ax.legend(loc='upper left', borderaxespad=0., fontsize=font_legend, bbox_to_anchor=(1.01, 1), title="Protons")
+            ax.legend(loc='upper left', borderaxespad=0., fontsize=font_legend, bbox_to_anchor=(1.01, 1), title="Protons/Ions")
 
         ax.set_ylabel(intensity_label, fontsize=font_ylabel)
         ax.set_yscale('log')

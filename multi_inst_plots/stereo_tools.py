@@ -95,10 +95,8 @@ def load_swaves(dataset, startdate, enddate, path=None):
                         
     Returns
     -------
-    ndarray :
-        1) timestamps in matplotlib format,
-        2) frequencies in MHz,
-        3) intensities in sfu for each (time, frequency) data point
+    psd_sfu : pd.DataFrame
+        data
     """
 
 
@@ -185,7 +183,7 @@ def load_data(options):
     plot_stix = options.stix.value
     stix_ltc = options.stix_ltc.value
     plot_goes = options.goes.value
-    goes_pick_max = options.goes_pick_max.value
+    goes_man_select = options.goes_man_select.value
     plot_het_e = options.ster_het_e.value
     plot_het_p = options.ster_het_p.value
     plot_sept_e = options.ster_sept_e.value
@@ -259,7 +257,7 @@ def load_data(options):
 
     if plot_goes:
         # print("loading goes...")
-        df_goes, goes_sat = load_goes_xrs(startdate, enddate, pick_max=options.goes_pick_max.value, resample=resample_stixgoes, path=path)
+        df_goes, goes_sat = load_goes_xrs(startdate, enddate, man_select=goes_man_select, resample=resample_stixgoes, path=path)
         # print("goes loaded!")
 
 
@@ -392,10 +390,10 @@ def make_plot(options):
         axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}$]", fontsize=font_ylabel)
         if legends_inside:
             axs[i].legend(loc='upper right', borderaxespad=0., 
-                    title=f'Electrons (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
+                    title=f'Electrons (SEPT: {sept_viewing}', fontsize=font_legend)
         else:
             axs[i].legend(bbox_to_anchor=(1.01, 1), loc="upper left", borderaxespad=0., 
-                    title=f'Electrons (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
+                    title=f'Electrons (SEPT: {sept_viewing})', fontsize=font_legend)
         
         axs[i].set_yscale('log')
         i +=1    
@@ -426,10 +424,10 @@ def make_plot(options):
         axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}$]", fontsize=font_ylabel)
         if legends_inside:
             axs[i].legend(loc='upper right', borderaxespad=0., 
-                    title=f'Ions (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
+                    title=f'Protons/Ions (SEPT: {sept_viewing})', fontsize=font_legend)
         else:
             axs[i].legend(bbox_to_anchor=(1.01, 1), loc="upper left", borderaxespad=0., 
-                    title=f'Ions (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
+                    title=f'Protons/Ions (SEPT: {sept_viewing})', fontsize=font_legend)
         
         axs[i].set_yscale('log')
         i +=1    

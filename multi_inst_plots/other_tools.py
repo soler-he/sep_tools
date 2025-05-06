@@ -11,6 +11,7 @@ from sunpy import timeseries as ts
 from sunpy.net import Fido
 from sunpy.net import attrs as a
 import matplotlib.dates as mdates
+from time import sleep
 
 
 def polarity_rtn(Br,Bt,Bn,r,lat,V=400,delta_angle=10):
@@ -129,7 +130,7 @@ def plot_solo_stix(data, ax, ltc, legends_inside, font_ylabel):
     ax.set_ylabel('Counts', fontsize=font_ylabel)
     ax.set_yscale('log')
 
-def load_goes_xrs(start, end, pick_max=True, resample=None, path=None):
+def load_goes_xrs(start, end, man_select=False, resample=None, path=None):
     """
     Load GOES high-cadence XRS data with Fido. Picks largest satellite number available, if none specified.
 
@@ -140,49 +141,70 @@ def load_goes_xrs(start, end, pick_max=True, resample=None, path=None):
       start date in a parse_time-compatible format
     end : str or dt.datetime
       end date in a parse_time-compatible format
-    sat : int (optional)
-      GOES satellite number
+    man_select : bool (optional)
+      allow manual selection of GOES satellite (print what's available)
+    resample : in
 
     Returns
     -------
 
     df_goes : pd.DataFrame
-        data
+        GOES data
     sat : int
         satellite number for which data was returned
     """
-    try:
-        if pick_max:
-            result_goes = Fido.search(a.Time(start, end), a.Instrument("XRS"), a.Resolution("flx1s"))
-            sat = max(result_goes["xrs"]["SatelliteNumber"])
-            print(f"Fetching GOES-{sat} data for {start} - {end}")
-            file_goes = Fido.fetch(result_goes["xrs"][result_goes["xrs", "SatelliteNumber"] == sat])
+    
+    result_goes = Fido.search(a.Time(start, end), a.Instrument("XRS"), a.Resolution("flx1s"))
 
-        else:
-            result_goes = Fido.search(a.Time(start, end), a.Instrument("XRS"), a.Resolution("flx1s"))
-            print(result_goes)
-            sat = input("Choose preferred satellite number (integer):")
-            print(f"Fetching GOES-{sat} data for {start} - {end}")
-            file_goes = Fido.fetch(result_goes, path=path)
-
-        goes = ts.TimeSeries(file_goes, concatenate=True)
-        df_goes = goes.to_dataframe()
-        
-        # Filter data
-        df_goes['xrsa'] = df_goes['xrsa'].mask((df_goes['xrsa_quality'] != 0), other=np.nan)   # mask non-zero quality flagged entries as NaN
-        df_goes['xrsb'] = df_goes['xrsb'].mask((df_goes['xrsb_quality'] != 0), other=np.nan)  
-        df_goes = df_goes[(df_goes['xrsa_quality'] == 0) | (df_goes['xrsb_quality'] == 0)]     # keep entries that have at least one good quality flag
-
-        # Resampling
-        if resample != "0min" and resample is not None:
-            df_goes = resample_df(df_goes, resample=resample)
-
-        return df_goes, sat
-    except KeyError:
+    # No data found
+    if len(result_goes["xrs"]) == 0:
         print(f"No GOES/XRS data found for {start} - {end}!")
         df_goes = []
         sat = ''
         return df_goes, sat
+    
+    if man_select:
+        print(result_goes)
+        sleep(1)
+        while True:
+            sat = input("Choose preferred GOES satellite number (integer, leave empty to abort):")
+            if sat == '':
+                print("Aborting GOES satellite selection. No data will be plotted.")
+                df_goes = []
+                return df_goes, sat
+            
+            try:
+                sat = int(sat)
+                if int(sat) not in result_goes["xrs"]["SatelliteNumber"]:
+                    print("Number not on list, try again.")
+                    sleep(1)
+                else:
+                    break
+
+            except ValueError:
+                print("Not an integer! Try again.")
+                sleep(1)
+
+    else:
+        sat = int(max(result_goes["xrs"]["SatelliteNumber"]))
+
+    print(f"Fetching GOES-{sat} data for {start} - {end}")
+    file_goes = Fido.fetch(result_goes["xrs"][result_goes["xrs", "SatelliteNumber"] == sat], path=path)    
+
+    goes = ts.TimeSeries(file_goes, concatenate=True)
+    df_goes = goes.to_dataframe()
+    
+    # Filter data
+    df_goes['xrsa'] = df_goes['xrsa'].mask((df_goes['xrsa_quality'] != 0), other=np.nan)   # mask non-zero quality flagged entries as NaN
+    df_goes['xrsb'] = df_goes['xrsb'].mask((df_goes['xrsb_quality'] != 0), other=np.nan)  
+    df_goes = df_goes[(df_goes['xrsa_quality'] == 0) | (df_goes['xrsb_quality'] == 0)]     # keep entries that have at least one good quality flag
+
+    # Resampling
+    if resample != "0min" and resample is not None:
+        df_goes = resample_df(df_goes, resample=resample)
+
+    return df_goes, sat
+    
 
 def plot_goes_xrs(options, data, sat, ax, font_legend):
     ax.hlines([1e-7, 1e-6, 1e-5, 1e-4], color="#cccccc", xmin=options.plot_start, xmax=options.plot_end)

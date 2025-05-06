@@ -28,7 +28,7 @@ common_attrs = ["spacecraft", "startdate", "enddate", "starttime",
 
 variable_attrs = ['radio', 'mag', 'polarity', 'mag_angles', 
                   'Vsw', 'N', 'T', 
-                  "stix", "stix_ltc", "goes", "goes_pick_max"] 
+                  "stix", "stix_ltc", "goes", "goes_man_select"] 
 
 psp_attrs = ["p_dyn", 'psp_epilo_e', 'psp_epilo_p', 'psp_epihi_e',
              'psp_epihi_p', 'psp_het_viewing', 'psp_epilo_viewing',
@@ -57,14 +57,12 @@ class Options:
         self.resample = w.BoundedIntText(value=10, min=0, step=1, description='Averaging (min):', disabled=False, style=style)
         self.resample_mag = w.BoundedIntText(value=10, min=0, step=1, description='MAG averaging (min):', disabled=False, style=style)
         self.resample_stixgoes = w.BoundedIntText(value=10, min=0, step=1, description="STIX/GOES averaging (min):", style=style)
-        #self.resample_pol = w.BoundedIntText(value=1, min=0, max=60, step=1, description='Polarity resampling (min):', disabled=False, style=style)
         self.radio_cmap = w.Dropdown(options=['jet', 'plasma'], value='jet', description='Radio colormap', style=style)
         self.pos_timestamp = 'center' #w.Dropdown(options=['center', 'start', 'original'], description='Timestamp position', style=style)
         self.legends_inside = w.Checkbox(value=False, description='Legends inside')
     
 
         self.radio = w.Checkbox(value=True, description="Radio")
-        #self.pad = w.Checkbox(value=True, description="Pitch angle distribution")    # TODO: remove disabled keyword after implementation
         self.mag = w.Checkbox(value=True, description="MAG")
         self.mag_angles = w.Checkbox(value=True, description="MAG angles")
         self.polarity = w.Checkbox(value=True, description="MAG polarity")
@@ -74,8 +72,8 @@ class Options:
         self.p_dyn = w.Checkbox(value=True, description="P_dyn")
         self.stix = w.Checkbox(value=True, description="SolO/STIX")
         self.stix_ltc = w.Checkbox(value=True, description="Correct STIX for light travel time")
-        self.goes = w.Checkbox(value=False, description="GOES/XRS")
-        self.goes_pick_max = w.Checkbox(value=False, description="GOES: Pick highest sat number")
+        self.goes = w.Checkbox(value=True, description="GOES/XRS")
+        self.goes_man_select = w.Checkbox(value=False, description="GOES: manual sat selection")
         
         self.path = f"{os.getcwd()}{os.sep}data"
         self.plot_range = None
@@ -86,23 +84,23 @@ class Options:
         self.psp_epihi_p = w.Checkbox(description="EPI-Hi protons", value=True)
         self.psp_epihi_p_combined_pixels = w.Checkbox(description="EPI-Hi protons combined pixels", value=True)
         self.psp_het_viewing = w.Dropdown(description="HET viewing", options=["A", "B"], style=style)
-        self.psp_epilo_viewing = w.Dropdown(description="EPI-Lo viewing:", options=range(0,8), style=style, disabled=False, value=3)       
-        self.psp_epilo_ic_viewing = w.Dropdown(description="EPI-Lo ic viewing:", options=range(0,80), style=style, disabled=False, value=3)
-        self.psp_epilo_channel = w.Dropdown(description="EPI-Lo channel", options=['F', 'E', 'G'], style=style, disabled=True, value='F')
-        self.psp_epilo_ic_channel = w.Dropdown(description="EPI-Lo ic channel", options=['T', 'D', 'R', 'P', 'C'], style=style, disabled=True, value='T')
-        self.psp_ch_het_e = w.SelectMultiple(description="HET e channels", options=range(0,18+1), value=tuple(range(0,18+1,3)), rows=10, style=style)
-        self.psp_ch_het_p = w.SelectMultiple(description="HET p channels", options=range(0,14+1), value=tuple(range(0,14+1,2)), rows=10, style=style)
-        self.psp_ch_epilo_e =  w.SelectMultiple(description="EPI-Lo e channels", options=range(3,8+1), value=tuple(range(3,8+1,1)), rows=10, style=style)
-        self.psp_ch_epilo_ic = w.SelectMultiple(description="EPI-Lo ic channels", options=range(0,31+1), value=tuple(range(0,31+1,4)), rows=10, style=style)
+        self.psp_epilo_viewing = w.Dropdown(description="EPI-Lo PE (e) viewing:", options=range(0,8), style=style, disabled=False, value=3)       
+        self.psp_epilo_ic_viewing = w.Dropdown(description="EPI-Lo IC (p) viewing:", options=range(0,80), style=style, disabled=False, value=3)
+        self.psp_epilo_channel = w.Dropdown(description="EPI-Lo PE channel", options=['F', 'E', 'G'], style=style, disabled=True, value='F')
+        self.psp_epilo_ic_channel = w.Dropdown(description="EPI-Lo IC channel", options=['T', 'D', 'R', 'P', 'C'], style=style, disabled=True, value='T')
+        self.psp_ch_het_e = w.SelectMultiple(description="HET e energy channels", options=range(0,18+1), value=tuple(range(0,18+1,3)), rows=10, style=style)
+        self.psp_ch_het_p = w.SelectMultiple(description="HET p energy channels", options=range(0,14+1), value=tuple(range(0,14+1,2)), rows=10, style=style)
+        self.psp_ch_epilo_e =  w.SelectMultiple(description="EPI-Lo PE energy channels", options=range(3,8+1), value=tuple(range(3,8+1,1)), rows=10, style=style)
+        self.psp_ch_epilo_ic = w.SelectMultiple(description="EPI-Lo IC energy channels", options=range(0,31+1), value=tuple(range(0,31+1,4)), rows=10, style=style)
         
         self.solo_electrons = w.Checkbox(value=True, description="HET+EPT electrons")
         self.solo_protons = w.Checkbox(value=True, description="HET+EPT ions")
         self.solo_viewing = w.Dropdown(options=['sun', 'asun', 'north', 'south'], value='sun', style=style, description="HET+EPT viewing:")
         self.solo_resample_particles = w.BoundedIntText(value=10, min=0, description="HET+EPT averaging:", style=style)
-        self.solo_ch_ept_e = w.SelectMultiple(description="EPT e channels", options=range(0,15+1), value=tuple(range(0,15+1,2)), rows=10, style=style)
-        self.solo_ch_het_e = w.SelectMultiple(description="HET e channels", options=range(0,3+1), value=tuple(range(0,3+1,1)), style=style)
-        self.solo_ch_ept_p = w.SelectMultiple(description="EPT ion channels", options=range(0,30+1), value=tuple(range(0,30+1,5)), rows=10, style=style)
-        self.solo_ch_het_p = w.SelectMultiple(description="HET ion channels", options=range(0,35+1), value=tuple(range(0,35+1,5)), rows=10, style=style)
+        self.solo_ch_ept_e = w.SelectMultiple(description="EPT e energy channels", options=range(0,15+1), value=tuple(range(0,15+1,2)), rows=10, style=style)
+        self.solo_ch_het_e = w.SelectMultiple(description="HET e energy channels", options=range(0,3+1), value=tuple(range(0,3+1,1)), style=style)
+        self.solo_ch_ept_p = w.SelectMultiple(description="EPT p energy channels", options=range(0,30+1), value=tuple(range(0,30+1,5)), rows=10, style=style)
+        self.solo_ch_het_p = w.SelectMultiple(description="HET p energy channels", options=range(0,35+1), value=tuple(range(0,35+1,5)), rows=10, style=style)
 
         self.l1_wind_e =  w.Checkbox(value=True, description="Wind/3DP electrons")
         self.l1_wind_p = w.Checkbox(value=True, description="Wind/3DP protons")
@@ -122,9 +120,9 @@ class Options:
         self.ster_het_p = w.Checkbox(description="HET protons", value=True)
         self.ster_sept_viewing = w.Dropdown(description="SEPT viewing", options=['sun', 'asun', 'north', 'south'], style=style)
         
-        self.ster_ch_sept_e = w.SelectMultiple(description="SEPT e channels", options=range(0,14+1), value=tuple(range(0,14+1, 2)), rows=10, style=style)
-        self.ster_ch_sept_p = w.SelectMultiple(description="SEPT p channels", options=range(0,29+1), value=tuple(range(0,29+1,4)), rows=10, style=style)
-        self.ster_ch_het_p =  w.SelectMultiple(description="HET p channels", options=range(0,10+1), value=tuple(range(0,10+1,2)), rows=10, style=style)
+        self.ster_ch_sept_e = w.SelectMultiple(description="SEPT e energy channels", options=range(0,14+1), value=tuple(range(0,14+1, 2)), rows=10, style=style)
+        self.ster_ch_sept_p = w.SelectMultiple(description="SEPT p energy channels", options=range(0,29+1), value=tuple(range(0,29+1,4)), rows=10, style=style)
+        self.ster_ch_het_p =  w.SelectMultiple(description="HET p energy channels", options=range(0,10+1), value=tuple(range(0,10+1,2)), rows=10, style=style)
         # self.ster_ch_het_e = w.SelectMultiple(description="HET e channels", options=(0, 1, 2), value=(0, 1, 2), disabled=True, style=style)
 
 
@@ -176,10 +174,10 @@ class Options:
 
             if change.owner == self.goes:
                 if change.new == False:
-                    self.goes_pick_max.disabled = True
+                    self.goes_man_select.disabled = True
 
                 elif change.new == True:
-                    self.goes_pick_max.disabled = False
+                    self.goes_man_select.disabled = False
 
 
         # def limit_time_range(change):

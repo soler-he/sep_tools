@@ -252,7 +252,7 @@ def load_data(options):
         df_stix = load_solo_stix(startdate, enddate, resample=resample_stixgoes, ltc = stix_ltc)
 
     if plot_goes:
-        df_goes, goes_sat = load_goes_xrs(startdate, enddate, pick_max=options.goes_pick_max.value, resample=resample_stixgoes, path=path)
+        df_goes, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, resample=resample_stixgoes, path=path)
 
     if plot_mag or plot_mag_angles or plot_polarity:
         try:
