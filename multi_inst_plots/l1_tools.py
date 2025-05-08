@@ -196,17 +196,15 @@ def load_waves_rad(dataset, startdate, enddate, file_path=None):
 
     return data
 
-def wind_mfi_loader(startdate, enddate):
+def wind_mfi_loader(startdate, enddate, path=None):
 
     dataset = 'WI_H3-RTN_MFI'  # 'WI_H2_MFI'
     cda_dataset = a.cdaweb.Dataset(dataset)
 
     trange = a.Time(startdate, enddate)
 
-    # path = path_loc+'wind/mfi/'  # you can define here where the original data files should be saved, see 2 lines below
-    path = None
     result = Fido.search(trange, cda_dataset)
-    downloaded_files = Fido.fetch(result, path=path)  # use Fido.fetch(result, path='/ThisIs/MyPath/to/Data/{file}') to use a specific local folder for saving data files
+    downloaded_files = Fido.fetch(result, path=path)  
     downloaded_files.sort()
 
     # read in data files to Pandas Dataframe
@@ -366,7 +364,7 @@ def load_data(options):
 
     if plot_mag or plot_mag_angles:
         try:
-            mag_data = wind_mfi_loader(startdate, enddate)
+            mag_data = wind_mfi_loader(startdate, enddate, path=path)
             
         except IndexError:  # TimeSeries() call throws IndexError when trying to pop from an empty list
             print(f"No MFI data found for {startdate} - {enddate}!")
