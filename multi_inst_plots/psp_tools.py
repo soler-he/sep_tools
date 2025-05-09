@@ -87,11 +87,14 @@ def load_data(options):
     global df_stix
     global df_goes
     global goes_sat
-    global psp_epilo_energies_org
-    global psp_epilo_ic_energies_org
+    global psp_epilo_energies
+    global psp_epilo_ic_energies
     global psp_het_org
     global psp_epilo_ic_org
     global psp_epilo_org
+    global psp_het_viewing
+    global epilo_ic_viewing
+    global epilo_viewing
 
     
     startdate = options.startdt
@@ -115,7 +118,10 @@ def load_data(options):
     plot_T = options.T.value
     plot_p_dyn = options.p_dyn.value
     
-    
+
+    psp_het_viewing = options.psp_het_viewing.value
+    epilo_ic_viewing = str(options.psp_epilo_ic_viewing.value)
+    epilo_viewing = str(options.psp_epilo_viewing.value)
     epilo_ic_channel = options.psp_epilo_ic_channel.value
     epilo_channel = options.psp_epilo_channel.value
 
@@ -146,7 +152,7 @@ def load_data(options):
         
 
     if plot_epilo_e:
-        psp_epilo_org, psp_epilo_energies_org = psp_isois_load('PSP_ISOIS-EPILO_L2-PE', startdate, enddate, 
+        psp_epilo_org, psp_epilo_energies = psp_isois_load('PSP_ISOIS-EPILO_L2-PE', startdate, enddate, 
                                                                             path=file_path, resample=None, epilo_channel=epilo_channel, 
                                                                             epilo_threshold=None)
         
@@ -156,7 +162,7 @@ def load_data(options):
         
 
     if plot_epilo_p:
-        psp_epilo_ic_org, psp_epilo_ic_energies_org = psp_isois_load('PSP_ISOIS-EPILO_L2-IC', startdate, enddate, 
+        psp_epilo_ic_org, psp_epilo_ic_energies = psp_isois_load('PSP_ISOIS-EPILO_L2-IC', startdate, enddate, 
                                                                                     path=file_path, resample=None, epilo_channel=epilo_ic_channel, 
                                                                                     epilo_threshold=None)
     
@@ -340,14 +346,13 @@ def load_data(options):
     ############## Resampling #######################################
     #################################################################
     
-    
-
     global psp_het
     global psp_epilo
     global psp_epilo_ic
     global df_magplas_spani
     global df_magplas_spc
     global mag
+
     if (plot_epihi_e or plot_epihi_p):
         if isinstance(psp_het_org, pd.DataFrame) and resample != "0min":
             psp_het = resample_df(psp_het_org, resample)
@@ -384,19 +389,36 @@ def load_data(options):
         else:
             mag = psp_mag
 
-    
+    data = {
+        "het": psp_het,
+        "epilo_pe": psp_epilo,
+        "epilo_ic": psp_epilo_ic,
+        "magplas_spani": df_magplas_spani,
+        "magplas_spc": df_magplas_spc,
+        "mag": mag,
+        "rfs_lfr": psp_rfs_lfr_psd,
+        "rfs_hfr": psp_rfs_hfr_psd 
+    }
 
+    metadata = {
+        "het_energies": psp_het_energies,
+        "epilo_pe_energies": psp_epilo_energies,
+        "epilo_ic_energies": psp_epilo_ic_energies,
+        "rfs_lfr_freq": psp_rfs_lfr_freq,
+        "rfs_hfr_freq": psp_rfs_hfr_freq
+    }
+
+    return data, metadata
+
+#def energy_channel_selection():
+    
 
 def make_plot(options):
     """
     Plot chosen data with user-specified parameters.
     """
    
-    plot_epihi_p_combined_pixels = True #options.psp_epihi_p_combined_pixels.value
-    
-    psp_het_viewing = options.psp_het_viewing.value
-    epilo_ic_viewing = str(options.psp_epilo_ic_viewing.value)
-    epilo_viewing = str(options.psp_epilo_viewing.value)
+    epihi_p_combine_channels = False #options.psp_epihi_p_combined_pixels.value
 
     ch_het_p = options.psp_ch_het_p.value
     ch_epilo_ic = options.psp_ch_epilo_ic.value
@@ -474,7 +496,7 @@ def make_plot(options):
         if plot_epilo_e and isinstance(psp_epilo, pd.DataFrame):
             axs[i].set_prop_cycle('color', plt.cm.Greens_r(np.linspace(0, 1, len(ch_epilo_e)+color_offset)))
             for channel in ch_epilo_e:
-                psp_epilo_energy = np.round(psp_epilo_energies_org[f'Electron_Chan{epilo_channel}_Energy'][f'Electron_Chan{epilo_channel}_Energy_E{channel}_P{epilo_viewing}'], 2).astype(str)
+                psp_epilo_energy = np.round(psp_epilo_energies[f'Electron_Chan{epilo_channel}_Energy'][f'Electron_Chan{epilo_channel}_Energy_E{channel}_P{epilo_viewing}'], 2).astype(str)
                 axs[i].plot(psp_epilo.index, psp_epilo[f'Electron_CountRate_Chan{epilo_channel}_E{channel}_P{epilo_viewing}'],
                             ds="steps-mid", label=f'EPI-lo PE {epilo_channel}{epilo_viewing} {psp_epilo_energy} keV')
     
@@ -506,7 +528,7 @@ def make_plot(options):
             # [::-1] to reverse list
             for channel in ch_epilo_ic[::-1]:
                 # print(f'H_Flux_Chan{epilo_ic_channel}_E{channel}_P{epilo_ic_viewing}')
-                psp_epilo_ic_energy = np.round(psp_epilo_ic_energies_org[f'H_Chan{epilo_ic_channel}_Energy'][f'H_Chan{epilo_ic_channel}_Energy_E{channel}_P{epilo_ic_viewing}'], 2).astype(str)
+                psp_epilo_ic_energy = np.round(psp_epilo_ic_energies[f'H_Chan{epilo_ic_channel}_Energy'][f'H_Chan{epilo_ic_channel}_Energy_E{channel}_P{epilo_ic_viewing}'], 2).astype(str)
                 axs[i].plot(psp_epilo_ic.index, psp_epilo_ic[f'H_Flux_Chan{epilo_ic_channel}_E{channel}_P{epilo_ic_viewing}'],
                             ds="steps-mid", label=f'EPI-lo IC {epilo_ic_channel}{epilo_ic_viewing} {psp_epilo_ic_energy} keV')
     
@@ -517,13 +539,14 @@ def make_plot(options):
         #         axs[i].plot(df_psp_pixel.index, df_psp_pixel[f'{key}_Flux'], label=f'{key} {energies_psp_pixel[key]}', drawstyle='steps-mid')
         
         if plot_epihi_p and isinstance(psp_het, pd.DataFrame):    
-            if plot_epihi_p_combined_pixels:
+            if epihi_p_combine_channels:
                 # comb_channels = [[1,2], [3,5], [5,7], [4,5], [7], [9]]
                 comb_channels = [[3,5], [5,7], [4,5], [7], [9]]
                 axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0, 1, len(comb_channels)+5)))
                 for channel in comb_channels:
                     df_psp_epihi, df_psp_epihi_name = calc_av_en_flux_PSP_EPIHI(psp_het, psp_het_energies, channel, 'p', 'het', psp_het_viewing)
                     axs[i].plot(df_psp_epihi.index, df_psp_epihi.flux, label=f'HET {psp_het_viewing} {df_psp_epihi_name}', lw=1, ds="steps-mid")
+
             else:
                 axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0, 1, len(ch_het_p)+color_offset)))
                 for channel in ch_het_p:
