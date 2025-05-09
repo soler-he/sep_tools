@@ -392,7 +392,7 @@ def make_plot(options):
     Plot chosen data with user-specified parameters.
     """
    
-    plot_epihi_p_combined_pixels = True #options.psp_epihi_p_combined_pixels.value
+    epihi_p_combine_channels = False #options.psp_epihi_p_combine_channels.value
     
     psp_het_viewing = options.psp_het_viewing.value
     epilo_ic_viewing = str(options.psp_epilo_ic_viewing.value)
@@ -517,7 +517,7 @@ def make_plot(options):
         #         axs[i].plot(df_psp_pixel.index, df_psp_pixel[f'{key}_Flux'], label=f'{key} {energies_psp_pixel[key]}', drawstyle='steps-mid')
         
         if plot_epihi_p and isinstance(psp_het, pd.DataFrame):    
-            if plot_epihi_p_combined_pixels:
+            if epihi_p_combine_channels:
                 # comb_channels = [[1,2], [3,5], [5,7], [4,5], [7], [9]]
                 comb_channels = [[3,5], [5,7], [4,5], [7], [9]]
                 axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0, 1, len(comb_channels)+5)))

@@ -32,8 +32,8 @@ variable_attrs = ['radio', 'mag', 'polarity', 'mag_angles',
 
 psp_attrs = ["p_dyn", 'psp_epilo_e', 'psp_epilo_p', 'psp_epihi_e',
              'psp_epihi_p', 'psp_het_viewing', 'psp_epilo_viewing',
-             'psp_epilo_ic_viewing',
-              "psp_ch_het_e", "psp_ch_epilo_ic", "psp_ch_epilo_e"]
+             'psp_epilo_ic_viewing', 
+              "psp_ch_het_e", "psp_ch_het_p", "psp_ch_epilo_e", "psp_ch_epilo_ic"]
 
 stereo_attrs = ['ster_sc', 'ster_sept_e', 'ster_sept_p', 
                 'ster_het_p', 'ster_sept_viewing', 'ster_ch_sept_e', 'ster_ch_sept_p',  
