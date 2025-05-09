@@ -418,7 +418,11 @@ def make_plot(options):
     Plot chosen data with user-specified parameters.
     """
    
-    epihi_p_combine_channels = False #options.psp_epihi_p_combined_pixels.value
+    epihi_p_combine_channels = False #options.psp_epihi_p_combine_channels.value
+    
+    psp_het_viewing = options.psp_het_viewing.value
+    epilo_ic_viewing = str(options.psp_epilo_ic_viewing.value)
+    epilo_viewing = str(options.psp_epilo_viewing.value)
 
     ch_het_p = options.psp_ch_het_p.value
     ch_epilo_ic = options.psp_ch_epilo_ic.value

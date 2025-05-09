@@ -44,6 +44,7 @@ def polarity_rtn(Br,Bt,Bn,r,lat,V=400,delta_angle=10):
     pol[((phi_relative>=90.-delta_angle) & (phi_relative<=90.+delta_angle)) | ((phi_relative>=270.-delta_angle) & (phi_relative<=270.+delta_angle))] = 0
     return pol, phi_relative
 
+
 def polarity_colorwheel():
     # Generate a figure with a polar projection
     fg = plt.figure(figsize=(1,1))
@@ -66,6 +67,7 @@ def polarity_colorwheel():
     ax.spines['polar'].set_visible(False)    #turn off the axis spine.
     ax.grid(False)
 
+
 def polarity_panel(ax,datetimes,phi_relative,bbox_to_anchor=(0.,0.22,1,1.1)):
     pol_ax = inset_axes(ax, height="8%", width="100%", loc=9, bbox_to_anchor=bbox_to_anchor, bbox_transform=ax.transAxes) # center, you can check the different codes in plt.legend?
     pol_ax.get_xaxis().set_visible(False)
@@ -78,6 +80,7 @@ def polarity_panel(ax,datetimes,phi_relative,bbox_to_anchor=(0.,0.22,1,1.1)):
     pol_ax.bar(datetimes[(phi_relative>=0) & (phi_relative<180)],pol_arr[(phi_relative>=0) & (phi_relative<180)],color=mapper.to_rgba(phi_relative[(phi_relative>=0) & (phi_relative<180)]),width=timestamp)
     pol_ax.bar(datetimes[(phi_relative>=180) & (phi_relative<360)],pol_arr[(phi_relative>=180) & (phi_relative<360)],color=mapper.to_rgba(np.abs(360-phi_relative[(phi_relative>=180) & (phi_relative<360)])),width=timestamp)
     return pol_ax
+
 
 def mag_angles(B,Br,Bt,Bn):
     theta = np.arccos(Bn/B)
@@ -97,6 +100,7 @@ def mag_angles(B,Br,Bt,Bn):
 
     return alpha, phi
 
+
 def load_solo_stix(start, end, ltc=True, resample=None):
     if end - start > dt.timedelta(7):
         print("STIX loading for more than 7 days not supported, no data was fetched")
@@ -114,6 +118,7 @@ def load_solo_stix(start, end, ltc=True, resample=None):
 
     return df_stix
 
+
 def plot_solo_stix(data, ax, ltc, legends_inside, font_ylabel):
     if isinstance(data, pd.DataFrame):
         for key in data.keys():
@@ -129,6 +134,7 @@ def plot_solo_stix(data, ax, ltc, legends_inside, font_ylabel):
         ax.legend(bbox_to_anchor=(1.01, 1), loc='upper left', borderaxespad = 0., title=title, fontsize=10)
     ax.set_ylabel('Counts', fontsize=font_ylabel)
     ax.set_yscale('log')
+
 
 def load_goes_xrs(start, end, man_select=False, resample=None, path=None):
     """
@@ -165,9 +171,12 @@ def load_goes_xrs(start, end, man_select=False, resample=None, path=None):
     
     if man_select:
         print(result_goes)
+        sats = tuple(np.unique(result_goes["xrs"]["SatelliteNumber"]).tolist())
         sleep(1)
+
         while True:
-            sat = input("Choose preferred GOES satellite number (integer, leave empty to abort):")
+            sat = input(f"Choose preferred GOES satellite number {sats}:")
+
             if sat == '':
                 print("Aborting GOES satellite selection. No data will be plotted.")
                 df_goes = []
@@ -175,14 +184,14 @@ def load_goes_xrs(start, end, man_select=False, resample=None, path=None):
             
             try:
                 sat = int(sat)
-                if int(sat) not in result_goes["xrs"]["SatelliteNumber"]:
-                    print("Number not on list, try again.")
+                if sat not in result_goes["xrs"]["SatelliteNumber"]:
+                    print("Not a valid option, try again.")
                     sleep(1)
                 else:
                     break
 
             except ValueError:
-                print("Not an integer! Try again.")
+                print("Not a valid option, try again.")
                 sleep(1)
 
     else:
@@ -228,18 +237,15 @@ def plot_goes_xrs(options, data, sat, ax, font_legend):
         ax.annotate(text=cl, xy=(options.plot_end, log_midpoint), xycoords="data", xytext=(5, 0), textcoords="offset points", fontsize=font_legend, va="center")
     
     # set minimum y-limits
-    if peak > 1e-2:
-        ax.set_ylim(bottom=1e-9)
+    if peak > 1e-3:
+        ax.set_ylim(bottom=1e-8)
     else:
-        ax.set_ylim((1e-9, 1e-2))
+        ax.set_ylim((1e-8, 1e-3))
 
-def energy_labels_to_MeV(energies):
-    return
 
 def make_fig_axs(options):
 
     plot_radio = options.radio.value
-    #plot_pad = options.pad.value
     plot_mag = options.mag.value
     plot_mag_angles = options.mag_angles.value
     plot_Vsw = options.Vsw.value
