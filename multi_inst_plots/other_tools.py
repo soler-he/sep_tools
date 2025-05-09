@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 import datetime as dt
+import os
+import sunpy
+
 from matplotlib.colors import Normalize
 from matplotlib import cm
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -69,7 +72,9 @@ def polarity_colorwheel():
 
 
 def polarity_panel(ax,datetimes,phi_relative,bbox_to_anchor=(0.,0.22,1,1.1)):
-    pol_ax = inset_axes(ax, height="8%", width="100%", loc=9, bbox_to_anchor=bbox_to_anchor, bbox_transform=ax.transAxes) # center, you can check the different codes in plt.legend?
+    pol_ax = inset_axes(ax, height="8%", width="100%", loc=9,
+                        bbox_to_anchor=bbox_to_anchor, 
+                        bbox_transform=ax.transAxes) # center, you can check the different codes in plt.legend?
     pol_ax.get_xaxis().set_visible(False)
     pol_ax.get_yaxis().set_visible(False)
     pol_ax.set_ylim(0,1)
@@ -77,8 +82,10 @@ def polarity_panel(ax,datetimes,phi_relative,bbox_to_anchor=(0.,0.22,1,1.1)):
     timestamp = datetimes[2] - datetimes[1]
     norm = Normalize(vmin=0, vmax=180, clip=True)
     mapper = cm.ScalarMappable(norm=norm, cmap=cm.bwr)
-    pol_ax.bar(datetimes[(phi_relative>=0) & (phi_relative<180)],pol_arr[(phi_relative>=0) & (phi_relative<180)],color=mapper.to_rgba(phi_relative[(phi_relative>=0) & (phi_relative<180)]),width=timestamp)
-    pol_ax.bar(datetimes[(phi_relative>=180) & (phi_relative<360)],pol_arr[(phi_relative>=180) & (phi_relative<360)],color=mapper.to_rgba(np.abs(360-phi_relative[(phi_relative>=180) & (phi_relative<360)])),width=timestamp)
+    pol_ax.bar(datetimes[(phi_relative>=0) & (phi_relative<180)],pol_arr[(phi_relative>=0) & (phi_relative<180)],
+               color=mapper.to_rgba(phi_relative[(phi_relative>=0) & (phi_relative<180)]),width=timestamp)
+    pol_ax.bar(datetimes[(phi_relative>=180) & (phi_relative<360)],pol_arr[(phi_relative>=180) & (phi_relative<360)],
+               color=mapper.to_rgba(np.abs(360-phi_relative[(phi_relative>=180) & (phi_relative<360)])),width=timestamp)
     return pol_ax
 
 
@@ -99,6 +106,55 @@ def mag_angles(B,Br,Bt,Bn):
         phi[sel] = 0
 
     return alpha, phi
+
+
+
+def cdaweb_download_fido(dataset, startdate, enddate, path=None, max_conn=5):
+    """
+    Downloads dataset files via SunPy/Fido from CDAWeb
+
+    Parameters
+    ----------
+    dataset : {str}
+        Name of dataset:
+        - 'PSP_FLD_L3_RFS_HFR'
+        - 'PSP_FLD_L3_RFS_LFR'
+    startdate, enddate : {datetime or str}
+        Datetime object (e.g., dt.date(2021,12,31) or dt.datetime(2021,4,15)) or
+        "standard" datetime string (e.g., "2021/04/15") (enddate must always be
+        later than startdate)
+    path : {str}, optional
+        Local path for storing downloaded data, by default None
+    max_conn : {int}, optional
+        The number of parallel download slots used by Fido.fetch, by default 5
+
+    Returns
+    -------
+    List of downloaded files
+    """
+    trange = a.Time(startdate, enddate)
+    cda_dataset = a.cdaweb.Dataset(dataset)
+    try:
+        result = Fido.search(trange, cda_dataset)
+        filelist = [i[0].split('/')[-1] for i in result.show('URL')[0]]
+        filelist.sort()
+        if path is None:
+            filelist = [sunpy.config.get('downloads', 'download_dir') + os.sep + file for file in filelist]
+        elif type(path) is str:
+            filelist = [path + os.sep + f for f in filelist]
+        downloaded_files = filelist
+
+        # Check if file with same name already exists in path
+        for i, f in enumerate(filelist):
+            if os.path.exists(f) and os.path.getsize(f) == 0:
+                os.remove(f)
+            if not os.path.exists(f):
+                downloaded_file = Fido.fetch(result[0][i], path=path, max_conn=max_conn)
+    except (RuntimeError, IndexError):
+        print(f'Unable to obtain "{dataset}" data for {startdate}-{enddate}!')
+        downloaded_files = []
+    return downloaded_files
+
 
 
 def load_solo_stix(start, end, ltc=True, resample=None):
@@ -168,7 +224,7 @@ def load_goes_xrs(start, end, man_select=False, resample=None, path=None):
         df_goes = []
         sat = ''
         return df_goes, sat
-    
+
     if man_select:
         print(result_goes)
         sats = tuple(np.unique(result_goes["xrs"]["SatelliteNumber"]).tolist())
@@ -234,7 +290,8 @@ def plot_goes_xrs(options, data, sat, ax, font_legend):
     # flare class labels
     for i, cl in enumerate(["A", "B", "C", "M", "X"]):
         log_midpoint = 3.1e-8 * (10 ** i)
-        ax.annotate(text=cl, xy=(options.plot_end, log_midpoint), xycoords="data", xytext=(5, 0), textcoords="offset points", fontsize=font_legend, va="center")
+        ax.annotate(text=cl, xy=(options.plot_end, log_midpoint), xycoords="data", xytext=(5, 0), 
+                    textcoords="offset points", fontsize=font_legend, va="center")
     
     # set minimum y-limits
     if peak > 1e-3:
@@ -322,10 +379,11 @@ def make_fig_axs(options):
             panel_ratios[0 + 1*plot_radio + 1*plot_stix + 1*plot_goes] = 2
     
     if panels == 3:
-        fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 4*panels])#, gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
+        fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 4*panels])
     else:
-        fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 3*panels], gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
-        #fig, axs = plt.subplots(nrows=panels, sharex=True, dpi=100, figsize=[7, 1.5*panels], gridspec_kw={'height_ratios': panel_ratios})# layout="constrained")
+        fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 3*panels], 
+                                gridspec_kw={'height_ratios': panel_ratios})
+        
 
     if panels == 1:
         axs = [axs]

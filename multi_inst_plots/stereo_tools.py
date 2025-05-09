@@ -24,8 +24,7 @@ from sunpy.coordinates import get_horizons_coord
 from sunpy.coordinates import frames
 
 
-from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
-import multi_inst_plots.cdaweb as cdaweb
+from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs, cdaweb_download_fido
 
 
 # omit Pandas' PerformanceWarning
@@ -100,7 +99,7 @@ def load_swaves(dataset, startdate, enddate, path=None):
     """
 
 
-    files = cdaweb.cdaweb_download_fido(dataset=dataset, startdate=startdate, enddate=enddate, path=path)
+    files = cdaweb_download_fido(dataset=dataset, startdate=startdate, enddate=enddate, path=path)
 
     if len(files) == 0:
         print(f"No {dataset} data found between {startdate} and {enddate}")
@@ -135,16 +134,18 @@ def load_swaves(dataset, startdate, enddate, path=None):
 
 
 def load_data(options):
-    global df_sept_electrons
-    global df_sept_protons
-    global df_het
+    data = {}
+
+    global df_sept_electrons_orig
+    global df_sept_protons_orig
+    global df_het_orig
     global df_waves_hfr
     global df_waves_lfr
     global df_stix
     global df_goes
     global goes_sat
-    global df_mag
-    global df_magplas
+    global df_mag_orig
+    global df_magplasma
 
     global meta_magplas
     global meta_mag
@@ -206,15 +207,13 @@ def load_data(options):
     if not plot_mag:
         plot_polarity = False
 
-    resample = str(options.resample.value) + "min"
-    resample_mag = str(options.resample_mag.value) + "min"
-    resample_stixgoes = str(options.resample_stixgoes.value) + "min"
 
     if plot_sept_e:
         # print("loading sept_e...")
         df_sept_electrons_orig, meta_se = stereo_load(instrument='SEPT', startdate=startdate, enddate=enddate, 
                             sept_species='e', sept_viewing=sept_viewing,
                             path=path, spacecraft=sc)
+        data["SEPT_Electrons"] = df_sept_electrons_orig
         # print("sept_e loaded!")
         
     if plot_sept_p:
@@ -252,17 +251,49 @@ def load_data(options):
 
     if plot_stix:
         # print("loading stix...")
-        df_stix = load_solo_stix(start=startdate, end=enddate, ltc=stix_ltc, resample=resample_stixgoes)
+        df_stix = load_solo_stix(start=startdate, end=enddate, ltc=stix_ltc, resample=None)
         # print("stix loaded!")
 
     if plot_goes:
         # print("loading goes...")
-        df_goes, goes_sat = load_goes_xrs(startdate, enddate, man_select=goes_man_select, resample=resample_stixgoes, path=path)
+        df_goes, goes_sat = load_goes_xrs(startdate, enddate, man_select=goes_man_select, resample=None, path=path)
         # print("goes loaded!")
-
-
     
-    ### Resampling
+
+def energy_channel_selection():
+    cols = []
+    df = pd.DataFrame()
+
+    if plot_sept_e:
+        cols.append("SEPT Electrons")
+        series_se = meta_se["ch_strings"].reset_index(drop=True)
+        df = pd.concat([df, series_se], axis=1)
+
+    if plot_sept_p:
+        cols.append("SEPT Protons")
+        series_sp = meta_sp["ch_strings"].reset_index(drop=True)
+        df = pd.concat([df, series_sp], axis=1)
+
+    if plot_het_e:
+        cols.append("HET Electrons")
+        series_he = pd.Series(meta_het["Electron_Bins_Text"])
+        df = pd.concat([df, series_he], axis=1)
+
+    if plot_het_p:
+        cols.append("HET Protons")
+        series_hp = pd.Series(meta_het["Proton_Bins_Text"])
+        df = pd.concat([df, series_hp], axis=1)
+
+    df.columns = cols
+    return df
+
+
+
+def make_plot(options):
+    
+    resample = str(options.resample.value) + "min"
+    resample_mag = str(options.resample_mag.value) + "min"
+    resample_stixgoes = str(options.resample_stixgoes.value) + "min"
 
     if plot_sept_e:
         if isinstance(df_sept_electrons_orig, pd.DataFrame) and resample != "0min":
@@ -296,14 +327,15 @@ def load_data(options):
             
         else:
             df_mag = df_mag_orig
-            
-    
 
+    if plot_goes:
+        if isinstance(df_goes, pd.DataFrame) and resample_stixgoes != "0min":
+            df_goes = resample_df(df_goes, resample_stixgoes)
+        
+    if plot_stix:
+        if isinstance(df_stix, pd.DataFrame) and resample_stixgoes != "0min":
+            df_stix = resample_df(df_stix, resample_stixgoes)
 
-
-
-def make_plot(options):
-    
     font_ylabel = 20
     font_legend = 10
     
@@ -525,4 +557,5 @@ def make_plot(options):
 
     return fig, axs
 
-
+data = {}
+metadata = {}

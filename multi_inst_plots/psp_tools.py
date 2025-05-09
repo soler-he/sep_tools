@@ -47,6 +47,9 @@ def load_data(options):
     options : Options object
 
     """
+    
+    data = {}
+    metadata = {}
 
     #####################################################################
     ######## Data loading ###############################################
@@ -131,20 +134,24 @@ def load_data(options):
     if not plot_mag:
         plot_polarity = False
 
-    resample = str(options.resample.value) + "min"         # convert to form that Pandas accepts
-    resample_mag = str(options.resample_mag.value) + "min"
-    resample_stixgoes = str(options.resample_stixgoes.value) + "min"
+    
 
 
     if plot_stix:
-        df_stix = load_solo_stix(startdate, enddate, ltc=stix_ltc, resample=resample_stixgoes)
+        df_stix = load_solo_stix(startdate, enddate, ltc=stix_ltc, resample=None)
+        data["stix"] = df_stix
     
     if plot_goes:
-        df_goes, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, resample=resample_stixgoes, path=file_path)
+        df_goes, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, resample=None, path=file_path)
+        data["goes"] = df_goes
+        
 
     if plot_epihi_p or plot_epihi_e:
         psp_het_org, psp_het_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-HET-RATES60', startdate, enddate, 
                                                                     path=file_path, resample=None)
+        
+        data["het"] = psp_het_org
+        metadata["het_energies"] = psp_het_energies
         
         if isinstance(psp_het_org, str) or len(psp_het_org) == 0:
             psp_het_org = []
@@ -159,12 +166,18 @@ def load_data(options):
         if isinstance(psp_epilo_org, pd.DataFrame):
             electron_countrate_keys = psp_epilo_org.filter(like='Electron_CountRate_ChanF_E').keys()
             psp_epilo_org[electron_countrate_keys] = psp_epilo_org[electron_countrate_keys].mask(psp_epilo_org[electron_countrate_keys] < 0.0)
+
+        data["epilo_pe"] = psp_epilo_org
+        metadata["epilo_pe_energies"] = psp_epilo_energies
         
 
     if plot_epilo_p:
         psp_epilo_ic_org, psp_epilo_ic_energies = psp_isois_load('PSP_ISOIS-EPILO_L2-IC', startdate, enddate, 
                                                                                     path=file_path, resample=None, epilo_channel=epilo_ic_channel, 
                                                                                     epilo_threshold=None)
+        
+        data["epilo_ic"] = psp_epilo_ic_org
+        metadata["epilo_ic_energies"] = psp_epilo_ic_energies
     
 
     if plot_radio:
@@ -188,6 +201,7 @@ def load_data(options):
         except (AttributeError, IndexError):
             print("Unable to obtain FIELDS/RFS LFR data!")
             psp_rfs_lfr_psd = []
+            psp_rfs_lfr_freq = []
             
         try:
             psp_rfs_hfr_psd = spz.get_data(spz.inventories.data_tree.cda.ParkerSolarProbe.PSP_FLD.RFS_HFR.PSP_FLD_L3_RFS_HFR.psp_fld_l3_rfs_hfr_PSD_SFU, 
@@ -201,6 +215,12 @@ def load_data(options):
         except (AttributeError, IndexError):
             print("Unable to obtain FIELDS/RFS HFR data!")
             psp_rfs_hfr_psd = []
+            psp_rfs_hfr_freq = []
+
+        data["rfs_lfr"] = psp_rfs_lfr_psd
+        data["rfs_hfr"] = psp_rfs_hfr_psd
+        metadata["rfs_lfr_freq"] = psp_rfs_lfr_freq
+        metadata["rfs_hfr_freq"] = psp_rfs_hfr_freq
 
 
     if plot_mag or plot_mag_angles:
@@ -228,6 +248,8 @@ def load_data(options):
         except AttributeError:
             print("Unable to obtain MAG data!")
             psp_mag = []
+
+        data["mag"] = psp_mag
 
     if plot_Vsw or plot_N or plot_T or plot_p_dyn:
         try:    
@@ -340,18 +362,26 @@ def load_data(options):
             df_psp_spc = []
             df_psp_spani = []
 
+        data["magplas_spani"] = df_psp_spani
+        data["magplas_spc"] = df_psp_spc 
+
+
+    return data, metadata
+
     
+
+def make_plot(options):
+    """
+    Plot chosen data with user-specified parameters.
+    """
 
     #################################################################
     ############## Resampling #######################################
     #################################################################
     
-    global psp_het
-    global psp_epilo
-    global psp_epilo_ic
-    global df_magplas_spani
-    global df_magplas_spc
-    global mag
+    resample = str(options.resample.value) + "min"         # convert to form that Pandas accepts
+    resample_mag = str(options.resample_mag.value) + "min"
+    resample_stixgoes = str(options.resample_stixgoes.value) + "min"
 
     if (plot_epihi_e or plot_epihi_p):
         if isinstance(psp_het_org, pd.DataFrame) and resample != "0min":
@@ -371,8 +401,6 @@ def load_data(options):
         else:
             psp_epilo_ic = psp_epilo_ic_org
     
-
-    
     if plot_Vsw or plot_N or plot_T or plot_p_dyn:
         if isinstance(df_psp_spani, pd.DataFrame) and resample_mag != "0min":
             df_magplas_spani = resample_df(df_psp_spani, resample_mag)
@@ -389,35 +417,16 @@ def load_data(options):
         else:
             mag = psp_mag
 
-    data = {
-        "het": psp_het,
-        "epilo_pe": psp_epilo,
-        "epilo_ic": psp_epilo_ic,
-        "magplas_spani": df_magplas_spani,
-        "magplas_spc": df_magplas_spc,
-        "mag": mag,
-        "rfs_lfr": psp_rfs_lfr_psd,
-        "rfs_hfr": psp_rfs_hfr_psd 
-    }
+    if plot_goes:
+        if isinstance(df_goes, pd.DataFrame) and resample_stixgoes != "0min":
+            df_goes = resample_df(df_goes, resample_stixgoes)
+        
+    if plot_stix:
+        if isinstance(df_stix, pd.DataFrame) and resample_stixgoes != "0min":
+            df_stix = resample_df(df_stix, resample_stixgoes)
 
-    metadata = {
-        "het_energies": psp_het_energies,
-        "epilo_pe_energies": psp_epilo_energies,
-        "epilo_ic_energies": psp_epilo_ic_energies,
-        "rfs_lfr_freq": psp_rfs_lfr_freq,
-        "rfs_hfr_freq": psp_rfs_hfr_freq
-    }
-
-    return data, metadata
-
-#def energy_channel_selection():
     
 
-def make_plot(options):
-    """
-    Plot chosen data with user-specified parameters.
-    """
-   
     epihi_p_combine_channels = False #options.psp_epihi_p_combine_channels.value
     
     psp_het_viewing = options.psp_het_viewing.value

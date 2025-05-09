@@ -226,15 +226,17 @@ def wind_mfi_loader(startdate, enddate, path=None):
 
 
 def load_data(options):
+    data = {}
+    metadata = {}
+
     global df_wind_wav_rad2
     global df_wind_wav_rad1
-    global df_vsw
-    global df_mag
-    global df_mag_pol
-    global ephin
-    global erne_p
-    global edic
-    global pdic
+    global df_solwind
+    global mag_data
+    global ephin_
+    global erne_p_
+    global edic_
+    global pdic_
     global meta_ephin
     global meta_erne
     global meta_e
@@ -257,7 +259,6 @@ def load_data(options):
     global plot_wind_p
     global plot_ephin
     global plot_erne
-    # global plot_pad
     global plot_mag_angles
     global plot_mag
     global plot_Vsw
@@ -334,6 +335,11 @@ def load_data(options):
                             multi_index=True,
                             path=path,
                             threshold=wind_flux_thres)
+
+        data["3dp_e"] = edic_
+        data["3dp_p"] = pdic_
+        metadata["3dp_e"] = meta_e
+        metadata["3dp_p"] = meta_p
         
     if plot_radio:
         try:
@@ -341,12 +347,15 @@ def load_data(options):
         except IndexError:
             print(f'Unable to obtain Wind RAD1 data for {startdate} - {enddate}!')
             df_wind_wav_rad1 = []
+
         try:
             df_wind_wav_rad2 = load_waves_rad(dataset="RAD2", startdate=startdate, enddate=enddate, file_path=path)
         except IndexError:
             print(f'Unable to obtain Wind RAD2 data for {startdate} - {enddate}!')
             df_wind_wav_rad2 = []
 
+        data["wav_rad1"] = df_wind_wav_rad1
+        data["wav_rad2"] = df_wind_wav_rad2
 
     if plot_ephin:
         try:
@@ -357,9 +366,15 @@ def load_data(options):
             ephin_ = []
             meta_ephin = []
 
+        data["ephin"] = ephin_
+        metadata["ephin"] = meta_ephin
+
     if plot_erne:
         erne_p_, meta_erne = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=startdate, enddate=enddate,
                             path=path, resample=None)
+        
+        data["erne"] = erne_p_
+        metadata["erne"] = meta_erne
         
 
     if plot_mag or plot_mag_angles:
@@ -369,6 +384,8 @@ def load_data(options):
         except IndexError:  # TimeSeries() call throws IndexError when trying to pop from an empty list
             print(f"No MFI data found for {startdate} - {enddate}!")
             mag_data = []
+
+        data["mag"] = mag_data
     
         
     #product = a.cdaweb.Dataset('AC_K0_SWE')
@@ -388,17 +405,30 @@ def load_data(options):
             print(f"Unable to obtain WI_K0_3DP data for {startdate} - {enddate}!")
             df_solwind = []
 
+        data["solwind"] = df_solwind
+
       
     if plot_stix:
         df_stix = load_solo_stix(startdate, enddate, resample=av_stixgoes, ltc = stix_ltc)
+        data["stix"] = df_stix
 
     if plot_goes:
         df_goes, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, resample=av_stixgoes, path=path)
+        data["goes"] = df_goes
     
-    # AVERAGING
+    
+
+    return data, metadata
+    
+
+
+def make_plot(options):
+
+    ### AVERAGING ###
+    
     if plot_mag or plot_mag_angles:
         # If no data, mag_data is an empty list and resample_df would crash (no resample method). Else if no averaging is done, rename to df_mag.
-        if isinstance(mag_data, pd.DataFrame) and av_mag != "0min":
+        if isinstance(mag_data, pd.DataFrame) and (av_mag != "0min" or av_mag != "1min"):
             df_mag = resample_df(mag_data, av_mag)
         else:
             df_mag = mag_data
@@ -438,11 +468,7 @@ def load_data(options):
             erne_p = resample_df(erne_p_, av_erne)
         else:
             erne_p = erne_p_
-    
-        
-    # add particles, SWE
 
-def make_plot(options):
 
     wind_ev2MeV_fac = 1e6
 
