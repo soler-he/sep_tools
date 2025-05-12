@@ -141,8 +141,8 @@ def load_data(options):
     global df_het_orig
     global df_waves_hfr
     global df_waves_lfr
-    global df_stix
-    global df_goes
+    global df_stix_
+    global df_goes_
     global goes_sat
     global df_mag_orig
     global df_magplasma
@@ -251,12 +251,12 @@ def load_data(options):
 
     if plot_stix:
         # print("loading stix...")
-        df_stix = load_solo_stix(start=startdate, end=enddate, ltc=stix_ltc, resample=None)
+        df_stix_ = load_solo_stix(start=startdate, end=enddate, ltc=stix_ltc, resample=None)
         # print("stix loaded!")
 
     if plot_goes:
         # print("loading goes...")
-        df_goes, goes_sat = load_goes_xrs(startdate, enddate, man_select=goes_man_select, resample=None, path=path)
+        df_goes_, goes_sat = load_goes_xrs(startdate, enddate, man_select=goes_man_select, resample=None, path=path)
         # print("goes loaded!")
     
 
@@ -329,12 +329,16 @@ def make_plot(options):
             df_mag = df_mag_orig
 
     if plot_goes:
-        if isinstance(df_goes, pd.DataFrame) and resample_stixgoes != "0min":
-            df_goes = resample_df(df_goes, resample_stixgoes)
+        if isinstance(df_goes_, pd.DataFrame) and resample_stixgoes != "0min":
+            df_goes = resample_df(df_goes_, resample_stixgoes)
+        else:
+            df_goes = df_goes_
         
     if plot_stix:
-        if isinstance(df_stix, pd.DataFrame) and resample_stixgoes != "0min":
-            df_stix = resample_df(df_stix, resample_stixgoes)
+        if isinstance(df_stix_, pd.DataFrame) and resample_stixgoes != "0min":
+            df_stix = resample_df(df_stix_, resample_stixgoes)
+        else:
+            df_stix = df_stix_
 
     font_ylabel = 20
     font_legend = 10

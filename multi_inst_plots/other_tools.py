@@ -336,8 +336,12 @@ def make_fig_axs(options):
         plot_protons = plot_epilo_p or plot_epihi_p
 
     if options.spacecraft.value == "Solar Orbiter":
-        plot_electrons = options.solo_electrons.value   # TODO separate instruments?
-        plot_protons = options.solo_protons.value
+        plot_het_e = options.solo_het_e.value
+        plot_het_p = options.solo_het_p.value
+        plot_ept_e = options.solo_ept_e.value
+        plot_ept_p = options.solo_ept_p.value
+        plot_electrons = plot_het_e or plot_ept_e
+        plot_protons = plot_het_p or plot_ept_p
 
     if options.spacecraft.value == "STEREO":
         plot_het_e = options.ster_het_e.value

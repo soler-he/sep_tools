@@ -244,8 +244,8 @@ def load_data(options):
     # global l1_ch_eph_e
     global l1_ch_erne_p
     global intercal
-    global df_stix
-    global df_goes
+    global df_stix_
+    global df_goes_
     global goes_sat
 
     global startdate
@@ -271,10 +271,6 @@ def load_data(options):
     
     global path
 
-    global av_mag
-    global av_sep
-    global av_erne
-
     plot_wind_e = options.l1_wind_e.value
     plot_wind_p = options.l1_wind_p.value
     plot_wind = plot_wind_e or plot_wind_p
@@ -297,7 +293,6 @@ def load_data(options):
     wind_flux_thres = None
 
     plot_radio = options.radio.value
-    #plot_pad = options.pad.value
     plot_mag = options.mag.value
     plot_mag_angles = options.mag_angles.value
     plot_Vsw = options.Vsw.value
@@ -311,12 +306,6 @@ def load_data(options):
 
     if not plot_mag:
         plot_polarity = False
-
-    av_sep = str(options.l1_av_sep.value) + "min"
-    av_mag =  str(options.resample_mag.value) + "min"
-    av_erne = str(options.l1_av_erne.value) + "min"
-    av_stixgoes = str(options.resample_stixgoes.value) + "min"   
-    
 
     # LOAD DATA
     ####################################################################
@@ -387,10 +376,7 @@ def load_data(options):
 
         data["mag"] = mag_data
     
-        
-    #product = a.cdaweb.Dataset('AC_K0_SWE')
-    #product = a.cdaweb.Dataset('WI_PLSP_3DP')
-    #product = a.cdaweb.Dataset('WI_PM_3DP')  
+
     if plot_Vsw or plot_N or plot_T:
         try:
             product = a.cdaweb.Dataset('WI_K0_3DP')
@@ -409,32 +395,37 @@ def load_data(options):
 
       
     if plot_stix:
-        df_stix = load_solo_stix(startdate, enddate, resample=av_stixgoes, ltc = stix_ltc)
-        data["stix"] = df_stix
+        df_stix_ = load_solo_stix(startdate, enddate, resample=None, ltc = stix_ltc)
+        #data["stix"] = df_stix
 
     if plot_goes:
-        df_goes, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, resample=av_stixgoes, path=path)
-        data["goes"] = df_goes
+        df_goes_, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, resample=None, path=path)
+        #data["goes"] = df_goes
+        #print(df_goes)
     
-    
-
     return data, metadata
     
 
 
 def make_plot(options):
 
+    av_sep = str(options.l1_av_sep.value) + "min"
+    av_mag =  str(options.resample_mag.value) + "min"
+    av_erne = str(options.l1_av_erne.value) + "min"
+    av_stixgoes = str(options.resample_stixgoes.value) + "min"   
+
+    
     ### AVERAGING ###
     
     if plot_mag or plot_mag_angles:
         # If no data, mag_data is an empty list and resample_df would crash (no resample method). Else if no averaging is done, rename to df_mag.
-        if isinstance(mag_data, pd.DataFrame) and (av_mag != "0min" or av_mag != "1min"):
+        if isinstance(mag_data, pd.DataFrame) and (av_mag != "0min"):
             df_mag = resample_df(mag_data, av_mag)
         else:
             df_mag = mag_data
             
     if plot_Vsw or plot_N or plot_T:
-        if isinstance(df_solwind, pd.DataFrame) and av_mag != "0min":
+        if isinstance(df_solwind, pd.DataFrame) and av_mag != "0min" and av_mag != "1min":
             df_vsw = resample_df(df_solwind, av_mag)
         else:
             df_vsw = df_solwind
@@ -468,6 +459,17 @@ def make_plot(options):
             erne_p = resample_df(erne_p_, av_erne)
         else:
             erne_p = erne_p_
+
+    if plot_goes:
+        if isinstance(df_goes_, pd.DataFrame) and av_stixgoes != "0min":
+            df_goes = resample_df(df_goes_, av_stixgoes)
+        else:
+            df_goes = df_goes_
+        
+    if plot_stix:
+        if isinstance(df_stix_, pd.DataFrame) and av_stixgoes != "0min":
+            df_stix = resample_df(df_stix_, av_stixgoes)
+        df_stix = df_stix_
 
 
     wind_ev2MeV_fac = 1e6

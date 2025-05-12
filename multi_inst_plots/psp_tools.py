@@ -87,8 +87,8 @@ def load_data(options):
     global df_psp_spc
     
     global psp_mag
-    global df_stix
-    global df_goes
+    global df_stix_
+    global df_goes_
     global goes_sat
     global psp_epilo_energies
     global psp_epilo_ic_energies
@@ -138,12 +138,12 @@ def load_data(options):
 
 
     if plot_stix:
-        df_stix = load_solo_stix(startdate, enddate, ltc=stix_ltc, resample=None)
-        data["stix"] = df_stix
+        df_stix_ = load_solo_stix(startdate, enddate, ltc=stix_ltc, resample=None)
+        data["stix"] = df_stix_
     
     if plot_goes:
-        df_goes, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, resample=None, path=file_path)
-        data["goes"] = df_goes
+        df_goes_, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, resample=None, path=file_path)
+        data["goes"] = df_goes_
         
 
     if plot_epihi_p or plot_epihi_e:
@@ -418,12 +418,17 @@ def make_plot(options):
             mag = psp_mag
 
     if plot_goes:
-        if isinstance(df_goes, pd.DataFrame) and resample_stixgoes != "0min":
-            df_goes = resample_df(df_goes, resample_stixgoes)
+        if isinstance(df_goes_, pd.DataFrame) and resample_stixgoes != "0min":
+            df_goes = resample_df(df_goes_, resample_stixgoes)
+        else:
+            df_goes = df_goes_    
         
     if plot_stix:
-        if isinstance(df_stix, pd.DataFrame) and resample_stixgoes != "0min":
-            df_stix = resample_df(df_stix, resample_stixgoes)
+        if isinstance(df_stix_, pd.DataFrame) and resample_stixgoes != "0min":
+            df_stix = resample_df(df_stix_, resample_stixgoes)
+        else:
+            df_stix = df_stix_
+        
 
     
 

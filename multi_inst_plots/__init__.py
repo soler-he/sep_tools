@@ -40,8 +40,9 @@ _stereo_attrs = ['ster_sc', 'ster_sept_e', 'ster_sept_p', 'ster_het_e',
 _l1_attrs = ['l1_wind_e', 'l1_wind_p', 'l1_ephin', 'l1_erne', 
              'l1_ch_erne_p', 'l1_av_sep', 'l1_av_erne'] 
 
-_solo_attrs = ['solo_electrons', 'solo_protons', 'solo_viewing', 'solo_ch_ept_e', 
-              'solo_ch_ept_p', 'solo_ch_het_e', 'solo_ch_het_p', 'solo_resample_particles']
+_solo_attrs = ['solo_ept_e', 'solo_ept_p', 'solo_het_e', 'solo_het_p', 'solo_viewing', 'solo_ch_ept_e', 
+              'solo_ch_ept_p', 'solo_ch_het_e', 'solo_ch_het_p']
+
 
 class Options:
     def __init__(self):
@@ -91,8 +92,10 @@ class Options:
         self.psp_ch_epilo_pe =  w.SelectMultiple(description="EPI-Lo PE electrons", options=range(3,8+1), value=tuple(range(3,8+1,1)), rows=10, style=_style)
         self.psp_ch_epilo_ic = w.SelectMultiple(description="EPI-Lo IC protons/ions", options=range(0,31+1), value=tuple(range(0,31+1,4)), rows=10, style=_style)
         
-        self.solo_electrons = w.Checkbox(value=True, description="HET+EPT electrons")
-        self.solo_protons = w.Checkbox(value=True, description="HET+EPT ions")
+        self.solo_ept_e = w.Checkbox(value=True, description="EPD/EPT electrons")
+        self.solo_ept_p = w.Checkbox(value=True, description="EPD/EPT protons/ions")
+        self.solo_het_e = w.Checkbox(value=True, description="EPD/HET electrons")
+        self.solo_het_p = w.Checkbox(value=True, description="EPD/HET protons/ions")
         self.solo_viewing = w.Dropdown(options=['sun', 'asun', 'north', 'south'], value='sun', style=_style, description="HET+EPT viewing:")
         self.solo_resample_particles = w.BoundedIntText(value=10, min=0, description="HET+EPT averaging:", style=_style)
         self.solo_ch_ept_e = w.SelectMultiple(description="EPT electrons:", options=range(0,15+1), value=tuple(range(0,15+1,2)), rows=10, style=_style)
@@ -269,7 +272,7 @@ def load_data():
     
     if options.spacecraft.value is None:
         print("You must choose a spacecraft first!")
-        return
+        return None, None
     
     if options.spacecraft.value == "STEREO":
         print(f"Loading {options.spacecraft.value} {options.ster_sc.value} data for range: {options.startdt} - {options.enddt}")
@@ -305,7 +308,7 @@ def load_data():
         else:
             print("STEREO A/B: no data before 26 Oct 2006")
     
-    return None, None
+    
 
 def energy_channel_selection():
     selection = []
