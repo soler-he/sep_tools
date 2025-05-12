@@ -11,8 +11,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# import ipympl
-
 from matplotlib.dates import DateFormatter
 
 import piecewise_regression
