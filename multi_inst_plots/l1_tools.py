@@ -1,17 +1,11 @@
-import matplotlib.pyplot as plt
-plt.rcParams['axes.linewidth'] = 1.5
-plt.rcParams['font.size'] = 12
-plt.rcParams['xtick.labelsize'] = 15
-plt.rcParams['ytick.labelsize'] = 15
-plt.rc('axes', titlesize=20)     # fontsize of the axes title
-plt.rc('axes', labelsize=20)    # fontsize of the x and y labels
-plt.rcParams['agg.path.chunksize'] = 20000
-import numpy as np
 import os
-import pandas as pd
 import sunpy
 import cdflib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
+from astropy.constants import e, k_B
 from sunpy.coordinates import get_horizons_coord
 from sunpy.coordinates import frames
 from sunpy.net import Fido
@@ -20,18 +14,25 @@ from sunpy.timeseries import TimeSeries
 from sunpy.net import Scraper
 from sunpy.time import TimeRange
 from sunpy.data.data_manager.downloader import ParfiveDownloader
-
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.colors import LogNorm, Normalize
 from matplotlib import cm
-
-from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
-
 from seppy.loader.wind import wind3dp_load
 from seppy.loader.soho import soho_load
 from seppy.tools import resample_df
 # from other_loaders_py3 import wind_3dp_av_en  #, wind_mfi_loader, ERNE_HED_loader
 
+from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, \
+    load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
+
+
+plt.rcParams['axes.linewidth'] = 1.5
+plt.rcParams['font.size'] = 12
+plt.rcParams['xtick.labelsize'] = 15
+plt.rcParams['ytick.labelsize'] = 15
+plt.rc('axes', titlesize=20)     # fontsize of the axes title
+plt.rc('axes', labelsize=20)    # fontsize of the x and y labels
+plt.rcParams['agg.path.chunksize'] = 20000
 
 #intensity_label = 'Intensity\n/(s cm² sr MeV)'
 intensity_label = 'Intensity\n'+r'[(cm² sr s MeV)$^{-1}$]'
@@ -223,30 +224,8 @@ def wind_mfi_loader(startdate, enddate, path=None):
     # return concat_df
     return  df
 
-
-
-def load_data(options):
-    data = {}
-    metadata = {}
-
-    global df_wind_wav_rad2
-    global df_wind_wav_rad1
-    global df_solwind
-    global mag_data
-    global ephin_
-    global erne_p_
-    global edic_
-    global pdic_
-    global meta_ephin
-    global meta_erne
-    global meta_e
-    global meta_p
-    # global l1_ch_eph_e
-    global l1_ch_erne_p
-    global intercal
-    global df_stix_
-    global df_goes_
-    global goes_sat
+def read_widget_values(options):
+    
 
     global startdate
     global enddate
@@ -268,12 +247,12 @@ def load_data(options):
     global plot_stix
     global stix_ltc
     global plot_goes
-    
     global path
 
     plot_wind_e = options.l1_wind_e.value
     plot_wind_p = options.l1_wind_p.value
     plot_wind = plot_wind_e or plot_wind_p
+
     plot_ephin = options.l1_ephin.value
     plot_erne = options.l1_erne.value
 
@@ -282,15 +261,6 @@ def load_data(options):
 
     startdate = options.startdt
     enddate = options.enddt
-
-    if plot_ephin:
-        #l1_ch_eph_e = options.l1_ch_eph_e.value
-        intercal = 1
-
-    if plot_erne:
-        l1_ch_erne_p = options.l1_ch_erne_p.value
-    
-    wind_flux_thres = None
 
     plot_radio = options.radio.value
     plot_mag = options.mag.value
@@ -306,6 +276,32 @@ def load_data(options):
 
     if not plot_mag:
         plot_polarity = False
+
+def load_data(options):
+    data = {}
+    metadata = {}
+
+    global df_wind_wav_rad2
+    global df_wind_wav_rad1
+    global df_solwind
+    global mag_data
+    global ephin_
+    global erne_p_
+    global edic_
+    global pdic_
+    global meta_ephin
+    global meta_erne
+    global meta_e
+    global meta_p
+    global intercal
+    global df_stix_
+    global df_goes_
+    global goes_sat
+
+    read_widget_values(options)
+
+    intercal = 1
+    wind_flux_thres = None
 
     # LOAD DATA
     ####################################################################
@@ -350,7 +346,9 @@ def load_data(options):
         try:
             ephin_, meta_ephin = soho_load(dataset="SOHO_COSTEP-EPHIN_L2-1MIN", startdate=startdate, enddate=enddate,
                             path=path, resample=None)
-        except UnboundLocalError:   # soho_ephin_loader throws this error since it tries to access a variable (cs_e300) that hasn't been set
+        except UnboundLocalError:   
+            # soho_ephin_loader throws this error since it 
+            # tries to access a variable (cs_e300) that hasn't been set
             print(f"Unable to obtain SOHO/EPHIN data for {startdate} - {enddate}!")
             ephin_ = []
             meta_ephin = []
@@ -387,6 +385,7 @@ def load_data(options):
             sw_data = TimeSeries(files, concatenate=True)
             df_solwind = sw_data.to_dataframe()
             df_solwind['vsw'] = np.sqrt(df_solwind['ion_vel_0']**2 + df_solwind['ion_vel_1']**2 + df_solwind['ion_vel_2']**2)
+            df_solwind['ion_temp'] = df_solwind['ion_temp'] * e / k_B   # in Kelvin
         except IndexError:
             print(f"Unable to obtain WI_K0_3DP data for {startdate} - {enddate}!")
             df_solwind = []
@@ -396,33 +395,70 @@ def load_data(options):
       
     if plot_stix:
         df_stix_ = load_solo_stix(startdate, enddate, resample=None, ltc = stix_ltc)
-        #data["stix"] = df_stix
+        data["stix"] = df_stix_
 
     if plot_goes:
-        df_goes_, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, resample=None, path=path)
-        #data["goes"] = df_goes
-        #print(df_goes)
+        df_goes_, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, 
+                                           resample=None, path=path)
+        data["goes"] = df_goes_
+       
     
     return data, metadata
     
 
+def energy_channel_selection():
+    cols = ["3DP Electrons", "3DP Protons", "EPHIN Electrons", "ERNE Ions"]
+    df = pd.DataFrame()
+
+    series_e = meta_e['channels_dict_df']['Bins_Text'].reset_index(drop=True)
+    series_e[0] = np.nan
+    df = pd.concat([df, series_e], axis=1)
+
+    series_p = meta_p['channels_dict_df']['Bins_Text'].reset_index(drop=True)
+    series_p[0] = np.nan
+    series_p[1] = np.nan
+    df = pd.concat([df, series_p], axis=1)
+
+    energy_list = []
+    for ch in ["E150", "E300", "E1300", "E3000"]:
+        energy_list.append(meta_ephin[ch])
+    series_ephin = pd.Series(energy_list)
+    df = pd.concat([df, series_ephin], axis=1)
+
+    series_erne = meta_erne['channels_dict_df_p']['ch_strings'].reset_index(drop=True)
+    df = pd.concat([df, series_erne], axis=1)
+
+    df.columns = cols
+    return df
+
 
 def make_plot(options):
 
+    wind_ev2MeV_fac = 1e6
+    
+    read_widget_values(options)
+
+    ### AVERAGING ###
+    
     av_sep = str(options.l1_av_sep.value) + "min"
     av_mag =  str(options.resample_mag.value) + "min"
     av_erne = str(options.l1_av_erne.value) + "min"
     av_stixgoes = str(options.resample_stixgoes.value) + "min"   
 
-    
-    ### AVERAGING ###
-    
     if plot_mag or plot_mag_angles:
-        # If no data, mag_data is an empty list and resample_df would crash (no resample method). Else if no averaging is done, rename to df_mag.
+        # If no data, mag_data is an empty list and resample_df would crash (no resample method). 
+        # Else if no averaging is done, rename to df_mag.
         if isinstance(mag_data, pd.DataFrame) and (av_mag != "0min"):
             df_mag = resample_df(mag_data, av_mag)
         else:
-            df_mag = mag_data
+            # L1 mag has values surrounded by NaN's, meaning line plot's won't show
+            df_mag = mag_data[~np.isnan(mag_data["B"]) & ~np.isnan(mag_data["BRTN_0"]) 
+                              & ~np.isnan(mag_data["BRTN_1"]) & ~np.isnan(mag_data["BRTN_2"]) ]
+            
+            # # Fix lines connecting over time gaps
+            # for i in range(len(df_mag.index) - 1):
+            #     if df_mag.index[i+1] - df_mag.index[i] > pd.Timedelta(seconds=60):
+            #         df_mag[i,:] = np.nan
             
     if plot_Vsw or plot_N or plot_T:
         if isinstance(df_solwind, pd.DataFrame) and av_mag != "0min" and av_mag != "1min":
@@ -469,10 +505,14 @@ def make_plot(options):
     if plot_stix:
         if isinstance(df_stix_, pd.DataFrame) and av_stixgoes != "0min":
             df_stix = resample_df(df_stix_, av_stixgoes)
-        df_stix = df_stix_
+        else:
+            df_stix = df_stix_
 
-
-    wind_ev2MeV_fac = 1e6
+    wind_ch_e = options.l1_ch_wind_e.value
+    wind_ch_p = options.l1_ch_wind_p.value
+    erne_ch = options.l1_ch_ephin_e.value
+    ephin_ch_index = list(options.l1_ch_ephin_e.value)
+    ephin_ch = np.array(["E150", "E300", "E1300", "E3000"])[ephin_ch_index]
 
     legends_inside = options.legends_inside.value
     cmap = options.radio_cmap.value
@@ -492,15 +532,18 @@ def make_plot(options):
         
         if isinstance(df_wind_wav_rad1, pd.DataFrame):
             time_rad1_2D, freq_rad1_2D = np.meshgrid(df_wind_wav_rad1.index, df_wind_wav_rad1.columns, indexing='ij')
-            mesh = axs[i].pcolormesh(time_rad1_2D, freq_rad1_2D, df_wind_wav_rad1.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
+            mesh = axs[i].pcolormesh(time_rad1_2D, freq_rad1_2D, df_wind_wav_rad1.iloc[:-1,:-1], 
+                                     shading='flat', cmap=cmap, norm=log_norm)
 
         if isinstance(df_wind_wav_rad2, pd.DataFrame):
             time_rad2_2D, freq_rad2_2D = np.meshgrid(df_wind_wav_rad2.index, df_wind_wav_rad2.columns, indexing='ij')
-            mesh = axs[i].pcolormesh(time_rad2_2D, freq_rad2_2D, df_wind_wav_rad2.iloc[:-1,:-1], shading='flat', cmap=cmap, norm=log_norm)
+            mesh = axs[i].pcolormesh(time_rad2_2D, freq_rad2_2D, df_wind_wav_rad2.iloc[:-1,:-1], 
+                                     shading='flat', cmap=cmap, norm=log_norm)
 
         if mesh is not None:
             # Add inset axes for colorbar
-            axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.01,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
+            axins = inset_axes(axs[i], width="100%", height="100%", loc="center", 
+                               bbox_to_anchor=(1.01,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
             cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
             cbar.set_label(r"Intensity [$\mathrm{V^2/Hz}$]", rotation=90, labelpad=10, fontsize=font_ylabel)
 
@@ -522,13 +565,14 @@ def make_plot(options):
         ax = axs[i]
         if plot_wind and isinstance(edic, pd.DataFrame):
             ax.set_prop_cycle('color', plt.cm.Greens_r(np.linspace(0,1, len(meta_e['channels_dict_df'])+color_offset)))
-            for ch in np.arange(1, len(meta_e['channels_dict_df'])):
-                ax.plot(edic.index, edic[f'FLUX_{ch}'] * wind_ev2MeV_fac, label='Wind/3DP '+meta_e['channels_dict_df']['Bins_Text'].values[ch], drawstyle='steps-mid')
+            for ch in wind_ch_e:
+                ax.plot(edic.index, edic[f'FLUX_{ch}'] * wind_ev2MeV_fac, 
+                        label='Wind/3DP '+meta_e['channels_dict_df']['Bins_Text'].values[ch], drawstyle='steps-mid')
         
         color_offset = 2
         if plot_ephin and isinstance(ephin, pd.DataFrame):
-                ax.set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0, 1, 2+color_offset)))
-                for ch in ["E150", "E1300"]:
+                ax.set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0, 1, 4+color_offset)))
+                for ch in ephin_ch:
                     ax.plot(ephin.index, ephin[ch]*intercal, label='SOHO/EPHIN '+meta_ephin[ch], drawstyle='steps-mid')
 
         # ax.set_ylim(1e0, 1e4)
@@ -549,21 +593,22 @@ def make_plot(options):
         ax = axs[i]
         if plot_wind and isinstance(pdic, pd.DataFrame):
             ax.set_prop_cycle('color', plt.cm.Wistia_r(np.linspace(0,1, len(meta_p['channels_dict_df'])+color_offset)))
-            for ch in np.arange(2, len(meta_p['channels_dict_df'])):
-                ax.plot(pdic.index, pdic[f'FLUX_{ch}'] * wind_ev2MeV_fac, label='Wind/3DP '+meta_p['channels_dict_df']['Bins_Text'].values[ch],
-                        drawstyle='steps-mid')
+            for ch in wind_ch_p:
+                ax.plot(pdic.index, pdic[f'FLUX_{ch}'] * wind_ev2MeV_fac, 
+                        label='Wind/3DP '+meta_p['channels_dict_df']['Bins_Text'].values[ch], drawstyle='steps-mid')
 
         # protons high en:
         if plot_erne and isinstance(erne_p, pd.DataFrame):
             ax.set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0.2,1,10))) #cm.RdPu_r
-            for ch in range(0, len(l1_ch_erne_p)):
-                ax.plot(erne_p.index, erne_p[f'PH_{ch}'], label='SOHO/ERNE/HED '+meta_erne['channels_dict_df_p']['ch_strings'][ch], 
-                            drawstyle='steps-mid')
+            for ch in erne_ch:
+                ax.plot(erne_p.index, erne_p[f'PH_{ch}'], 
+                        label='SOHO/ERNE/HED '+meta_erne['channels_dict_df_p']['ch_strings'][ch], drawstyle='steps-mid')
                 
         if legends_inside:
             ax.legend(loc='upper right', borderaxespad=0., fontsize=font_legend, title="Protons/Ions")
         else:
-            ax.legend(loc='upper left', borderaxespad=0., fontsize=font_legend, bbox_to_anchor=(1.01, 1), title="Protons/Ions")
+            ax.legend(loc='upper left', borderaxespad=0., fontsize=font_legend, 
+                      bbox_to_anchor=(1.01, 1), title="Protons/Ions")
 
         ax.set_ylabel(intensity_label, fontsize=font_ylabel)
         ax.set_yscale('log')
@@ -592,22 +637,37 @@ def make_plot(options):
                                                 'stop':df_mag_pol.index[-1]+pd.Timedelta(minutes=15),'step':"1min"}) 
                                                     # (lon, lat, radius) in (deg, deg, AU)
             pos = pos.transform_to(frames.HeliographicStonyhurst())
+
             #Interpolate position data to magnetic field data cadence
-            r = np.interp([t.timestamp() for t in df_mag_pol.index],[t.timestamp() for t in pd.to_datetime(pos.obstime.value)],pos.radius.value)
-            lat = np.interp([t.timestamp() for t in df_mag_pol.index],[t.timestamp() for t in pd.to_datetime(pos.obstime.value)],pos.lat.value)
-            pol, phi_relative = polarity_rtn(df_mag_pol.BRTN_0.values, df_mag_pol.BRTN_1.values, df_mag_pol.BRTN_2.values,r,lat,V=400)
+            r = np.interp([t.timestamp() for t in df_mag_pol.index],
+                          [t.timestamp() for t in pd.to_datetime(pos.obstime.value)], pos.radius.value)
+            lat = np.interp([t.timestamp() for t in df_mag_pol.index],
+                            [t.timestamp() for t in pd.to_datetime(pos.obstime.value)], pos.lat.value)
+            
+            pol, phi_relative = polarity_rtn(df_mag_pol.BRTN_0.values, df_mag_pol.BRTN_1.values, 
+                                             df_mag_pol.BRTN_2.values, r, lat, V=400)
+            
             # create an inset axe in the current axe:
-            pol_ax = inset_axes(ax, height="5%", width="100%", loc=9, bbox_to_anchor=(0.,0,1,1.1), bbox_transform=ax.transAxes) # center, you can check the different codes in plt.legend?
+            pol_ax = inset_axes(ax, height="5%", width="100%", loc=9, 
+                                bbox_to_anchor=(0.,0,1,1.1), bbox_transform=ax.transAxes) # center, you can check the different codes in plt.legend?
+            
             pol_ax.get_xaxis().set_visible(False)
             pol_ax.get_yaxis().set_visible(False)
-            pol_ax.set_ylim(0,1)
-            pol_ax.set_xlim([df_mag_pol.index.values[0], df_mag_pol.index.values[-1]])
-            pol_arr = np.zeros(len(pol))+1
+            pol_ax.set_ylim(0, 1)
+            # pol_ax.set_xlim([df_mag_pol.index.values[0], df_mag_pol.index.values[-1]])
+            pol_arr = np.zeros(len(pol)) + 1
             timestamp = df_mag_pol.index.values[2] - df_mag_pol.index.values[1]
             norm = Normalize(vmin=0, vmax=180, clip=True)
             mapper = cm.ScalarMappable(norm=norm, cmap=cm.bwr)
-            pol_ax.bar(df_mag_pol.index.values[(phi_relative>=0) & (phi_relative<180)],pol_arr[(phi_relative>=0) & (phi_relative<180)],color=mapper.to_rgba(phi_relative[(phi_relative>=0) & (phi_relative<180)]),width=timestamp)
-            pol_ax.bar(df_mag_pol.index.values[(phi_relative>=180) & (phi_relative<360)],pol_arr[(phi_relative>=180) & (phi_relative<360)],color=mapper.to_rgba(np.abs(360-phi_relative[(phi_relative>=180) & (phi_relative<360)])),width=timestamp)
+            
+            pol_ax.bar(df_mag_pol.index.values[(phi_relative>=0) & (phi_relative<180)],
+                       pol_arr[(phi_relative>=0) & (phi_relative<180)],
+                       color=mapper.to_rgba(phi_relative[(phi_relative>=0) & (phi_relative<180)]), width=timestamp)
+            pol_ax.bar(df_mag_pol.index.values[(phi_relative>=180) & (phi_relative<360)],
+                       pol_arr[(phi_relative>=180) & (phi_relative<360)],
+                       color=mapper.to_rgba(np.abs(360-phi_relative[(phi_relative>=180) & (phi_relative<360)])),
+                       width=timestamp)
+            
             pol_ax.set_xlim(options.plot_start, options.plot_end)
         
         
@@ -636,6 +696,7 @@ def make_plot(options):
         if isinstance(df_vsw, pd.DataFrame):
             axs[i].plot(df_vsw.index, df_vsw['ion_temp'], '-k', label="Temperature")
         axs[i].set_ylabel(r"T$_\mathrm{p}$ [K]", fontsize=font_ylabel)
+        axs[i].set_yscale('log')
         i += 1
 
     ### Density

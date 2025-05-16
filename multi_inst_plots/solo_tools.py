@@ -2,20 +2,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
+
 from matplotlib.colors import Normalize
 from matplotlib import cm
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-
 from seppy.loader.solo import mag_load
 from seppy.tools import resample_df
 from solo_epd_loader import epd_load, calc_ept_corrected_e, combine_channels
 from sunpy.coordinates import get_horizons_coord
 from sunpy.coordinates import frames
-
 import sunpy.net.attrs as a
 import sunpy_soar
 from sunpy.net import Fido
 from sunpy.timeseries import TimeSeries
+from astropy.constants import e, k_B
 
 from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
 
@@ -136,13 +136,7 @@ def swa_load_grnd_mom(startdate, enddate, path=None):
         
 #     return df_rpw
     
-
-
-
-def load_data(options):
-    data = {}
-    metadata = {}
-
+def read_widget_values(options):
     global plot_electrons
     global plot_protons
     global plot_polarity
@@ -162,6 +156,9 @@ def load_data(options):
     global plot_ept_p 
     global plot_het_e 
     global plot_het_p
+    global ept_l3
+    global ion_conta_corr
+    global path
 
     path = options.path
 
@@ -187,23 +184,22 @@ def load_data(options):
     plot_electrons = plot_ept_e or plot_het_e
     plot_protons = plot_ept_p or plot_het_p
 
-    global ept_l3
-
     ept_l3 = True
-    
-    global ion_conta_corr
     ion_conta_corr = False
 
+    if not plot_mag:
+        plot_polarity = False
+
+def load_data(options):
+    data = {}
+    metadata = {}
+
     global df_ept_org
-    global df_rtn_ept
-    global df_hci_ept
     global metadata_ept
     global electrons_het
     global electrons_ept
     global protons_ept
     global protons_het
-    # global df_rpw_tnr
-    # global df_rpw_hfr
     global df_stix_
     global df_goes_
     global goes_sat
@@ -212,10 +208,7 @@ def load_data(options):
     global energies_ept
     global energies_het
 
-    if not plot_mag:
-        plot_polarity = False
-
-    
+    read_widget_values(options)
 
     if plot_electrons or plot_protons:
         
@@ -226,14 +219,31 @@ def load_data(options):
                                                                                         autodownload=True, path=path)
             except UnboundLocalError:
                 df_ept_org, df_rtn_ept, df_hci_ept, energies_ept, metadata_ept = [], [], [], [], []
+            
+            data["ept"] = df_ept_org
+            metadata["ept_energies"] = energies_ept
+            metadata["ept_other"] = metadata_ept
 
         else:
             protons_ept, electrons_ept, energies_ept = epd_load(sensor='ept', level='l2', startdate=startdate, enddate=enddate, 
                                                                 pos_timestamp=None,viewing=viewing, path=path, autodownload=True)
+            # correct EPT level 2 electron data for ion contamination:
+            if ion_conta_corr:
+                # df_electrons_ept2 = calc_EPT_corrected_e(df_electrons_ept['Electron_Flux'], df_protons_ept['Ion_Flux'])
+                electrons_ept = calc_ept_corrected_e(electrons_ept, protons_ept)
+                electrons_ept = electrons_ept.mask(electrons_ept < 0)
+            
+            data["ept_p"] = protons_ept
+            data["ept_e"] = electrons_ept
+            metadata["ept_energies"] = energies_ept
                 
         protons_het, electrons_het, energies_het = epd_load(sensor='het', level='l2', startdate=startdate, enddate=enddate, 
                                                             pos_timestamp=None,viewing=viewing, path=path, autodownload=True)
-
+        
+        data["het_e"] = electrons_het
+        data["het_p"] = protons_het
+        metadata["het_energies"] = energies_het
+        
 
     # if plot_radio:
     #     df_rpw_hfr = rpw_load_radio(startdate=startdate, enddate=enddate, freq="HFR", path=path)
@@ -242,10 +252,12 @@ def load_data(options):
 
     if plot_stix:
         df_stix_ = load_solo_stix(startdate, enddate, resample=None, ltc = stix_ltc)
+        data["stix"] = df_stix_
 
 
     if plot_goes:
         df_goes_, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, resample=None, path=path)
+        data["goes"] = df_goes_
 
 
     if plot_mag or plot_mag_angles or plot_polarity:
@@ -256,6 +268,7 @@ def load_data(options):
             print("Unable to obtain MAG data!")
             mag_data_org = []
 
+        data["mag"] = mag_data_org
 
     if plot_Vsw or plot_N or plot_T:
         try:
@@ -263,25 +276,51 @@ def load_data(options):
             swa_vsw = np.sqrt(swa_data.V_RTN_0**2 + swa_data.V_RTN_1**2 + swa_data.V_RTN_2**2)
             swa_data['vsw'] = swa_vsw
 
-            temp = np.sqrt(swa_data.TxTyTz_RTN_0**2 + swa_data.TxTyTz_RTN_2**2 + swa_data.TxTyTz_RTN_2**2)
+            temp = np.sqrt(swa_data.TxTyTz_RTN_0**2 + swa_data.TxTyTz_RTN_2**2 + swa_data.TxTyTz_RTN_2**2) * e / k_B 
             swa_data['temp'] = temp
         except IndexError:
             print("Unable to obtain SWA data!")
             swa_data = []
 
-
-    # correct EPT level 2 electron data for ion contamination:
-    if plot_electrons and ion_conta_corr and not ept_l3:
-        # df_electrons_ept2 = calc_EPT_corrected_e(df_electrons_ept['Electron_Flux'], df_protons_ept['Ion_Flux'])
-        electrons_ept = calc_ept_corrected_e(electrons_ept, protons_ept)
-        electrons_ept = electrons_ept.mask(electrons_ept < 0)
-
+        data["swa"] = swa_data
 
     return data, metadata
 
 
-def make_plot(options):
+def energy_channel_selection():
+    cols = []
+    df = pd.DataFrame()
 
+ 
+    cols.append("EPD/EPT Electrons")
+    energy_list_ept_e = pd.Series(energies_ept["Electron_Bins_Text"])
+    df = pd.concat([df, energy_list_ept_e], axis=1)
+
+
+    cols.append("EPD/EPT Ions")
+    energy_list_ept_p = pd.Series(energies_ept["Ion_Bins_Text"])
+    df = pd.concat([df, energy_list_ept_p], axis=1)
+
+
+    cols.append("EPD/HET Electrons")
+    energy_list_het_e = pd.Series(energies_het["Electron_Bins_Text"])
+    df = pd.concat([df, energy_list_het_e], axis=1)
+
+
+    cols.append("EPD/HET Protons")
+    energy_list_het_p = pd.Series(energies_het["H_Bins_Text"])
+    df = pd.concat([df, energy_list_het_p], axis=1)
+
+    df.columns = cols
+    return df
+
+
+    
+
+def make_plot(options):
+    
+    read_widget_values(options)
+    
     # Resampling 
 
     resample_mag = str(options.resample_mag.value) + "min"
@@ -336,14 +375,21 @@ def make_plot(options):
 
 
     if plot_Vsw or plot_N or plot_T:
-        if isinstance(swa_data, pd.DataFrame) and resample_mag != "0min":
-            df_swa = resample_df(swa_data, resample_mag, pos_timestamp=None)
+        if isinstance(swa_data, pd.DataFrame):
+            if resample_mag == "0min":
+                df_swa = resample_df(swa_data, "5s", pos_timestamp=None)    
+            else:
+                df_swa = resample_df(swa_data, resample_mag, pos_timestamp=None)
         else:
             df_swa = swa_data
 
     if plot_mag or plot_mag_angles or plot_polarity:
-        if isinstance(mag_data_org, pd.DataFrame) and resample_mag != "0min":
-            mag_data = resample_df(mag_data_org, resample_mag, pos_timestamp=None)
+        if isinstance(mag_data_org, pd.DataFrame):
+            if resample_mag == "0min":
+                # dataframe is very high cadence and so here we apply a minimum of 5 s to lighten the load
+                mag_data = resample_df(mag_data_org, "5s", pos_timestamp=None)
+            else:
+                mag_data = resample_df(mag_data_org, resample_mag, pos_timestamp=None)
         else:
             mag_data = mag_data_org
 
@@ -351,7 +397,7 @@ def make_plot(options):
     ept_ele_channels = options.solo_ch_ept_e.value
     het_ele_channels = options.solo_ch_het_e.value
     ept_ion_channels = options.solo_ch_ept_p.value
-    het_ion_channels = options.solo_ch_het_p.value
+    het_p_channels = options.solo_ch_het_p.value
     av_en = False
 
     legends_inside = options.legends_inside.value
@@ -366,9 +412,9 @@ def make_plot(options):
             print(f"HET electrons: {het_ele_channels}, {len(het_ele_channels)}")
             
         if plot_ept_p:
-            print(f"EPT protons/ions: {ept_ion_channels}, {len(ept_ion_channels)}")
+            print(f"EPT ions: {ept_ion_channels}, {len(ept_ion_channels)}")
         if plot_het_p:
-            print(f"HET protons/ions: {het_ion_channels}, {len(het_ion_channels)}")
+            print(f"HET protons: {het_p_channels}, {len(het_p_channels)}")
         
 
     fig, axs = make_fig_axs(options)
@@ -523,8 +569,8 @@ def make_plot(options):
                                         ds="steps-mid", label='EPT '+energies_ept[p_ch_key][channel][0])    
                             
                 if plot_het_p:    
-                    axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0,1,len(het_ion_channels)+color_offset)))
-                    for channel in het_ion_channels:
+                    axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0,1,len(het_p_channels)+color_offset)))
+                    for channel in het_p_channels:
                         axs[i].plot(df_protons_het['H_Flux'][f'H_Flux_{channel}'],
                                     ds="steps-mid", label='HET '+energies_het["H_Bins_Text"].flatten()[channel])
                         
@@ -614,6 +660,7 @@ def make_plot(options):
         if isinstance(df_swa, pd.DataFrame):
             axs[i].plot(df_swa.index, df_swa['T'], '-k', label="Temperature")
         axs[i].set_ylabel(r"T$_\mathrm{p}$ [K]", fontsize=font_ylabel)
+        axs[i].set_yscale('log')
         i += 1
 
     ### Density
@@ -622,6 +669,7 @@ def make_plot(options):
             axs[i].plot(df_swa.index, df_swa.N,
                         '-k', label="Ion density")
         axs[i].set_ylabel(r"N$_\mathrm{p}$ [cm$^{-3}$]", fontsize=font_ylabel)
+        
         i += 1
 
     ### Sws

@@ -312,12 +312,23 @@ def make_fig_axs(options):
     plot_stix = options.stix.value
     plot_goes = options.goes.value
 
-    if options.plot_range is None:
+
+    if options.plot_start is None:
         options.plot_start = options.startdt
+    
+    if options.plot_end is None:
         options.plot_end = options.enddt
-    else:
-        options.plot_start = options.plot_range.children[0].value[0]
-        options.plot_end = options.plot_range.children[0].value[1]
+
+    if options.plot_end < options.plot_start:
+        print("Check plot ranges! End time cannot precede start time.")
+
+    if ((options.plot_start > options.enddt and options.plot_end > options.enddt) \
+        or (options.plot_start < options.startdt and options.plot_end < options.startdt)):
+        print("Selected plot range is not between loaded range!")
+
+    if options.plot_end > options.enddt or options.plot_start < options.startdt:
+        print(f"Plot range exceeds loaded range {options.startdate.value} - {options.enddate.value}")
+         
 
     if options.spacecraft.value == "L1 (Wind/SOHO)":
         plot_wind_e = options.l1_wind_e.value
@@ -350,6 +361,7 @@ def make_fig_axs(options):
         plot_sept_p = options.ster_sept_p.value
         plot_electrons = plot_het_e or plot_sept_e
         plot_protons = plot_het_p or plot_sept_p
+
 
     font_ylabel = 20
     font_legend = 10
@@ -396,14 +408,15 @@ def make_fig_axs(options):
         print("No instruments chosen!")
         return (None, None)
 
+    pad = 0.1
     if options.spacecraft.value == "L1 (Wind/SOHO)":
-        axs[0].set_title('Near-Earth spacecraft (Wind, SOHO)', fontsize=font_ylabel) # TODO: add padding
+        axs[0].set_title('Near-Earth spacecraft (Wind, SOHO)', pad=pad, fontsize=font_ylabel)
     elif options.spacecraft.value == "Parker Solar Probe":
-        axs[0].set_title('Parker Solar Probe', fontsize=font_ylabel)
+        axs[0].set_title('Parker Solar Probe', pad=pad, fontsize=font_ylabel)
     elif options.spacecraft.value == "STEREO":
-        axs[0].set_title(f'STEREO {options.ster_sc.value}', fontsize=font_ylabel)
+        axs[0].set_title(f'STEREO {options.ster_sc.value}', pad=pad, fontsize=font_ylabel)
     else:
-        axs[0].set_title(f'Solar Orbiter', fontsize=font_ylabel)
+        axs[0].set_title(f'Solar Orbiter', pad=pad, fontsize=font_ylabel)
 
     
     axs[-1].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M\n%b %d'))
