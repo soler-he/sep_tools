@@ -46,9 +46,9 @@ class Options:
         self.spacecraft = w.Dropdown(value=None, description="Spacecraft", 
                                      options=["Parker Solar Probe", "Solar Orbiter", "L1 (Wind/SOHO)", "STEREO"], 
                                      style=_style)
-        self.startdate = w.DatePicker(value=dt.date(2023, 4, 21), disabled=False, description="Start date:", 
+        self.startdate = w.DatePicker(value=dt.date(2022, 3, 14), disabled=False, description="Start date:", 
                                       style={'description_width': "40%"})   
-        self.enddate = w.DatePicker(value=dt.date(2023, 4, 22), disabled=False, description="End date:", 
+        self.enddate = w.DatePicker(value=dt.date(2022, 3, 16), disabled=False, description="End date:", 
                                     style={'description_width': "40%"})
 
         self.resample = w.BoundedIntText(value=10, min=0, step=1, description='Averaging (min):', disabled=False, 

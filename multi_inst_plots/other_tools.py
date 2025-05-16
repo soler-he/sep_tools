@@ -408,7 +408,7 @@ def make_fig_axs(options):
         print("No instruments chosen!")
         return (None, None)
 
-    pad = 0.1
+    pad = 12
     if options.spacecraft.value == "L1 (Wind/SOHO)":
         axs[0].set_title('Near-Earth spacecraft (Wind, SOHO)', pad=pad, fontsize=font_ylabel)
     elif options.spacecraft.value == "Parker Solar Probe":
