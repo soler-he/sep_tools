@@ -297,7 +297,7 @@ def energy_channel_selection():
     df = pd.concat([df, energy_list_ept_e], axis=1)
 
 
-    cols.append("EPD/EPT Ions")
+    cols.append("EPD/EPT Protons")
     energy_list_ept_p = pd.Series(energies_ept["Ion_Bins_Text"])
     df = pd.concat([df, energy_list_ept_p], axis=1)
 
@@ -396,7 +396,7 @@ def make_plot(options):
 
     ept_ele_channels = options.solo_ch_ept_e.value
     het_ele_channels = options.solo_ch_het_e.value
-    ept_ion_channels = options.solo_ch_ept_p.value
+    ept_p_channels = options.solo_ch_ept_p.value
     het_p_channels = options.solo_ch_het_p.value
     av_en = False
 
@@ -412,7 +412,7 @@ def make_plot(options):
             print(f"HET electrons: {het_ele_channels}, {len(het_ele_channels)}")
             
         if plot_ept_p:
-            print(f"EPT ions: {ept_ion_channels}, {len(ept_ion_channels)}")
+            print(f"EPT protons: {ept_p_channels}, {len(ept_p_channels)}")
         if plot_het_p:
             print(f"HET protons: {het_p_channels}, {len(het_p_channels)}")
         
@@ -557,9 +557,9 @@ def make_plot(options):
             try:
                 if plot_ept_e:
                     if ept_l3:
-                        axs[i].set_prop_cycle('color', plt.cm.Wistia_r(np.linspace(0,1,len(ept_ion_channels)+color_offset)))
+                        axs[i].set_prop_cycle('color', plt.cm.Wistia_r(np.linspace(0,1,len(ept_p_channels)+color_offset)))
                         # for k, e in enumerate(energies_ept['Ion_Bins_Text']):
-                        for chan in ept_ion_channels:                    
+                        for chan in ept_p_channels:                    
                             axs[i].plot(df_ept[f'Ion_Flux_{view}_{chan}'], ds="steps-mid", label=f"EPT {energies_ept['Ion_Bins_Text'][chan]}")
                     else:
                         p_channels = np.arange(0, 64, 6)

@@ -295,7 +295,7 @@ def energy_channel_selection():
     df = pd.concat([df, series_se], axis=1)
 
 
-    cols.append("SEPT Protons/Ions")
+    cols.append("SEPT Protons")
     series_sp = meta_sp["ch_strings"].reset_index(drop=True)
     df = pd.concat([df, series_sp], axis=1)
 
@@ -305,7 +305,7 @@ def energy_channel_selection():
     df = pd.concat([df, series_he], axis=1)
 
 
-    cols.append("HET Protons/Ions")
+    cols.append("HET Protons")
     series_hp = pd.Series(meta_het["Proton_Bins_Text"])
     df = pd.concat([df, series_hp], axis=1)
 

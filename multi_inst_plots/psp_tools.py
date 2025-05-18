@@ -511,15 +511,15 @@ def make_plot(options):
         if plot_protons:  
             
             if plot_epihi_p:
-                print('HET protons:', ch_het_p, ',', len(ch_het_p))
+                print('EPI-Hi HET protons:', ch_het_p, ',', len(ch_het_p))
             if plot_epilo_p:
-                print('EPI-Lo ions:', ch_epilo_ic, ',', len(ch_epilo_ic))
+                print('EPI-Lo IC protons:', ch_epilo_ic, ',', len(ch_epilo_ic))
 
         if plot_electrons:
             if plot_epihi_e:
-                print('HET electrons:', ch_het_e, ',', len(ch_het_e))
+                print('EPI-Hi HET electrons:', ch_het_e, ',', len(ch_het_e))
             if plot_epilo_e:
-                print('EPI-Lo electrons:', ch_epilo_e, ',', len(ch_epilo_e))
+                print('EPI-Lo PE electrons:', ch_epilo_e, ',', len(ch_epilo_e))
         
 
     fig, axs = make_fig_axs(options)

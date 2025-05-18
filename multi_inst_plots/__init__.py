@@ -5,11 +5,13 @@
 # - WEEKLY PLOTS: 60 min particle avg, 15 min mag, 0 min STIX/GOES. Use only instruments at same location
 # - go through datasets to figure out native cadences and fix issues related to them
 # - replace resampling BoundedIntText boxes with IntText (max value capped was at 100)
+# - JupyterHub: suppress signal handler main thread value error thing
 
 
 import datetime as dt
 import ipywidgets as w
 import os
+import warnings
 
 from IPython.display import display
 import multi_inst_plots.stereo_tools as stereo
@@ -17,6 +19,7 @@ import multi_inst_plots.psp_tools as psp
 import multi_inst_plots.l1_tools as l1
 import multi_inst_plots.solo_tools as solo
 
+warnings.simplefilter(action="ignore", )
 
 _style = {'description_width' : '60%'} 
 
@@ -51,12 +54,13 @@ class Options:
         self.enddate = w.DatePicker(value=dt.date(2022, 3, 16), disabled=False, description="End date:", 
                                     style={'description_width': "40%"})
 
-        self.resample = w.BoundedIntText(value=10, min=0, step=1, description='Averaging (min):', disabled=False, 
+        self.resample = w.IntText(value=10, step=1, description='Averaging (min):', disabled=False, 
                                          style=_style)
-        self.resample_mag = w.BoundedIntText(value=10, min=0, step=1, description='MAG averaging (min):', 
+        self.resample_mag = w.IntText(value=10, step=1, description='MAG averaging (min):', 
                                              disabled=False, style=_style)
-        self.resample_stixgoes = w.BoundedIntText(value=10, min=0, step=1, description="STIX/GOES averaging (min):", 
+        self.resample_stixgoes = w.IntText(value=10, step=1, description="STIX/GOES averaging (min):", 
                                                   style=_style)
+        
         self.radio_cmap = w.Dropdown(options=['jet', 'plasma'], value='jet', description='Radio colormap', style=_style)
         self.pos_timestamp = 'center' 
         self.legends_inside = w.Checkbox(value=False, description='Legends inside')
@@ -79,14 +83,14 @@ class Options:
         self.plot_end = None
 
         self.psp_epilo_e = w.Checkbox(description="EPI-Lo PE Electrons", value=True)
-        self.psp_epilo_p = w.Checkbox(description="EPI-Lo IC Protons/Ions", value=True)
+        self.psp_epilo_p = w.Checkbox(description="EPI-Lo IC Protons", value=True)
         self.psp_epihi_e = w.Checkbox(description="EPI-Hi/HET Electrons", value=True)
-        self.psp_epihi_p = w.Checkbox(description="EPI-Hi/HET Protons/Ions", value=True)
-        self.psp_epihi_p_combine_channels = w.Checkbox(description="Combine EPI-Hi/HET ion channels", value=True)
+        self.psp_epihi_p = w.Checkbox(description="EPI-Hi/HET Protons", value=True)
+        self.psp_epihi_p_combine_channels = w.Checkbox(description="Combine EPI-Hi/HET proton channels", value=True)
         self.psp_het_viewing = w.Dropdown(description="EPI-Hi/HET viewing", options=["A", "B"], style=_style)
-        self.psp_epilo_viewing = w.Dropdown(description="EPI-Lo PE (e) viewing:", options=range(0,8), 
+        self.psp_epilo_viewing = w.Dropdown(description="EPI-Lo PE viewing:", options=range(0,8), 
                                             style=_style, disabled=False, value=3)       
-        self.psp_epilo_ic_viewing = w.Dropdown(description="EPI-Lo IC (p) viewing:", options=range(0,80), 
+        self.psp_epilo_ic_viewing = w.Dropdown(description="EPI-Lo IC viewing:", options=range(0,80), 
                                                style=_style, disabled=False, value=3)
         self.psp_epilo_channel = w.Dropdown(description="EPI-Lo PE channel", options=['F', 'E', 'G'], 
                                             style=_style, disabled=True, value='F')
@@ -94,15 +98,15 @@ class Options:
                                                style=_style, disabled=True, value='T')
         self.psp_ch_het_e = w.SelectMultiple(description="EPI-Hi/HET Electrons", options=range(0,18+1), 
                                              value=tuple(range(0,18+1,3)), rows=10, style=_style)
-        self.psp_ch_het_p = w.SelectMultiple(description="EPI-Hi/HET Protons/Ions", options=range(0,14+1), 
+        self.psp_ch_het_p = w.SelectMultiple(description="EPI-Hi/HET Protons", options=range(0,14+1), 
                                              value=tuple(range(0,14+1,2)), rows=10, style=_style)
         self.psp_ch_epilo_pe =  w.SelectMultiple(description="EPI-Lo PE Electrons", options=range(0,5+1), 
                                                  value=tuple(range(0,5+1,1)), rows=10, style=_style)
-        self.psp_ch_epilo_ic = w.SelectMultiple(description="EPI-Lo IC Protons/Ions", options=range(0,31+1), 
+        self.psp_ch_epilo_ic = w.SelectMultiple(description="EPI-Lo IC Protons", options=range(0,31+1), 
                                                 value=tuple(range(0,31+1,4)), rows=10, style=_style)
         
         self.solo_ept_e = w.Checkbox(value=True, description="EPD/EPT Electrons")
-        self.solo_ept_p = w.Checkbox(value=True, description="EPD/EPT Ions")
+        self.solo_ept_p = w.Checkbox(value=True, description="EPD/EPT Protons")
         self.solo_het_e = w.Checkbox(value=True, description="EPD/HET Electrons")
         self.solo_het_p = w.Checkbox(value=True, description="EPD/HET Protons")
         self.solo_viewing = w.Dropdown(options=['sun', 'asun', 'north', 'south'], value='sun', style=_style, 
@@ -112,7 +116,7 @@ class Options:
                                               value=tuple(range(0,15+1,2)), rows=10, style=_style)
         self.solo_ch_het_e = w.SelectMultiple(description="HET Electrons:", options=range(0,3+1), 
                                               value=tuple(range(0,3+1,1)), style=_style)
-        self.solo_ch_ept_p = w.SelectMultiple(description="EPT Ions", options=range(0,31+1), 
+        self.solo_ch_ept_p = w.SelectMultiple(description="EPT Protons", options=range(0,31+1), 
                                               value=tuple(range(0,31+1,5)), rows=10, style=_style)
         self.solo_ch_het_p = w.SelectMultiple(description="HET Protons", options=range(0,35+1), 
                                               value=tuple(range(0,35+1,5)), rows=10, style=_style)
@@ -120,8 +124,8 @@ class Options:
         self.l1_wind_e =  w.Checkbox(value=True, description="Wind/3DP Electrons")
         self.l1_wind_p = w.Checkbox(value=True, description="Wind/3DP Protons")
         self.l1_ephin = w.Checkbox(value=True, description="SOHO/COSTEP-EPHIN Electrons")
-        self.l1_erne = w.Checkbox(value=True, description="SOHO/ERNE-HED Ions")
-        self.l1_ch_erne_p = w.SelectMultiple(description="ERNE-HED Ions:", options=range(0, 9+1, 1), 
+        self.l1_erne = w.Checkbox(value=True, description="SOHO/ERNE-HED Protons")
+        self.l1_ch_erne_p = w.SelectMultiple(description="ERNE-HED Protons:", options=range(0, 9+1, 1), 
                                              value=tuple(range(0,9+1,2)), rows=10, disabled=False, style=_style)
         self.l1_ch_ephin_e = w.SelectMultiple(description="EPHIN Electrons:", options=range(0,4), 
                                               value=(0,2), rows=10, style=_style)
@@ -129,22 +133,22 @@ class Options:
                                               value=tuple(range(1,7,1)), rows=10, style=_style)
         self.l1_ch_wind_p = w.SelectMultiple(description="3DP Protons:", options=range(2,9), 
                                               value=tuple(range(2,9,1)), rows=10, style=_style)
-        self.l1_av_sep = w.BoundedIntText(value=10, min=0, description="3DP+EPHIN averaging:", style=_style)
-        self.l1_av_erne = w.BoundedIntText(value=10, min=0, description="ERNE averaging:", style=_style)
+        self.l1_av_sep = w.IntText(value=10, description="3DP+EPHIN averaging:", style=_style)
+        self.l1_av_erne = w.IntText(value=10, description="ERNE averaging:", style=_style)
         
         self.ster_sc = w.Dropdown(description="STEREO A/B:", options=["A", "B"], style=_style)
-        self.ster_sept_e = w.Checkbox(description="SEPT Electrons", value=True)
-        self.ster_sept_p = w.Checkbox(description="SEPT Protons/Ions", value=True)
-        self.ster_het_e = w.Checkbox(description="HET Electrons", value=True)
-        self.ster_het_p = w.Checkbox(description="HET Protons/Ions", value=True)
-        self.ster_sept_viewing = w.Dropdown(description="SEPT viewing", options=['sun', 'asun', 'north', 'south'], 
+        self.ster_sept_e = w.Checkbox(description="SEPT Electrons:", value=True)
+        self.ster_sept_p = w.Checkbox(description="SEPT Protons:", value=True)
+        self.ster_het_e = w.Checkbox(description="HET Electrons:", value=True)
+        self.ster_het_p = w.Checkbox(description="HET Protons:", value=True)
+        self.ster_sept_viewing = w.Dropdown(description="SEPT viewing:", options=['sun', 'asun', 'north', 'south'], 
                                             style=_style)
         
-        self.ster_ch_sept_e = w.SelectMultiple(description="SEPT Electrons", options=range(0,14+1), 
+        self.ster_ch_sept_e = w.SelectMultiple(description="SEPT Electrons:", options=range(0,14+1), 
                                                value=tuple(range(0,14+1, 2)), rows=10, style=_style)
-        self.ster_ch_sept_p = w.SelectMultiple(description="SEPT Protons/Ions", options=range(0,29+1), 
+        self.ster_ch_sept_p = w.SelectMultiple(description="SEPT Protons:", options=range(0,29+1), 
                                                value=tuple(range(0,29+1,4)), rows=10, style=_style)
-        self.ster_ch_het_p =  w.SelectMultiple(description="HET Protons/Ions:", options=range(0,10+1), 
+        self.ster_ch_het_p =  w.SelectMultiple(description="HET Protons:", options=range(0,10+1), 
                                                value=tuple(range(0,10+1,2)), rows=10, style=_style)
         self.ster_ch_het_e = w.SelectMultiple(description="HET Electrons:", options=(0, 1, 2), 
                                               value=(0, 1, 2), style=_style)
@@ -200,11 +204,19 @@ class Options:
                 elif change.new == True:
                     self.goes_man_select.disabled = False
 
+        def _no_negative_avg(change):
+            if change.new < 0:
+                change.owner.value = 0
 
         self.mag.observe(_disable_checkbox, names="value")
         self.stix.observe(_disable_checkbox, names="value")
         self.goes.observe(_disable_checkbox, names="value")
 
+        self.resample.observe(_no_negative_avg, names="value")
+        self.resample_mag.observe(_no_negative_avg, names="value")
+        self.resample_stixgoes.observe(_no_negative_avg, names="value")
+        self.l1_av_erne.observe(_no_negative_avg, names="value")
+        self.l1_av_sep.observe(_no_negative_avg, names="value")
             
         #Set observer to listen for changes in S/C dropdown menu
         self.spacecraft.observe(_change_sc, names="value")

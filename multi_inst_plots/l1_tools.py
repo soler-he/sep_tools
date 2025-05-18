@@ -407,7 +407,7 @@ def load_data(options):
     
 
 def energy_channel_selection():
-    cols = ["3DP Electrons", "3DP Protons", "EPHIN Electrons", "ERNE Ions"]
+    cols = ["3DP Electrons", "3DP Protons", "EPHIN Electrons", "ERNE Protons"]
     df = pd.DataFrame()
 
     series_e = meta_e['channels_dict_df']['Bins_Text'].reset_index(drop=True)
@@ -510,7 +510,7 @@ def make_plot(options):
 
     wind_ch_e = options.l1_ch_wind_e.value
     wind_ch_p = options.l1_ch_wind_p.value
-    erne_ch = options.l1_ch_ephin_e.value
+    erne_ch = options.l1_ch_erne_p.value
     ephin_ch_index = list(options.l1_ch_ephin_e.value)
     ephin_ch = np.array(["E150", "E300", "E1300", "E3000"])[ephin_ch_index]
 
