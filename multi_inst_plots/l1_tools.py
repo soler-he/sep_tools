@@ -310,14 +310,14 @@ def load_data(options):
                             startdate=startdate,
                             enddate=enddate,
                             resample=0,
-                            multi_index=True,
+                            multi_index=False,
                             path=path,
                             threshold=wind_flux_thres)
         pdic_, meta_p = wind3dp_load(dataset="WI_SOSP_3DP",
                             startdate=startdate,
                             enddate=enddate,
                             resample=0,
-                            multi_index=True,
+                            multi_index=False,
                             path=path,
                             threshold=wind_flux_thres)
 
