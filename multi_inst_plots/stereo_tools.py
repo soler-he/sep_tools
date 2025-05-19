@@ -1,13 +1,7 @@
-# from IPython.core.display import display, HTML
-# display(HTML(data="""<style> div#notebook-container { width: 80%; } div#menubar-container { width: 85%; } div#maintoolbar-container { width: 90%; } </style>"""))
 import numpy as np
-import os
 import pandas as pd
-import datetime as dt
 import warnings
-import math
 import cdflib
-import sys
 import sunpy
 
 from matplotlib import pyplot as plt
@@ -20,7 +14,6 @@ plt.rc('axes', labelsize=20)    # fontsize of the x and y labels
 plt.rcParams['agg.path.chunksize'] = 20000
 
 from matplotlib import cm
-import matplotlib.dates as mdates
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.colors import LogNorm, Normalize
 
@@ -31,8 +24,7 @@ from sunpy.coordinates import get_horizons_coord
 from sunpy.coordinates import frames
 
 
-from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
-import multi_inst_plots.cdaweb as cdaweb
+from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs, cdaweb_download_fido
 
 
 # omit Pandas' PerformanceWarning
@@ -41,7 +33,52 @@ warnings.filterwarnings(action='ignore', message='No units provided for variable
 warnings.filterwarnings(action='ignore', message='astropy did not recognize units of', category=sunpy.util.SunpyUserWarning, module='sunpy.io._cdf')
 warnings.filterwarnings(action="ignore", message="No artists with labels found to put in legend.")
 
+# def load_stereo_mag(dataset, startdate, enddate, path=None, max_conn=5):
+#     """
+#     Workaround for loading weekly MAG data from monthly CDF files.
+#     (doesnt work as of 2.5.2025, don't use this!)
+#     """
 
+#     trange = a.Time(startdate, enddate)
+#     if trange.min==trange.max:
+#         print(f'"startdate" and "enddate" might need to be different!')
+
+#     # Catch old default value for pos_timestamp
+#     if pos_timestamp is None:
+#         pos_timestamp = 'center'
+
+#     if not (pos_timestamp=='center' or pos_timestamp=='start' or pos_timestamp=='original'):
+#         raise ValueError(f'"pos_timestamp" must be either "original", "center", or "start"!')
+#     cda_dataset = a.cdaweb.Dataset(dataset)
+#     try:
+#         result = Fido.search(trange, cda_dataset)
+#         filelist = [i[0].split('/')[-1] for i in result.show('URL')[0]]
+#         filelist.sort()
+#         if path is None:
+#             filelist = [sunpy.config.get('downloads', 'download_dir') + os.sep + file for file in filelist]
+#         elif type(path) is str:
+#             filelist = [path + os.sep + f for f in filelist]
+#         downloaded_files = filelist
+
+#         for i, f in enumerate(filelist):
+#             if os.path.exists(f) and os.path.getsize(f) == 0:
+#                 os.remove(f)
+#             if not os.path.exists(f):
+#                 downloaded_file = Fido.fetch(result[0][i], path=path, max_conn=max_conn)
+
+#         # downloaded_files = Fido.fetch(result, path=path, max_conn=max_conn)
+#         data = TimeSeries(downloaded_files, concatenate=True)
+#         df = data.to_dataframe()
+
+#         metadata = _get_metadata(dataset, downloaded_files[0])
+
+#     except (RuntimeError, IndexError):
+#             print(f'Unable to obtain "{dataset}" data for {startdate}-{enddate}!')
+#             downloaded_files = []
+#             df = []
+#             metadata = []
+
+#     return df, metadata
 
 def load_swaves(dataset, startdate, enddate, path=None):
     """
@@ -57,14 +94,12 @@ def load_swaves(dataset, startdate, enddate, path=None):
                         
     Returns
     -------
-    ndarray :
-        1) timestamps in matplotlib format,
-        2) frequencies in MHz,
-        3) intensities in sfu for each (time, frequency) data point
+    psd_sfu : pd.DataFrame
+        data
     """
 
 
-    files = cdaweb.cdaweb_download_fido(dataset=dataset, startdate=startdate, enddate=enddate, path=path)
+    files = cdaweb_download_fido(dataset=dataset, startdate=startdate, enddate=enddate, path=path)
 
     if len(files) == 0:
         print(f"No {dataset} data found between {startdate} and {enddate}")
@@ -98,24 +133,7 @@ def load_swaves(dataset, startdate, enddate, path=None):
     return psd_sfu
 
 
-def load_data(options):
-    global df_sept_electrons
-    global df_sept_protons
-    global df_het
-    global df_waves_hfr
-    global df_waves_lfr
-    global df_stix
-    global df_goes
-    global goes_sat
-    global df_mag
-    global df_magplas
-
-    global meta_magplas
-    global meta_mag
-    global meta_se
-    global meta_sp
-    global meta_het
-    
+def read_widget_values(options):
     global startdate
     global enddate
     global sept_viewing
@@ -137,7 +155,8 @@ def load_data(options):
     global plot_het_p
     global plot_polarity
     global stix_ltc
-
+    global path
+    
     startdate = options.startdt
     enddate = options.enddt
     
@@ -147,7 +166,7 @@ def load_data(options):
     plot_stix = options.stix.value
     stix_ltc = options.stix_ltc.value
     plot_goes = options.goes.value
-    goes_pick_max = options.goes_pick_max.value
+    
     plot_het_e = options.ster_het_e.value
     plot_het_p = options.ster_het_p.value
     plot_sept_e = options.ster_sept_e.value
@@ -158,46 +177,75 @@ def load_data(options):
     plot_N = options.N.value
     plot_T = options.T.value
     plot_polarity = options.polarity.value
-    
     path = options.path
 
     plot_electrons = plot_het_e or plot_sept_e
-
     plot_protons = plot_het_p or plot_sept_p
-
     plot_het = plot_het_p or plot_het_e
 
     if not plot_mag:
         plot_polarity = False
 
-    resample = str(options.resample.value) + "min"
-    resample_mag = str(options.resample_mag.value) + "min"
-    resample_stixgoes = str(options.resample_stixgoes.value) + "min"
+
+def load_data(options):
+    data = {}
+    metadata = {}
+
+    global df_sept_electrons_orig
+    global df_sept_protons_orig
+    global df_het_orig
+    global df_waves_hfr
+    global df_waves_lfr
+    global df_stix_
+    global df_goes_
+    global goes_sat
+    global df_mag_orig
+    global df_magplasma
+    global meta_magplas
+    global meta_mag
+    global meta_se
+    global meta_sp
+    global meta_het
+
+    goes_man_select = options.goes_man_select.value
+    
+    read_widget_values(options)
 
     if plot_sept_e:
         # print("loading sept_e...")
         df_sept_electrons_orig, meta_se = stereo_load(instrument='SEPT', startdate=startdate, enddate=enddate, 
-                            sept_species='e', sept_viewing=sept_viewing,
-                            path=path, spacecraft=sc)
+                                                      sept_species='e', sept_viewing=sept_viewing,
+                                                      path=path, spacecraft=sc)
+        data["sept_electrons"] = df_sept_electrons_orig
+        metadata["sept_electrons"] = meta_se
         # print("sept_e loaded!")
         
     if plot_sept_p:
         # print("loading sept_p...")
         df_sept_protons_orig, meta_sp = stereo_load(instrument='SEPT', startdate=startdate, enddate=enddate, 
-                                sept_species='p', sept_viewing=sept_viewing,
-                                path=path, spacecraft=sc)
+                                                    sept_species='p', sept_viewing=sept_viewing,
+                                                    path=path, spacecraft=sc)
+        
+        data["sept_protons"] = df_sept_protons_orig
+        metadata["sept_protons"] = meta_sp
         # print("sept_p loaded!")
     
     if plot_het:
         # print("loading het...")
-        df_het_orig, meta_het = stereo_load(instrument='HET', startdate=startdate, enddate=enddate,
-                        path=path, spacecraft=sc)
+        df_het_orig, meta_het = stereo_load(instrument='HET', startdate=startdate, enddate=enddate, 
+                                            path=path, spacecraft=sc)
+        
+        data["het"] = df_het_orig
+        metadata["het"] = meta_het
         # print("het loaded!")
 
     if plot_mag or plot_mag_angles:
         # print("loading mag...")
-        df_mag_orig, meta_mag = stereo_load(spacecraft=sc, instrument='MAG', startdate=startdate, enddate=enddate, mag_coord='RTN', 
-                                        path=path)
+        df_mag_orig, meta_mag = stereo_load(spacecraft=sc, instrument='MAG', startdate=startdate, enddate=enddate, 
+                                            mag_coord='RTN', path=path)
+        
+        data["mag"] = df_mag_orig
+        metadata["mag"] = meta_mag
         # print("mag loaded!")
 
     if plot_Vsw or plot_N or plot_T or plot_polarity:
@@ -205,6 +253,9 @@ def load_data(options):
         # print("loading magplasma...")
         df_magplasma, meta_magplas = stereo_load(instrument='MAGPLASMA', startdate=startdate, enddate=enddate, 
                             path=path, spacecraft=sc)
+        
+        data["magplasma"] = df_magplasma
+        metadata["magplasma"] = meta_magplas
         # print("magplasma loaded!")
         
 
@@ -212,62 +263,111 @@ def load_data(options):
         # print("loading radio...")
         df_waves_hfr = load_swaves(f"ST{sc}_L3_WAV_HFR", startdate=startdate, enddate=enddate, path=path)
         df_waves_lfr = load_swaves(f"ST{sc}_L3_WAV_LFR", startdate=startdate, enddate=enddate, path=path)
+
+        data["waves_hfr"] = df_waves_hfr
+        data["waves_lfr"] = df_waves_lfr
         # print("radio loaded!")
 
     if plot_stix:
         # print("loading stix...")
-        df_stix = load_solo_stix(start=startdate, end=enddate, ltc=stix_ltc, resample=resample_stixgoes)
+        df_stix_ = load_solo_stix(start=startdate, end=enddate, ltc=stix_ltc, resample=None)
+        data["stix"] = df_stix_
         # print("stix loaded!")
 
     if plot_goes:
         # print("loading goes...")
-        df_goes, goes_sat = load_goes_xrs(startdate, enddate, pick_max=options.goes_pick_max.value, resample=resample_stixgoes, path=path)
+        df_goes_, goes_sat = load_goes_xrs(startdate, enddate, man_select=goes_man_select, resample=None, path=path)
+
+        data["goes"] = df_goes_
+        metadata["goes_sat"] = goes_sat
         # print("goes loaded!")
-
-
     
-    ### Resampling
-
-    if plot_sept_e:
-        if isinstance(df_sept_electrons_orig, pd.DataFrame) and resample != "0min":
-            df_sept_electrons = resample_df(df_sept_electrons_orig, resample)
-        else:
-            df_sept_electrons = df_sept_electrons_orig
-
-    if plot_sept_p:
-        if isinstance(df_sept_protons_orig, pd.DataFrame) and resample != "0min":
-            df_sept_protons = resample_df(df_sept_protons_orig, resample)
-        else:
-            df_sept_protons = df_sept_protons_orig
-
-    if plot_het:
-        if isinstance(df_het_orig, pd.DataFrame) and resample != "0min":
-            df_het = resample_df(df_het_orig, resample)  
-        else:
-            df_het = df_het_orig
-            
-        
-    if plot_Vsw or plot_N or plot_T or plot_polarity:
-        if isinstance(df_magplasma, pd.DataFrame) and resample_mag != "0min":
-            df_magplas = resample_df(df_magplasma, resample_mag)
-             
-        else:
-            df_magplas = df_magplasma
-
-    if plot_mag or plot_mag_angles:
-        if isinstance(df_mag_orig, pd.DataFrame) and resample_mag != "0min":
-            df_mag = resample_df(df_mag_orig, resample_mag)
-            
-        else:
-            df_mag = df_mag_orig
-            
+    return data, metadata
     
 
+def energy_channel_selection():
+    cols = []
+    df = pd.DataFrame()
+
+    
+    cols.append("SEPT Electrons")
+    series_se = meta_se["ch_strings"].reset_index(drop=True)
+    df = pd.concat([df, series_se], axis=1)
+
+
+    cols.append("SEPT Protons")
+    series_sp = meta_sp["ch_strings"].reset_index(drop=True)
+    df = pd.concat([df, series_sp], axis=1)
+
+
+    cols.append("HET Electrons")
+    series_he = pd.Series(meta_het["Electron_Bins_Text"])
+    df = pd.concat([df, series_he], axis=1)
+
+
+    cols.append("HET Protons")
+    series_hp = pd.Series(meta_het["Proton_Bins_Text"])
+    df = pd.concat([df, series_hp], axis=1)
+
+    df.columns = cols
+    return df
 
 
 
 def make_plot(options):
     
+    read_widget_values(options)
+
+    resample = options.resample.value
+    resample_mag = options.resample_mag.value
+    resample_stixgoes = options.resample_stixgoes.value
+
+    if plot_sept_e:
+        if isinstance(df_sept_electrons_orig, pd.DataFrame) and resample > 1: # 1 min native resolution, but small errors cause gaps after resampling
+            df_sept_electrons = resample_df(df_sept_electrons_orig, str(resample) + "min")
+        else:
+            df_sept_electrons = df_sept_electrons_orig
+
+    if plot_sept_p:
+        if isinstance(df_sept_protons_orig, pd.DataFrame) and resample > 1:
+            df_sept_protons = resample_df(df_sept_protons_orig, str(resample) + "min")
+        else:
+            df_sept_protons = df_sept_protons_orig
+
+    if plot_het:
+        if isinstance(df_het_orig, pd.DataFrame) and resample != 0:
+            df_het = resample_df(df_het_orig, str(resample) + "min")  
+        else:
+            df_het = df_het_orig
+            
+        
+    if plot_Vsw or plot_N or plot_T or plot_polarity:
+        if isinstance(df_magplasma, pd.DataFrame) and resample > 1:
+            df_magplas = resample_df(df_magplasma, str(resample_mag) + "min")
+        else:
+            df_magplas = df_magplasma
+
+    if plot_mag or plot_mag_angles:
+        if isinstance(df_mag_orig, pd.DataFrame):
+            if resample == 0:
+                df_mag = resample_df(df_mag_orig, "10s") # high cadence, resample to ease load
+            else:
+                df_mag = resample_df(df_mag_orig, str(resample_mag) + "min")
+        else:
+            df_mag = df_mag_orig
+
+    if plot_goes:
+        if isinstance(df_goes_, pd.DataFrame) and resample_stixgoes != 0:
+            df_goes = resample_df(df_goes_, str(resample_stixgoes) + "min")
+        else:
+            df_goes = df_goes_
+        
+    if plot_stix:
+        if isinstance(df_stix_, pd.DataFrame) and resample_stixgoes != 0:
+            df_stix = resample_df(df_stix_, str(resample_stixgoes) + "min")
+        else:
+            df_stix = df_stix_
+
     font_ylabel = 20
     font_legend = 10
     
@@ -275,7 +375,7 @@ def make_plot(options):
     ch_sept_e = options.ster_ch_sept_e.value
     ch_sept_p = options.ster_ch_sept_p.value
     ch_het_p = options.ster_ch_het_p.value
-    ch_het_e = (0, 1, 2)
+    ch_het_e = options.ster_ch_het_e.value
 
     cmap = options.radio_cmap.value
     legends_inside = options.legends_inside.value
@@ -318,11 +418,11 @@ def make_plot(options):
             # Add inset axes for colorbar
             axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.01,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
             cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
-            cbar.set_label("Intensity (sfu)", rotation=90, labelpad=10, fontsize=font_ylabel)
+            cbar.set_label("Intensity [sfu]", rotation=90, labelpad=10, fontsize=font_ylabel)
 
         axs[i].set_ylim((2.61e-3,1.60e1))
         axs[i].set_yscale('log')
-        axs[i].set_ylabel("Frequency (MHz)", fontsize=font_ylabel)
+        axs[i].set_ylabel("Frequency [MHz]", fontsize=font_ylabel)
         
         i += 1
 
@@ -335,61 +435,67 @@ def make_plot(options):
         i += 1
 
     if plot_electrons:
+        axs[i].set_yscale('log')
         if plot_sept_e:
             # plot sept electron channels
-            axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0,1,len(ch_sept_e)+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Greens_r(np.linspace(0,1,len(ch_sept_e)+color_offset)))
             if isinstance(df_sept_electrons, pd.DataFrame):
                 for channel in ch_sept_e:
                     axs[i].plot(df_sept_electrons.index, df_sept_electrons[f'ch_{channel+2}'],
                                 ds="steps-mid", label='SEPT '+meta_se.ch_strings[channel+2])
         if plot_het_e:
             # plot het electron channels
-            axs[i].set_prop_cycle('color', plt.cm.PuRd_r(np.linspace(0,1,4+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0,1,4+color_offset)))
             if isinstance(df_het, pd.DataFrame):
                 for channel in ch_het_e:
                     axs[i].plot(df_het[f'Electron_Flux_{channel}'], 
                                 label='HET '+meta_het['channels_dict_df_e'].ch_strings[channel],
                             ds="steps-mid")
+            axs[i].set_ylim(bottom=1e-3)
         
-        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}]$", fontsize=font_ylabel)
+        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}$]", fontsize=font_ylabel)
         if legends_inside:
             axs[i].legend(loc='upper right', borderaxespad=0., 
-                    title=f'Electrons (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
+                    title=f'Electrons (SEPT: {sept_viewing}', fontsize=font_legend)
         else:
             axs[i].legend(bbox_to_anchor=(1.01, 1), loc="upper left", borderaxespad=0., 
-                    title=f'Electrons (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
-        axs[i].set_yscale('log')
+                    title=f'Electrons (SEPT: {sept_viewing})', fontsize=font_legend)
+        
         i +=1    
 
         
     color_offset = 2    
     if plot_protons:
+        axs[i].set_yscale('log')
         if plot_sept_p:
             # plot sept proton channels
             num_channels = len(ch_sept_p)# + len(n_het_p)
-            axs[i].set_prop_cycle('color', plt.cm.plasma(np.linspace(0,1,num_channels+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Wistia_r(np.linspace(0,1,num_channels+color_offset)))
             if isinstance(df_sept_protons, pd.DataFrame):
                 for channel in ch_sept_p:
                     axs[i].plot(df_sept_protons.index, df_sept_protons[f'ch_{channel+2}'], 
                             label='SEPT '+meta_sp.ch_strings[channel+2], ds="steps-mid")
             
-        color_offset = 0 
+            
+        color_offset = 3 
         if plot_het_p:
             # plot het proton channels
-            axs[i].set_prop_cycle('color', plt.cm.YlOrRd(np.linspace(0.2,1,len(ch_het_p)+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0.2,1,len(ch_het_p)+color_offset)))
             if isinstance(df_het, pd.DataFrame):
                 for channel in ch_het_p:
                     axs[i].plot(df_het.index, df_het[f'Proton_Flux_{channel}'], 
                             label='HET '+meta_het['channels_dict_df_p'].ch_strings[channel], ds="steps-mid")
+            axs[i].set_ylim(bottom=1e-4)
         
-        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}]$", fontsize=font_ylabel)
+        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}$]", fontsize=font_ylabel)
         if legends_inside:
             axs[i].legend(loc='upper right', borderaxespad=0., 
-                    title=f'Ions (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
+                    title=f'Protons/Ions (SEPT: {sept_viewing})', fontsize=font_legend)
         else:
             axs[i].legend(bbox_to_anchor=(1.01, 1), loc="upper left", borderaxespad=0., 
-                    title=f'Ions (SEPT: {sept_viewing}, HET: sun)', fontsize=font_legend)
-        axs[i].set_yscale('log')
+                    title=f'Protons/Ions (SEPT: {sept_viewing})', fontsize=font_legend)
+        
+        
         i +=1    
         
     # plot magnetic field
@@ -471,6 +577,7 @@ def make_plot(options):
             axs[i].plot(df_magplas.index, df_magplas.Np,
                         '-k', label="Ion density")
         axs[i].set_ylabel(r"N$_\mathrm{p}$ [cm$^{-3}$]", fontsize=font_ylabel)
+        
         i += 1
 
     ### Sws
@@ -478,11 +585,12 @@ def make_plot(options):
         if isinstance(df_magplas, pd.DataFrame):
             axs[i].plot(df_magplas.index, df_magplas.Vp,
                         '-k', label="Bulk speed")
-        axs[i].set_ylabel(r"V$_\mathrm{sw}$ [kms$^{-1}$]", fontsize=font_ylabel)
+        axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km s$^{-1}$]", fontsize=font_ylabel)
         #i += 1
         
     plt.show()
 
     return fig, axs
 
-
+data = {}
+metadata = {}

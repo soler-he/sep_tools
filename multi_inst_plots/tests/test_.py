@@ -1,6 +1,6 @@
 import os
 from IPython.display import display
-from multi_inst_plots import multi_inst_plot as m
+import multi_inst_plots as m
 from seppy.util import jupyterhub_data_path
 import pytest
 
@@ -21,7 +21,6 @@ pytest -rP --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-gene
 def test_SEP_Multi_Instrument_Plot_PSP():
     m.options.path = f"{os.getcwd()}{os.sep}data"
     m.options.path = jupyterhub_data_path(m.options.path)
-    display(m.plot_range(m.options.startdate.value, m.options.enddate.value))
     m.options.spacecraft.value = 'Parker Solar Probe'
     # deactivate STIX for now as it crashes on GitHub
     m.options.stix.value = False
@@ -33,7 +32,6 @@ def test_SEP_Multi_Instrument_Plot_PSP():
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
 def test_SEP_Multi_Instrument_Plot_SolO():
     m.options.path = f"{os.getcwd()}{os.sep}data"
-    display(m.plot_range(m.options.startdate.value, m.options.enddate.value))
     m.options.spacecraft.value = 'Solar Orbiter'
     # deactivate STIX for now as it crashes on GitHub
     m.options.stix.value = False
@@ -45,7 +43,6 @@ def test_SEP_Multi_Instrument_Plot_SolO():
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
 def test_SEP_Multi_Instrument_Plot_STEREO():
     m.options.path = f"{os.getcwd()}{os.sep}data"
-    display(m.plot_range(m.options.startdate.value, m.options.enddate.value))
     m.options.spacecraft.value = 'STEREO'
     m.options.stix.value = False
     m.load_data()
@@ -56,7 +53,6 @@ def test_SEP_Multi_Instrument_Plot_STEREO():
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
 def test_SEP_Multi_Instrument_Plot_L1():
     m.options.path = f"{os.getcwd()}{os.sep}data"
-    display(m.plot_range(m.options.startdate.value, m.options.enddate.value))
     m.options.spacecraft.value = 'L1 (Wind/SOHO)'
     m.options.stix.value = False
     m.load_data()

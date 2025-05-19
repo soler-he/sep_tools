@@ -1,6 +1,4 @@
 import astropy.units as u
-import datetime as dt
-# import math
 import numpy as np
 import os
 import pandas as pd
@@ -13,11 +11,9 @@ from matplotlib import cm
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib.colors import Normalize
-import matplotlib.dates as mdates
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from seppy.loader.psp import calc_av_en_flux_PSP_EPIHI, psp_isois_load
 from seppy.tools import resample_df
-from stixdcpy.quicklook import LightCurves # https://github.com/i4Ds/stixdcpy
 from sunpy.coordinates import frames, get_horizons_coord
 
 from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
@@ -40,32 +36,10 @@ plt.rc('axes', labelsize=20)  # fontsize of the x and y labels
 plt.rcParams['agg.path.chunksize'] = 20000
 
 
-
-def load_data(options):
-    """
-    Load data used in plotting.
-    
-    Parameters
-    ----------
-
-    options : Options object
-
-    Returns
-    -------
-
-    list of dataframes
-
-    """
-    # TODO figure out where speasy caches data
-
-    #####################################################################
-    ######## Data loading ###############################################
-    #####################################################################
-    
+def read_widget_values(options):
     global enddate
     global startdate
     global file_path
-
     global plot_epilo_e
     global plot_epihi_e
     global plot_epilo_p
@@ -77,32 +51,18 @@ def load_data(options):
     global plot_radio
     global plot_mag
     global plot_mag_angles
+    global plot_polarity
     global plot_Vsw
     global plot_N
     global plot_T
     global plot_p_dyn
-    
     global epilo_ic_channel
     global epilo_channel
     global stix_ltc
-    
-    global psp_het_energies
-    global psp_rfs_lfr_psd
-    global psp_rfs_hfr_psd
-    global df_psp_spani
-    global df_psp_spc
-    
-    global psp_mag
-    global df_stix
-    global df_goes
-    global goes_sat
-    global psp_epilo_energies_org
-    global psp_epilo_ic_energies_org
-    global psp_het_org
-    global psp_epilo_ic_org
-    global psp_epilo_org
+    global psp_het_viewing
+    global epilo_ic_viewing
+    global epilo_viewing
 
-    
     startdate = options.startdt
     enddate = options.enddt
     
@@ -117,15 +77,18 @@ def load_data(options):
     stix_ltc = options.stix_ltc.value
     plot_radio = options.radio.value
     plot_mag = options.mag.value
+    plot_polarity = options.polarity.value
     plot_mag_angles = options.mag_angles.value
     plot_Vsw = options.Vsw.value
     plot_N = options.N.value
     plot_T = options.T.value
     plot_p_dyn = options.p_dyn.value
     
-    
     epilo_ic_channel = options.psp_epilo_ic_channel.value
     epilo_channel = options.psp_epilo_channel.value
+    psp_het_viewing = options.psp_het_viewing.value
+    epilo_ic_viewing = str(options.psp_epilo_ic_viewing.value)
+    epilo_viewing = str(options.psp_epilo_viewing.value)
 
     plot_electrons = plot_epilo_e or plot_epihi_e
     plot_protons = plot_epilo_p or plot_epihi_p
@@ -133,39 +96,104 @@ def load_data(options):
     if not plot_mag:
         plot_polarity = False
 
-    resample = str(options.resample.value) + "min"         # convert to form that Pandas accepts
-    resample_mag = str(options.resample_mag.value) + "min"
-    resample_stixgoes = str(options.resample_stixgoes.value) + "min"
 
+def load_data(options):
+    """
+    Load data used in plotting.
+    
+    Parameters
+    ----------
 
+    options : Options object
+
+    """
+    
+    data = {}
+    metadata = {}
+
+    #####################################################################
+    ######## Data loading ###############################################
+    #####################################################################
+    
+    
+    global psp_rfs_lfr_psd
+    global psp_rfs_hfr_psd
+    global df_psp_spani
+    global df_psp_spc
+    global psp_mag
+    global psp_het_org
+    global psp_epilo_ic_org
+    global psp_epilo_org
+    global df_stix_
+    global df_goes_
+    global goes_sat
+    global psp_het_energies
+    global psp_epilo_energies
+    global psp_epilo_ic_energies
+
+    read_widget_values(options)
+    
     if plot_stix:
-        df_stix = load_solo_stix(startdate, enddate, ltc=stix_ltc, resample=resample_stixgoes)
+        df_stix_ = load_solo_stix(startdate, enddate, ltc=stix_ltc, resample=None)
+        data["stix"] = df_stix_
     
     if plot_goes:
-        df_goes, goes_sat = load_goes_xrs(startdate, enddate, pick_max=options.goes_pick_max.value, resample=resample_stixgoes, path=file_path)
+        df_goes_, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, resample=None, path=file_path)
+        data["goes"] = df_goes_
+        
 
     if plot_epihi_p or plot_epihi_e:
-        
         psp_het_org, psp_het_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-HET-RATES60', startdate, enddate, 
                                                                     path=file_path, resample=None)
+        
         if isinstance(psp_het_org, str) or len(psp_het_org) == 0:
             psp_het_org = []
             psp_het_energies = []
+        else:
+            # Remove extra spaces from HET channel strings
+            for species in ["Electrons", "H"]:
+                strings = psp_het_energies[f"{species}_ENERGY_LABL"].flatten()
+                new_strs = []
+
+                for i in range(len(strings)):
+                    new_str = ""
+                    for substr in strings[i].split(" "):
+                        if substr == "-":
+                            substr = " - "
+
+                        elif substr == "MeV":
+                            substr = " MeV"
+                            
+                        new_str = new_str + substr
+
+                    new_strs.append(new_str)
+        
+                psp_het_energies[f"{species}_ENERGY_LABL"] = np.array(new_strs)
+
+        data["het"] = psp_het_org
+        metadata["het"] = psp_het_energies
         
 
     if plot_epilo_e:
-        psp_epilo_org, psp_epilo_energies_org = psp_isois_load('PSP_ISOIS-EPILO_L2-PE', startdate, enddate, 
+        psp_epilo_org, psp_epilo_energies = psp_isois_load('PSP_ISOIS-EPILO_L2-PE', startdate, enddate, 
                                                                             path=file_path, resample=None, epilo_channel=epilo_channel, 
                                                                             epilo_threshold=None)
+        
         if isinstance(psp_epilo_org, pd.DataFrame):
             electron_countrate_keys = psp_epilo_org.filter(like='Electron_CountRate_ChanF_E').keys()
             psp_epilo_org[electron_countrate_keys] = psp_epilo_org[electron_countrate_keys].mask(psp_epilo_org[electron_countrate_keys] < 0.0)
+
+        data["epilo_pe"] = psp_epilo_org
+        metadata["epilo_pe"] = psp_epilo_energies
         
 
     if plot_epilo_p:
-        psp_epilo_ic_org, psp_epilo_ic_energies_org = psp_isois_load('PSP_ISOIS-EPILO_L2-IC', startdate, enddate, 
+        psp_epilo_ic_org, psp_epilo_ic_energies = psp_isois_load('PSP_ISOIS-EPILO_L2-IC', startdate, enddate, 
                                                                                     path=file_path, resample=None, epilo_channel=epilo_ic_channel, 
                                                                                     epilo_threshold=None)
+        
+        data["epilo_ic"] = psp_epilo_ic_org
+        metadata["epilo_ic"] = psp_epilo_ic_energies
     
 
     if plot_radio:
@@ -189,6 +217,7 @@ def load_data(options):
         except (AttributeError, IndexError):
             print("Unable to obtain FIELDS/RFS LFR data!")
             psp_rfs_lfr_psd = []
+            psp_rfs_lfr_freq = []
             
         try:
             psp_rfs_hfr_psd = spz.get_data(spz.inventories.data_tree.cda.ParkerSolarProbe.PSP_FLD.RFS_HFR.PSP_FLD_L3_RFS_HFR.psp_fld_l3_rfs_hfr_PSD_SFU, 
@@ -202,6 +231,12 @@ def load_data(options):
         except (AttributeError, IndexError):
             print("Unable to obtain FIELDS/RFS HFR data!")
             psp_rfs_hfr_psd = []
+            psp_rfs_hfr_freq = []
+
+        data["rfs_lfr"] = psp_rfs_lfr_psd
+        data["rfs_hfr"] = psp_rfs_hfr_psd
+        metadata["rfs_lfr_freq"] = psp_rfs_lfr_freq
+        metadata["rfs_hfr_freq"] = psp_rfs_hfr_freq
 
 
     if plot_mag or plot_mag_angles:
@@ -229,6 +264,8 @@ def load_data(options):
         except AttributeError:
             print("Unable to obtain MAG data!")
             psp_mag = []
+
+        data["mag"] = psp_mag
 
     if plot_Vsw or plot_N or plot_T or plot_p_dyn:
         try:    
@@ -341,75 +378,127 @@ def load_data(options):
             df_psp_spc = []
             df_psp_spani = []
 
-    
+        data["magplas_spani"] = df_psp_spani
+        data["magplas_spc"] = df_psp_spc 
 
-    #################################################################
-    ############## Resampling #######################################
-    #################################################################
-    
-    
 
-    global psp_het
-    global psp_epilo
-    global psp_epilo_ic
-    global df_magplas_spani
-    global df_magplas_spc
-    global mag
-    if (plot_epihi_e or plot_epihi_p):
-        if isinstance(psp_het_org, pd.DataFrame) and resample != "0min":
-            psp_het = resample_df(psp_het_org, resample)
-        else:
-            psp_het = psp_het_org
+    return data, metadata
 
-    if plot_epilo_e:
-        if isinstance(psp_epilo_org, pd.DataFrame) and resample != "0min":
-            psp_epilo = resample_df(psp_epilo_org, resample)
-        else:
-            psp_epilo = psp_epilo_org
 
-    if plot_epilo_p:
-        if isinstance(psp_epilo_ic_org, pd.DataFrame) and resample != "0min":
-            psp_epilo_ic = resample_df(psp_epilo_ic_org, resample) 
-        else:
-            psp_epilo_ic = psp_epilo_ic_org
-    
+def energy_channel_selection():
+    cols = []
+    df = pd.DataFrame()
 
-    
-    if plot_Vsw or plot_N or plot_T or plot_p_dyn:
-        if isinstance(df_psp_spani, pd.DataFrame) and resample_mag != "0min":
-            df_magplas_spani = resample_df(df_psp_spani, resample_mag)
-        else:
-            df_magplas_spani = df_psp_spani
-        if isinstance(df_psp_spc, pd.DataFrame) and resample_mag != "0min":
-            df_magplas_spc = resample_df(df_psp_spc, resample_mag)
-        else:
-            df_magplas_spc = df_psp_spc
+    cols.append("EPI-Lo PE Electrons")
+    energy_list_pe = []
+    for i in np.arange(3,9):
+        energy_list_pe.append(psp_epilo_energies["Electron_ChanF_Energy"][f"Electron_ChanF_Energy_E{i}_P0"].astype(str) + " keV")
+    energy_list_pe = pd.Series(energy_list_pe)
+    df = pd.concat([df, energy_list_pe], axis=1)
 
-    if plot_mag or plot_mag_angles:
-        if isinstance(psp_mag, pd.DataFrame) and resample_mag != "0min":
-            mag = resample_df(psp_mag, resample_mag)
-        else:
-            mag = psp_mag
+    cols.append("EPI-Lo IC Protons")
+    energy_list_ic = []
+    for i in np.arange(0,31)[::-1]:
+        energy_list_ic.append(psp_epilo_ic_energies["H_ChanT_Energy"][f"H_ChanT_Energy_E{i}_P0"].astype(str) + " keV")
+    energy_list_ic = pd.Series(energy_list_ic)
+    df = pd.concat([df, energy_list_ic], axis=1)
 
-    
+    cols.append("EPI-Hi HET Electrons")
+    energy_list_het_e = pd.Series(psp_het_energies["Electrons_ENERGY_LABL"])
+    df = pd.concat([df, energy_list_het_e], axis=1)
+
+    cols.append("EPI-Hi HET Protons")
+    energy_list_het_p = pd.Series(psp_het_energies["H_ENERGY_LABL"])
+    df = pd.concat([df, energy_list_het_p], axis=1)
+
+    df.columns = cols
+    return df
 
 
 def make_plot(options):
     """
     Plot chosen data with user-specified parameters.
     """
-   
-    plot_polarity = options.polarity.value
-    plot_epihi_p_combined_pixels = options.psp_epihi_p_combined_pixels.value
+
+    read_widget_values(options)
+
+    #################################################################
+    ############## Resampling #######################################
+    #################################################################
+    
+    resample = options.resample.value        # convert to form that Pandas accepts
+    resample_mag = options.resample_mag.value
+    resample_stixgoes = options.resample_stixgoes.value
+
+    if (plot_epihi_e or plot_epihi_p):
+        if isinstance(psp_het_org, pd.DataFrame) and resample != 0:
+            psp_het = resample_df(psp_het_org, str(resample) + "min")
+            
+        else:
+            psp_het = psp_het_org
+
+    if plot_epilo_e:
+        if isinstance(psp_epilo_org, pd.DataFrame) and resample != 0:
+            psp_epilo = resample_df(psp_epilo_org, str(resample) + "min")
+            
+        else:
+            psp_epilo = psp_epilo_org
+
+    if plot_epilo_p:
+        if isinstance(psp_epilo_ic_org, pd.DataFrame) and resample != 0:
+            psp_epilo_ic = resample_df(psp_epilo_ic_org, str(resample) + "min")
+            
+        else:
+            psp_epilo_ic = psp_epilo_ic_org
+    
+    if plot_Vsw or plot_N or plot_T or plot_p_dyn:
+        if isinstance(df_psp_spani, pd.DataFrame) and resample_mag >= 5:    # cadence varies, but it seems to be < 5min most of the time
+            df_magplas_spani = resample_df(df_psp_spani, str(resample_mag) + "min")
+        elif isinstance(df_psp_spani, pd.DataFrame) and resample_mag in range(1,5):
+            print(f"PSP SPAN-i/SPC: data is of lower cadence. Averaging is applied only from 5 minutes upwards.")
+            df_magplas_spani = df_psp_spani
+        else:
+            df_magplas_spani = df_psp_spani
+
+        if isinstance(df_psp_spc, pd.DataFrame) and resample_mag >= 5:   
+            df_magplas_spc = resample_df(df_psp_spc, str(resample_mag) + "min")
+        else:
+            df_magplas_spc = df_psp_spc
+
+    if plot_mag or plot_mag_angles:
+        if isinstance(psp_mag, pd.DataFrame) and resample_mag != 0:
+            mag = resample_df(psp_mag, str(resample_mag) + "min")
+           
+        else:
+            mag = psp_mag
+
+    if plot_goes:
+        if isinstance(df_goes_, pd.DataFrame) and resample_stixgoes != 0:
+            df_goes = resample_df(df_goes_, str(resample_stixgoes) + "min")
+            
+        else:
+            df_goes = df_goes_    
+        
+    if plot_stix:
+        if isinstance(df_stix_, pd.DataFrame) and resample_stixgoes != 0:
+            df_stix = resample_df(df_stix_, str(resample_stixgoes) + "min")
+            
+        else:
+            df_stix = df_stix_
+        
+
+    
+
+    epihi_p_combine_channels = False #options.psp_epihi_p_combine_channels.value
     
     psp_het_viewing = options.psp_het_viewing.value
-    epilo_ic_viewing = options.psp_epilo_ic_viewing.value
-    epilo_viewing = options.psp_epilo_viewing.value
+    epilo_ic_viewing = str(options.psp_epilo_ic_viewing.value)
+    epilo_viewing = str(options.psp_epilo_viewing.value)
 
     ch_het_p = options.psp_ch_het_p.value
     ch_epilo_ic = options.psp_ch_epilo_ic.value
     ch_het_e = options.psp_ch_het_e.value
-    ch_epilo_e = options.psp_ch_epilo_e.value
+    ch_epilo_e = options.psp_ch_epilo_pe.value
     
     legends_inside = options.legends_inside.value
     cmap = options.radio_cmap.value
@@ -422,15 +511,15 @@ def make_plot(options):
         if plot_protons:  
             
             if plot_epihi_p:
-                print('HET protons:', ch_het_p, ',', len(ch_het_p))
+                print('EPI-Hi HET protons:', ch_het_p, ',', len(ch_het_p))
             if plot_epilo_p:
-                print('EPI-Lo ic:', ch_epilo_ic, ',', len(ch_epilo_ic))
+                print('EPI-Lo IC protons:', ch_epilo_ic, ',', len(ch_epilo_ic))
 
         if plot_electrons:
             if plot_epihi_e:
-                print('HET electrons:', ch_het_e, ',', len(ch_het_e))
+                print('EPI-Hi HET electrons:', ch_het_e, ',', len(ch_het_e))
             if plot_epilo_e:
-                print('EPI-Lo electrons:', ch_epilo_e, ',', len(ch_epilo_e))
+                print('EPI-Lo PE electrons:', ch_epilo_e, ',', len(ch_epilo_e))
         
 
     fig, axs = make_fig_axs(options)
@@ -457,11 +546,11 @@ def make_plot(options):
             # Add inset axes for colorbar
             axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.01,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
             cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
-            cbar.set_label("Intensity (sfu)", rotation=90, labelpad=10, fontsize=font_ylabel)
+            cbar.set_label("Intensity [sfu]", rotation=90, labelpad=10, fontsize=font_ylabel)
 
         axs[i].set_ylim((1.1e-2,1.9e1))
         axs[i].set_yscale('log')
-        axs[i].set_ylabel("Frequency (MHz)", fontsize=font_ylabel)
+        axs[i].set_ylabel("Frequency [MHz]", fontsize=font_ylabel)
         
         
         i += 1
@@ -480,20 +569,20 @@ def make_plot(options):
     
     if plot_electrons:
         if plot_epilo_e and isinstance(psp_epilo, pd.DataFrame):
-            axs[i].set_prop_cycle('color', plt.cm.viridis_r(np.linspace(0, 1, len(ch_epilo_e)+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Greens_r(np.linspace(0, 1, len(ch_epilo_e)+color_offset)))
             for channel in ch_epilo_e:
-                psp_epilo_energy = np.round(psp_epilo_energies_org[f'Electron_Chan{epilo_channel}_Energy'][f'Electron_Chan{epilo_channel}_Energy_E{channel}_P{epilo_viewing}'], 2).astype(str)
-                axs[i].plot(psp_epilo.index, psp_epilo[f'Electron_CountRate_Chan{epilo_channel}_E{channel}_P{epilo_viewing}'],
-                            ds="steps-mid", label=f'EPI-lo PE {epilo_channel}{epilo_viewing} {psp_epilo_energy} keV')
+                psp_epilo_energy = np.round(psp_epilo_energies[f'Electron_Chan{epilo_channel}_Energy'][f'Electron_Chan{epilo_channel}_Energy_E{channel+3}_P{epilo_viewing}'], 2).astype(str)
+                axs[i].plot(psp_epilo.index, psp_epilo[f'Electron_CountRate_Chan{epilo_channel}_E{channel+3}_P{epilo_viewing}'],
+                            ds="steps-mid", label=f'EPI-Lo PE {epilo_channel}{epilo_viewing} {psp_epilo_energy} keV')
     
         if plot_epihi_e and isinstance(psp_het, pd.DataFrame):
-            axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0, 1, len(ch_het_e)+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0, 1, len(ch_het_e)+color_offset)))
             for channel in ch_het_e:
                 axs[i].plot(psp_het.index, psp_het[f'{psp_het_viewing}_Electrons_Rate_{channel}'],
-                            ds="steps-mid", label=f'HET {psp_het_viewing}'+psp_het_energies['Electrons_ENERGY_LABL'].flatten()[channel])
+                            ds="steps-mid", label=f'EPI-Hi HET {psp_het_viewing} '+psp_het_energies['Electrons_ENERGY_LABL'].flatten()[channel])
                 
         # axs[i].set_ylabel("Flux\n"+r"[(cm$^2$ sr s MeV)$^{-1}]$", fontsize=FONT_YLABEL)
-        axs[i].set_ylabel("Count rates", fontsize=font_ylabel)
+        axs[i].set_ylabel(r"Count rates [s$^{-1}$]", fontsize=font_ylabel)
         if legends_inside:
             axs[i].legend(loc='upper right', borderaxespad=0., 
                           title=f'Electrons',
@@ -510,13 +599,13 @@ def make_plot(options):
     color_offset = 2    
     if plot_protons:
         if plot_epilo_p and isinstance(psp_epilo_ic, pd.DataFrame):
-            axs[i].set_prop_cycle('color', plt.cm.viridis_r(np.linspace(0, 1, len(ch_epilo_ic)+color_offset)))
+            axs[i].set_prop_cycle('color', plt.cm.Wistia_r(np.linspace(0, 1, len(ch_epilo_ic)+color_offset)))
             # [::-1] to reverse list
             for channel in ch_epilo_ic[::-1]:
                 # print(f'H_Flux_Chan{epilo_ic_channel}_E{channel}_P{epilo_ic_viewing}')
-                psp_epilo_ic_energy = np.round(psp_epilo_ic_energies_org[f'H_Chan{epilo_ic_channel}_Energy'][f'H_Chan{epilo_ic_channel}_Energy_E{channel}_P{epilo_ic_viewing}'], 2).astype(str)
-                axs[i].plot(psp_epilo_ic.index, psp_epilo_ic[f'H_Flux_Chan{epilo_ic_channel}_E{channel}_P{epilo_ic_viewing}'],
-                            ds="steps-mid", label=f'EPI-lo IC {epilo_ic_channel}{epilo_ic_viewing} {psp_epilo_ic_energy} keV')
+                psp_epilo_ic_energy = np.round(psp_epilo_ic_energies[f'H_Chan{epilo_ic_channel}_Energy'][f'H_Chan{epilo_ic_channel}_Energy_E{channel+1}_P{epilo_ic_viewing}'], 2).astype(str)
+                axs[i].plot(psp_epilo_ic.index, psp_epilo_ic[f'H_Flux_Chan{epilo_ic_channel}_E{channel+1}_P{epilo_ic_viewing}'],
+                            ds="steps-mid", label=f'EPI-Lo IC {epilo_ic_channel}{epilo_ic_viewing} {psp_epilo_ic_energy} keV')
     
         # if plot_psp_pixel:
         #     axs[i].set_prop_cycle('color', plt.cm.tab10(range(6)))
@@ -525,21 +614,22 @@ def make_plot(options):
         #         axs[i].plot(df_psp_pixel.index, df_psp_pixel[f'{key}_Flux'], label=f'{key} {energies_psp_pixel[key]}', drawstyle='steps-mid')
         
         if plot_epihi_p and isinstance(psp_het, pd.DataFrame):    
-            if plot_epihi_p_combined_pixels:
+            if epihi_p_combine_channels:
                 # comb_channels = [[1,2], [3,5], [5,7], [4,5], [7], [9]]
                 comb_channels = [[3,5], [5,7], [4,5], [7], [9]]
-                axs[i].set_prop_cycle('color', plt.cm.Greys_r(np.linspace(0, 1, len(comb_channels)+5)))
+                axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0, 1, len(comb_channels)+5)))
                 for channel in comb_channels:
                     df_psp_epihi, df_psp_epihi_name = calc_av_en_flux_PSP_EPIHI(psp_het, psp_het_energies, channel, 'p', 'het', psp_het_viewing)
-                    axs[i].plot(df_psp_epihi.index, df_psp_epihi.flux, label=f'HET {psp_het_viewing}{df_psp_epihi_name}', lw=1, ds="steps-mid")
+                    axs[i].plot(df_psp_epihi.index, df_psp_epihi.flux, label=f'EPI-Hi HET {psp_het_viewing} {df_psp_epihi_name}', lw=1, ds="steps-mid")
+
             else:
-                axs[i].set_prop_cycle('color', plt.cm.plasma(np.linspace(0, 1, len(ch_het_p)+color_offset)))
+                axs[i].set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0, 1, len(ch_het_p)+color_offset)))
                 for channel in ch_het_p:
-                    axs[i].plot(psp_het.index, psp_het[f'{psp_het_viewing}_H_Flux_{channel}'], label=f'HET {psp_het_viewing}'+psp_het_energies['H_ENERGY_LABL'].flatten()[channel], ds="steps-mid")
+                    axs[i].plot(psp_het.index, psp_het[f'{psp_het_viewing}_H_Flux_{channel}'], label=f'HET {psp_het_viewing} '+psp_het_energies['H_ENERGY_LABL'].flatten()[channel], ds="steps-mid")
         
-        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}]$", fontsize=font_ylabel)
+        axs[i].set_ylabel("Intensity\n"+r"[(cm$^2$ sr s MeV)$^{-1}$]", fontsize=font_ylabel)
         # title = f'Ions (HET {psp_het_viewing})'
-        title = f'Ions (Pixel)'
+        title = f'Protons/Ions'
         if legends_inside:
             axs[i].legend(loc='upper right', borderaxespad=0., 
                           title=title,
@@ -635,9 +725,9 @@ def make_plot(options):
             pass
     
         if legends_inside:
-            axs[i].legend(loc='upper right', fontsize=font_legend)
+            axs[i].legend(loc='upper right', borderaxespad=0., fontsize=font_legend)
         else:
-            axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', fontsize=font_legend)
+            axs[i].legend(bbox_to_anchor=(1.01, 1), borderaxespad=0., loc='upper left', fontsize=font_legend)
         i += 1
     
     ### Dynamic pressure
@@ -648,9 +738,9 @@ def make_plot(options):
             axs[i].plot(df_magplas_spc.index, df_magplas_spc['p_dyn'], '-r', label="SPC")
         axs[i].set_ylabel(r"P$_\mathrm{dyn}$ [nPa]", fontsize=font_ylabel)
         if legends_inside:
-            axs[i].legend(loc='upper right', fontsize=font_legend)
+            axs[i].legend(loc='upper right', borderaxespad=0., fontsize=font_legend)
         else:
-            axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', fontsize=font_legend)
+            axs[i].legend(bbox_to_anchor=(1.01, 1), borderaxespad=0., loc='upper left', fontsize=font_legend)
         axs[i].set_yscale('log')
         i += 1
     
@@ -662,9 +752,9 @@ def make_plot(options):
             axs[i].plot(df_magplas_spc.index, df_magplas_spc['np_tot'], '-r', label="SPC")
         axs[i].set_ylabel(r"N$_\mathrm{p}$ [cm$^{-3}$]", fontsize=font_ylabel)
         if legends_inside:
-            axs[i].legend(loc='upper right', fontsize=font_legend)
+            axs[i].legend(loc='upper right', borderaxespad=0., fontsize=font_legend)
         else:
-            axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', fontsize=font_legend)
+            axs[i].legend(bbox_to_anchor=(1.01, 1), borderaxespad=0., loc='upper left', fontsize=font_legend)
         axs[i].set_yscale('log')
         i += 1
     
@@ -674,11 +764,11 @@ def make_plot(options):
             axs[i].plot(df_magplas_spani.index, df_magplas_spani['V_tot_rtn'], '-k', label="SPAN-i")
         if isinstance(df_magplas_spc, pd.DataFrame):
             axs[i].plot(df_magplas_spc.index, df_magplas_spc['|vp_tot|'], '-r', label="SPC")
-        axs[i].set_ylabel(r"V$_\mathrm{sw}$ [kms$^{-1}$]", fontsize=font_ylabel)
+        axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km s$^{-1}$]", fontsize=font_ylabel)
         if legends_inside:
-            axs[i].legend(loc='upper right', fontsize=font_legend)
+            axs[i].legend(loc='upper right', borderaxespad=0., fontsize=font_legend)
         else:
-            axs[i].legend(bbox_to_anchor=(1.01, 1), loc='upper left', fontsize=font_legend)
+            axs[i].legend(bbox_to_anchor=(1.01, 1), borderaxespad=0., loc='upper left', fontsize=font_legend)
         # i += 1     
             
     plt.show()
