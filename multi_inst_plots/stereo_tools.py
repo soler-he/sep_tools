@@ -210,6 +210,8 @@ def load_data(options):
     goes_man_select = options.goes_man_select.value
     
     read_widget_values(options)
+    options.plot_start = None
+    options.plot_end = None
 
     if plot_sept_e:
         # print("loading sept_e...")

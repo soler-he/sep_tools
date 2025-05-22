@@ -1,12 +1,17 @@
 # TODO:
 # - fontsize as options?
 # - SOLO/RPW still under development
-# - print energies?
 # - WEEKLY PLOTS: 60 min particle avg, 15 min mag, 0 min STIX/GOES. Use only instruments at same location
 # - go through datasets to figure out native cadences and fix issues related to them
-# - replace resampling BoundedIntText boxes with IntText (max value capped was at 100)
-# - JupyterHub: suppress signal handler main thread value error thing
-
+# - JupyterHub: suppress signal handler main thread value error thing (probably not possible)
+# - make it so info on loaded data is stored somewhere, and have it function accordingly
+# - when no data is fetched for particles, catch energy_channel_selection errors 
+# - copy of fig and axs? to make modifying it a bit easier. Or just implement some tool to do shading automatically
+#       (make it also so that the original figure isn't modified...)
+# - fix GOES x-ray flux hard limit (periods of lower activity have lower bakcground)
+# - inform which averaging does which
+# - colormapping stuff that Nina mentioned (plotly/PFSS notebook? dunno)
+# - add minor ticks!
 
 import datetime as dt
 import ipywidgets as w
@@ -19,7 +24,7 @@ import multi_inst_plots.psp_tools as psp
 import multi_inst_plots.l1_tools as l1
 import multi_inst_plots.solo_tools as solo
 
-warnings.simplefilter(action="ignore", )
+#warnings.simplefilter(action="ignore", )
 
 _style = {'description_width' : '60%'} 
 
@@ -249,7 +254,7 @@ def load_data():
                                   options.startdate.value.day, 0, 0)
     
     options.enddt = dt.datetime(options.enddate.value.year, options.enddate.value.month, 
-                                options.enddate.value.day, 0, 0)
+                                options.enddate.value.day, 23, 59, 59)
 
     if options.startdt > options.enddt:
         print("End date cannot precede startdate!")

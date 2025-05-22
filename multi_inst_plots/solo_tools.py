@@ -209,6 +209,8 @@ def load_data(options):
     global energies_het
 
     read_widget_values(options)
+    options.plot_start = None
+    options.plot_end = None
 
     if plot_electrons or plot_protons:
         

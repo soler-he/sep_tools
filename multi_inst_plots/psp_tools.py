@@ -132,6 +132,8 @@ def load_data(options):
     global psp_epilo_ic_energies
 
     read_widget_values(options)
+    options.plot_start = None
+    options.plot_end = None
     
     if plot_stix:
         df_stix_ = load_solo_stix(startdate, enddate, ltc=stix_ltc, resample=None)
