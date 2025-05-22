@@ -299,7 +299,9 @@ def load_data(options):
     global goes_sat
 
     read_widget_values(options)
-
+    options.plot_start = None
+    options.plot_end = None
+    
     intercal = 1
     wind_flux_thres = None
 
