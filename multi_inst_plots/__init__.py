@@ -4,14 +4,13 @@
 # - WEEKLY PLOTS: 60 min particle avg, 15 min mag, 0 min STIX/GOES. Use only instruments at same location
 # - go through datasets to figure out native cadences and fix issues related to them
 # - JupyterHub: suppress signal handler main thread value error thing (probably not possible)
-# - make it so info on loaded data is stored somewhere, and have it function accordingly
 # - when no data is fetched for particles, catch energy_channel_selection errors 
 # - copy of fig and axs? to make modifying it a bit easier. Or just implement some tool to do shading automatically
 #       (make it also so that the original figure isn't modified...)
 # - fix GOES x-ray flux hard limit (periods of lower activity have lower bakcground)
 # - inform which averaging does which
 # - colormapping stuff that Nina mentioned (plotly/PFSS notebook? dunno)
-# - add minor ticks!
+
 
 import datetime as dt
 import ipywidgets as w
@@ -61,9 +60,9 @@ class Options:
 
         self.resample = w.IntText(value=10, step=1, description='Averaging (min)', disabled=False, 
                                          style=_style)
-        self.resample_mag = w.IntText(value=10, step=1, description='MAG averaging (min)', 
+        self.resample_mag = w.IntText(value=5, step=1, description='MAG averaging (min)', 
                                              disabled=False, style=_style)
-        self.resample_stixgoes = w.IntText(value=10, step=1, description="STIX/GOES averaging (min)", 
+        self.resample_stixgoes = w.IntText(value=1, step=1, description="STIX/GOES averaging (min)", 
                                                   style=_style)
         
         self.radio_cmap = w.Dropdown(options=['jet', 'plasma'], value='jet', description='Radio colormap', style=_style)
@@ -266,10 +265,10 @@ def load_data():
     
     if options.spacecraft.value == "STEREO":
         print(f"Loading {options.spacecraft.value} {options.ster_sc.value}",
-              f"data for range: {options.startdate.value} - {options.enddate.value}")
+              f"data for range: {options.startdt} - {options.enddt}")
     else:
         print(f"Loading {options.spacecraft.value}",
-              f"data for range: {options.startdate.value} - {options.enddate.value}")
+              f"data for range: {options.startdt} - {options.enddt}")
 
     if options.spacecraft.value == "Parker Solar Probe":
         if options.startdt >= dt.datetime(2018, 10, 2):

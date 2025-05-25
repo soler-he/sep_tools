@@ -301,7 +301,7 @@ def load_data(options):
     read_widget_values(options)
     options.plot_start = None
     options.plot_end = None
-    
+
     intercal = 1
     wind_flux_thres = None
 
@@ -409,26 +409,34 @@ def load_data(options):
     
 
 def energy_channel_selection():
-    cols = ["3DP Electrons", "3DP Protons", "EPHIN Electrons", "ERNE Protons"]
+    cols = []
     df = pd.DataFrame()
 
-    series_e = meta_e['channels_dict_df']['Bins_Text'].reset_index(drop=True)
-    series_e[0] = np.nan
-    df = pd.concat([df, series_e], axis=1)
+    if isinstance(meta_e, dict):
+        cols.append("3DP Electrons")
+        series_e = meta_e['channels_dict_df']['Bins_Text'].reset_index(drop=True)
+        series_e[0] = np.nan
+        df = pd.concat([df, series_e], axis=1)
 
-    series_p = meta_p['channels_dict_df']['Bins_Text'].reset_index(drop=True)
-    series_p[0] = np.nan
-    series_p[1] = np.nan
-    df = pd.concat([df, series_p], axis=1)
+    if isinstance(meta_p, dict):
+        cols.append("3DP Protons")
+        series_p = meta_p['channels_dict_df']['Bins_Text'].reset_index(drop=True)
+        series_p[0] = np.nan
+        series_p[1] = np.nan
+        df = pd.concat([df, series_p], axis=1)
 
-    energy_list = []
-    for ch in ["E150", "E300", "E1300", "E3000"]:
-        energy_list.append(meta_ephin[ch])
-    series_ephin = pd.Series(energy_list)
-    df = pd.concat([df, series_ephin], axis=1)
+    if isinstance(meta_ephin, dict):
+        cols.append("EPHIN Electrons")
+        energy_list = []
+        for ch in ["E150", "E300", "E1300", "E3000"]:
+            energy_list.append(meta_ephin[ch])
+        series_ephin = pd.Series(energy_list)
+        df = pd.concat([df, series_ephin], axis=1)
 
-    series_erne = meta_erne['channels_dict_df_p']['ch_strings'].reset_index(drop=True)
-    df = pd.concat([df, series_erne], axis=1)
+    if isinstance(meta_erne, dict):
+        cols.append("ERNE Protons")
+        series_erne = meta_erne['channels_dict_df_p']['ch_strings'].reset_index(drop=True)
+        df = pd.concat([df, series_erne], axis=1)
 
     df.columns = cols
     return df

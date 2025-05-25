@@ -422,8 +422,8 @@ def make_fig_axs(options):
 
     
     axs[-1].xaxis.minorticks_on()
-    axs[-1].xaxis.set(major_locator=mdates.AutoDateLocator(minticks=4, maxticks=8), 
-                      minor_locator=mdates.AutoDateLocator(minticks=14, maxticks=28))
+    axs[-1].xaxis.set(major_locator=mdates.AutoDateLocator(minticks=6, maxticks=9), 
+                      minor_locator=mdates.AutoDateLocator(minticks=10, maxticks=28))
     axs[-1].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M\n%b %d'))
     axs[-1].xaxis.set_tick_params(rotation=0)
     axs[-1].set_xlabel(f"Time (UTC) / Date in {options.plot_start.year}", fontsize=15)
