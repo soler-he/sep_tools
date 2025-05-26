@@ -10,6 +10,7 @@
 # - fix GOES x-ray flux hard limit (periods of lower activity have lower bakcground)
 # - inform which averaging does which
 # - colormapping stuff that Nina mentioned (plotly/PFSS notebook? dunno)
+# - figure out how to check if older data persists over a date change (or reset dataframes after date change)
 
 
 import datetime as dt
@@ -31,10 +32,10 @@ _common_attrs = ["spacecraft", "startdate", "enddate", "resample", "resample_mag
                  "radio_cmap", "legends_inside"]
 
 _variable_attrs = ['radio', 'mag', 'polarity', 'mag_angles', 
-                   'Vsw', 'N', 'T', 
+                   'Vsw', 'N', 'T', "p_dyn", 
                    "stix", "stix_ltc", "goes", "goes_man_select"]
 
-_psp_attrs = ["p_dyn", 'psp_epilo_e', 'psp_epilo_p', 'psp_epihi_e',
+_psp_attrs = ['psp_epilo_e', 'psp_epilo_p', 'psp_epihi_e',
               'psp_epihi_p', 'psp_het_viewing', 'psp_epilo_viewing',
               'psp_epilo_ic_viewing']
 
@@ -133,10 +134,10 @@ class Options:
                                              value=tuple(range(0,9+1,2)), rows=10, disabled=False, style=_style)
         self.l1_ch_ephin_e = w.SelectMultiple(description="EPHIN Electrons", options=range(0,4), 
                                               value=(0,2), rows=10, style=_style)
-        self.l1_ch_wind_e = w.SelectMultiple(description="3DP Electrons", options=range(1,7), 
-                                              value=tuple(range(1,7,1)), rows=10, style=_style)
-        self.l1_ch_wind_p = w.SelectMultiple(description="3DP Protons", options=range(2,9), 
-                                              value=tuple(range(2,9,1)), rows=10, style=_style)
+        self.l1_ch_wind_e = w.SelectMultiple(description="3DP Electrons", options=range(0,6), 
+                                              value=tuple(range(0,6,1)), rows=10, style=_style)
+        self.l1_ch_wind_p = w.SelectMultiple(description="3DP Protons", options=range(0,7), 
+                                              value=tuple(range(0,7,1)), rows=10, style=_style)
         self.l1_av_sep = w.IntText(value=10, description="3DP+EPHIN averaging", style=_style)
         self.l1_av_erne = w.IntText(value=10, description="ERNE averaging", style=_style)
         
@@ -237,6 +238,7 @@ class Options:
         self._outs = w.HBox((w.VBox([self._out1, self._txt_out]), self._out2))         # side-by-side outputs
 
     def show(self):
+        #options.spacecraft.value = None
         self._out1.clear_output()
         self._out2.clear_output()
         self._txt_out.clear_output()
@@ -253,7 +255,7 @@ def load_data():
                                   options.startdate.value.day, 0, 0)
     
     options.enddt = dt.datetime(options.enddate.value.year, options.enddate.value.month, 
-                                options.enddate.value.day + 1, 0, 0, 0)
+                                options.enddate.value.day, 23, 59, 59)
 
     if options.startdt > options.enddt:
         print("End date cannot precede startdate!")
@@ -306,19 +308,19 @@ def load_data():
 def energy_channel_selection():
 
     if options.spacecraft.value == "Parker Solar Probe":
-        display(psp.energy_channel_selection())
+        display(psp.energy_channel_selection(options))
         selection = [options.psp_ch_epilo_pe, options.psp_ch_epilo_ic, options.psp_ch_het_e, options.psp_ch_het_p]
         
     if options.spacecraft.value == "Solar Orbiter":
-        display(solo.energy_channel_selection())
+        display(solo.energy_channel_selection(options))
         selection = [options.solo_ch_ept_e, options.solo_ch_ept_p, options.solo_ch_het_e, options.solo_ch_het_p]
         
     if options.spacecraft.value == "L1 (Wind/SOHO)":
-        display(l1.energy_channel_selection())
+        display(l1.energy_channel_selection(options))
         selection = [options.l1_ch_wind_e, options.l1_ch_wind_p, options.l1_ch_ephin_e, options.l1_ch_erne_p]
 
     if options.spacecraft.value == "STEREO":
-        display(stereo.energy_channel_selection())
+        display(stereo.energy_channel_selection(options))
         selection = [options.ster_ch_sept_e, options.ster_ch_sept_p, options.ster_ch_het_e, options.ster_ch_het_p]
         
     layout = w.Layout(width="auto")
