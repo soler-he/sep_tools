@@ -1,14 +1,8 @@
 # TODO:
 # - fontsize as options?
 # - SOLO/RPW still under development
-# - WEEKLY PLOTS: 60 min particle avg, 15 min mag, 0 min STIX/GOES. Use only instruments at same location
-# - go through datasets to figure out native cadences and fix issues related to them
-# - JupyterHub: suppress signal handler main thread value error thing (probably not possible)
-# - when no data is fetched for particles, catch energy_channel_selection errors 
 # - copy of fig and axs? to make modifying it a bit easier. Or just implement some tool to do shading automatically
 #       (make it also so that the original figure isn't modified...)
-# - fix GOES x-ray flux hard limit (periods of lower activity have lower bakcground)
-# - inform which averaging does which
 # - colormapping stuff that Nina mentioned (plotly/PFSS notebook? dunno)
 # - figure out how to check if older data persists over a date change (or reset dataframes after date change)
 
@@ -17,6 +11,7 @@ import datetime as dt
 import ipywidgets as w
 import os
 import warnings
+import matplotlib as mpl
 
 from IPython.display import display
 import multi_inst_plots.stereo_tools as stereo
@@ -66,7 +61,7 @@ class Options:
         self.resample_stixgoes = w.IntText(value=1, step=1, description="STIX/GOES averaging (min)", 
                                                   style=_style)
         
-        self.radio_cmap = w.Dropdown(options=['jet', 'plasma'], value='jet', description='Radio colormap', style=_style)
+        self.radio_cmap = w.Dropdown(options=list(mpl.colormaps), value='jet', description='Radio colormap', style=_style)
         self.pos_timestamp = 'center' 
         self.legends_inside = w.Checkbox(value=False, description='Legends inside')
     
@@ -172,17 +167,18 @@ class Options:
             with self._out2:
                 if change.new == "Parker Solar Probe":
                     display(self._psp_box)
-
+                    
                 if change.new == "Solar Orbiter":
                     display(self._solo_box)    # display(self.solo_vbox)
-
+                    
                 if change.new == "L1 (Wind/SOHO)":
                     display(self._l1_box)
-
+                    
                 if change.new == "STEREO":
                     display(self._stereo_box)
-
+                    
             options.plot_range = None
+                    
 
         def _disable_checkbox(change):
             """
@@ -247,7 +243,7 @@ class Options:
         with self._out1:
             display(self._commons)
         
-    
+
 
 def load_data():
 
@@ -327,6 +323,54 @@ def energy_channel_selection():
     ch_box = w.HBox(selection, layout=layout)
     display(ch_box)
     
+def range_selection(low_e_step=None, low_p_step=None, high_e_step=None, high_p_step=None):
+    """
+    Defines evenly spaced energy channel ranges. Defaults (i.e. calling without args) to nice, sensible ranges.
+    """
+    if low_e_step is None:
+        options.psp_ch_epilo_pe.value = tuple(range(0,5+1,1))
+        options.l1_ch_wind_e.value = tuple(range(0,6,1))
+        options.ster_ch_sept_e.value = tuple(range(0,15,2))
+        options.solo_ch_ept_e.value = tuple(range(0,17,2))
+    else:
+        options.psp_ch_epilo_pe.value = tuple(range(0,5+1,low_e_step))
+        options.l1_ch_wind_e.value = tuple(range(0,6,low_e_step))
+        options.ster_ch_sept_e.value = tuple(range(0,15,low_e_step))
+        options.solo_ch_ept_e.value = tuple(range(0,17,low_e_step))
+
+    if low_p_step is None:
+        options.psp_ch_epilo_ic.value = tuple(range(0,31+1,6))
+        options.l1_ch_wind_p.value = tuple(range(0,7,1))
+        options.ster_ch_sept_p.value = tuple(range(0,30,4))
+        options.solo_ch_ept_p.value = tuple(range(0,32,5))
+    else:
+        options.psp_ch_epilo_ic.value = tuple(range(0,31+1,low_p_step))
+        options.l1_ch_wind_p.value = tuple(range(0,7,low_p_step))
+        options.ster_ch_sept_p.value = tuple(range(0,30,low_p_step))
+        options.solo_ch_ept_p.value = tuple(range(0,32,low_p_step))
+
+    if high_e_step is None:
+        options.psp_ch_het_e.value = tuple(range(0,18+1,4))
+        options.l1_ch_ephin_e.value = (0,2)
+        options.ster_ch_het_e.value = (0,1,2)
+        options.solo_ch_het_e.value = tuple(range(0,4,1))
+    else:
+        options.psp_ch_het_e.value = tuple(range(0,18+1,high_e_step))
+        options.l1_ch_ephin_e.value = tuple(range(0,4,high_e_step))
+        options.ster_ch_het_e.value = tuple(range(0,3,high_e_step))
+        options.solo_ch_het_e.value = tuple(range(0,4,high_e_step))
+    
+    if high_p_step is None:
+        options.psp_ch_het_p.value = tuple(range(0,14+1,3))
+        options.l1_ch_erne_p.value = tuple(range(0,10,2))
+        options.ster_ch_het_p.value = tuple(range(0,11,2))
+        options.solo_ch_het_p.value = tuple(range(0,36,5))
+    else:
+        options.psp_ch_het_p.value = tuple(range(0,14+1,high_p_step))
+        options.l1_ch_erne_p.value = tuple(range(0,10,high_p_step))
+        options.ster_ch_het_p.value = tuple(range(0,11,high_p_step))
+        options.solo_ch_het_p.value = tuple(range(0,36,high_p_step))
+
     
 def make_plot():
     if options.spacecraft.value == "Parker Solar Probe":
