@@ -468,7 +468,7 @@ def range_selection(low_e_step=None, low_p_step=None, high_e_step=None, high_p_s
 
     
 def make_plot(show=True):
-    options.showplot = True
+    options.showplot = show
     if options.spacecraft.value == "Parker Solar Probe":
         return psp.make_plot(options)
     
