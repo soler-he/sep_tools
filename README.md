@@ -50,7 +50,7 @@ If you are new to Jupyter Notebooks, the official documentation will give you mo
 
 ## Access online (JupyterHub)
 
-All tools can be accessed online accessed online without installation on [SOLER's JupyterHub](https://soler-horizon.eu/hub/). You only need a (free) [GitHub account](https://github.com/signup) for verification. Click on the Notebook file below to open the specific tool:
+All tools can be accessed online without installation on [SOLER's JupyterHub](https://soler-horizon.eu/hub/). You only need a (free) [GitHub account](https://github.com/signup) for verification. Click on the Notebook file below to open the specific tool:
 
 - [`SEP_Fluence-Spectra.ipynb`](https://hub-route-serpentine-soler.2.rahtiapp.fi/hub/user-redirect/lab/workspaces/auto-8/tree/soler/sep_tools/SEP_Fluence-Spectra.ipynb)<br>Determines and visualizes SEP energy spectra accumulated over a whole event duration
 - [`SEP_Multi-Instrument-Plot.ipynb`](https://hub-route-serpentine-soler.2.rahtiapp.fi/hub/user-redirect/lab/workspaces/auto-8/tree/soler/sep_tools/SEP_Multi-Instrument-Plot.ipynb)<br>Makes multi-panel time-series plots of various different in-situ measurements, including also selected remote-sensing observations
