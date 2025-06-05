@@ -232,7 +232,11 @@ def load_data(options):
                                         startdate, enddate, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
             df_psp_spc_wp_tot = spz.get_data(spz.inventories.data_tree.amda.Parameters.PSP.SWEAP_SPC.psp_spc_fit.psp_spc_wp_tot, 
                                         startdate, enddate, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
-            df_psp_spc_GF = spz.get_data(spz.inventories.data_tree.amda.Parameters.PSP.SWEAP_SPC.psp_spc_flag.psp_spc_gf, 
+            try:
+                df_psp_spc_GF = spz.get_data(spz.inventories.data_tree.amda.Parameters.PSP.SWEAP_SPC.psp_spc_flag.psp_spc_gf, 
+                                            startdate, enddate, output_format="CDF_ISTP").replace_fillval_by_nan(convert_to_float=True).to_dataframe()
+            except TypeError:
+                df_psp_spc_GF = spz.get_data(spz.inventories.data_tree.amda.Parameters.PSP.SWEAP_SPC.psp_spc_flag.psp_spc_gf, 
                                         startdate, enddate, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
             df_psp_spc = pd.concat([df_psp_spc_np_tot, df_psp_spc_vp_tot_nrm, df_psp_spc_vp_tot_rtn, df_psp_spc_wp_tot, df_psp_spc_GF], axis=1)
 
@@ -243,8 +247,13 @@ def load_data(options):
                                         startdate, enddate).replace_fillval_by_nan().to_dataframe()
             df_psp_spani_T = spz.get_data(spz.inventories.data_tree.cda.ParkerSolarProbe.PSPSWEAPSPAN.PSP_SWP_SPI_SF00_L3_MOM.TEMP, 
                                         startdate, enddate).replace_fillval_by_nan().to_dataframe()
-            df_psp_spani_QF = spz.get_data(spz.inventories.data_tree.cda.ParkerSolarProbe.PSPSWEAPSPAN.PSP_SWP_SPI_SF00_L3_MOM.QUALITY_FLAG, 
+            try:
+                df_psp_spani_QF = spz.get_data(spz.inventories.data_tree.cda.ParkerSolarProbe.PSPSWEAPSPAN.PSP_SWP_SPI_SF00_L3_MOM.QUALITY_FLAG, 
+                                            startdate, enddate).replace_fillval_by_nan(convert_to_float=True).to_dataframe()
+            except TypeError:
+                df_psp_spani_QF = spz.get_data(spz.inventories.data_tree.cda.ParkerSolarProbe.PSPSWEAPSPAN.PSP_SWP_SPI_SF00_L3_MOM.QUALITY_FLAG, 
                                         startdate, enddate).replace_fillval_by_nan().to_dataframe()
+            
             df_psp_spani = pd.concat([df_psp_spani_np, df_psp_spani_vp_rtn_sun, df_psp_spani_T, df_psp_spani_QF], axis=1)
 
             # Read units into dictionary
@@ -345,7 +354,7 @@ def energy_channel_selection(options):
 
     try:
         if options.psp_epilo_e.value == True:
-            if isinstance(psp_epilo_energies, pd.DataFrame):
+            if isinstance(psp_epilo_energies, dict):
                 cols.append("EPI-Lo PE Electrons")
                 energy_list_pe = []
                 for i in np.arange(3,9):
@@ -354,7 +363,7 @@ def energy_channel_selection(options):
                 df = pd.concat([df, energy_list_pe], axis=1)
 
         if options.psp_epilo_p.value == True:
-            if isinstance(psp_epilo_ic_energies, pd.DataFrame):
+            if isinstance(psp_epilo_ic_energies, dict):
                 cols.append("EPI-Lo IC Protons")
                 energy_list_ic = []
                 for i in np.arange(0,31)[::-1]:
@@ -743,8 +752,9 @@ def make_plot(options):
         else:
             axs[i].legend(bbox_to_anchor=(1.01, 1), borderaxespad=0., loc='upper left', fontsize=font_legend)
         # i += 1     
-            
-    plt.show()
+
+    if options.showplot:
+        plt.show()
 
     return fig, axs
 

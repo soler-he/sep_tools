@@ -112,14 +112,17 @@ def load_swaves(dataset, startdate, enddate, path=None):
         time = np.array([], dtype="datetime64")
 
         for file in files:
-            cdf_file = cdflib.CDF(file)
-            
-            time_ns_1day = cdf_file.varget('Epoch')
-            time_dt  = cdflib.epochs.CDFepoch.to_datetime(time_ns_1day)
-            psd_sfu_1day  = cdf_file.varget('PSD_SFU')
+            try:
+                cdf_file = cdflib.CDF(file)
+                
+                time_ns_1day = cdf_file.varget('Epoch')
+                time_dt  = cdflib.epochs.CDFepoch.to_datetime(time_ns_1day)
+                psd_sfu_1day  = cdf_file.varget('PSD_SFU')
 
-            time = np.append(time, time_dt)
-            psd_sfu = np.append(psd_sfu, psd_sfu_1day, axis=0)
+                time = np.append(time, time_dt)
+                psd_sfu = np.append(psd_sfu, psd_sfu_1day, axis=0)
+            except ValueError:
+                pass
 
         # remove bar artifacts caused by non-NaN values before time jumps
             # for each time step except the last one:
@@ -562,7 +565,8 @@ def make_plot(options):
         axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km s$^{-1}$]", fontsize=font_ylabel)
         #i += 1
         
-    plt.show()
-
+    if options.showplot:
+        plt.show()
+        
     return fig, axs
 

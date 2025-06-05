@@ -140,16 +140,19 @@ def load_waves_rad(dataset, startdate, enddate, file_path=None):
 
     # append data 
     for file in files:
-        cdf = cdflib.CDF(file)
+        try:
+            cdf = cdflib.CDF(file)
 
-        # PSD shape (nTime, nFreq)
-        psd_raw = cdf.varget("PSD_V2_SP")
-        # Time
-        time_ns = cdf.varget("Epoch")  # shape (nTime,)
+            # PSD shape (nTime, nFreq)
+            psd_raw = cdf.varget("PSD_V2_SP")
+            # Time
+            time_ns = cdf.varget("Epoch")  # shape (nTime,)
 
-        time_dt = np.append(time_dt, cdflib.epochs.CDFepoch.to_datetime(time_ns))
+            time_dt = np.append(time_dt, cdflib.epochs.CDFepoch.to_datetime(time_ns))
 
-        psd_v2hz = np.append(psd_v2hz, psd_raw, axis=0)
+            psd_v2hz = np.append(psd_v2hz, psd_raw, axis=0)
+        except ValueError:
+            pass
 
     
     # Some files use a fill value ~ -9.9999998e+30
@@ -242,7 +245,6 @@ def load_data(options):
     global meta_erne
     global meta_e
     global meta_p
-    global intercal
     global df_stix_
     global df_goes_
     global goes_sat
@@ -258,7 +260,7 @@ def load_data(options):
     if options.mag.value == False:
         options.polarity.value = False
 
-    intercal = 1
+    
     wind_flux_thres = None
 
     # LOAD DATA
@@ -489,6 +491,8 @@ def make_plot(options):
     legends_inside = options.legends_inside.value
     cmap = options.radio_cmap.value
 
+    intercal = 1
+
     font_ylabel = 20
     font_legend = 10
 
@@ -694,6 +698,9 @@ def make_plot(options):
         axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km s$^{-1}$]", fontsize=font_ylabel)
         i += 1
             
-    plt.show()
+    if options.showplot:
+        plt.show()
 
     return fig, axs
+
+

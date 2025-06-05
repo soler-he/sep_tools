@@ -10,7 +10,6 @@
 import datetime as dt
 import ipywidgets as w
 import os
-import warnings
 import matplotlib as mpl
 
 from IPython.display import display
@@ -19,7 +18,6 @@ import multi_inst_plots.psp_tools as psp
 import multi_inst_plots.l1_tools as l1
 import multi_inst_plots.solo_tools as solo
 
-#warnings.simplefilter(action="ignore", )
 
 _style = {'description_width' : '60%'} 
 
@@ -158,28 +156,121 @@ class Options:
         self._l1_box = w.VBox([getattr(self, attr) for attr in _l1_attrs])
         self._stereo_box = w.VBox([getattr(self, attr) for attr in _stereo_attrs])
         
+
         def _change_sc(change):
             """
-            Change spacecraft-specific options.
+            Change spacecraft-specific options. 
             """
+            
             self._out2.clear_output()
-
             with self._out2:
                 if change.new == "Parker Solar Probe":
                     display(self._psp_box)
                     
                 if change.new == "Solar Orbiter":
-                    display(self._solo_box)    # display(self.solo_vbox)
+                    display(self._solo_box)    
                     
                 if change.new == "L1 (Wind/SOHO)":
                     display(self._l1_box)
                     
                 if change.new == "STEREO":
                     display(self._stereo_box)
-                    
-            options.plot_range = None
-                    
 
+
+        def _delete_previous_data(change):
+            """
+            Delete data related to previous selection.
+            """
+
+            # L1 
+            dfs = ["df_wind_wav_rad2",
+                    "df_wind_wav_rad1",
+                    "df_solwind",
+                    "mag_data",
+                    "ephin_",
+                    "erne_p_",
+                    "edic_",
+                    "pdic_",
+                    "df_stix_",
+                    "df_goes_",
+                    "meta_ephin",
+                    "meta_erne",
+                    "meta_e",
+                    "meta_p"
+                    ]
+            for df in dfs:
+                try:
+                    delattr(l1, df)
+                except AttributeError:
+                    pass
+
+            # STEREO
+            dfs = [
+                "df_sept_electrons_orig",
+                "df_sept_protons_orig",
+                "df_het_orig",
+                "df_waves_hfr",
+                "df_waves_lfr",
+                "df_stix_",
+                "df_goes_",
+                "df_mag_orig",
+                "df_magplasma",
+                "meta_magplas",
+                "meta_mag",
+                "meta_se",
+                "meta_sp",
+                "meta_het"
+            ]
+            for df in dfs:
+                try:
+                    delattr(stereo, df)
+                except AttributeError:
+                    pass
+        
+            # SolO
+            dfs = [
+                "df_ept_org",
+                "electrons_het",
+                "electrons_ept",
+                "protons_ept",
+                "protons_het",
+                "df_stix_",
+                "df_goes_",
+                "swa_data",
+                "mag_data_org",
+                "energies_ept",
+                "energies_het",
+                "metadata_ept"
+            ]
+            for df in dfs:
+                try:
+                    delattr(solo, df)
+                except AttributeError:
+                    pass
+            
+            # PSP
+            dfs = [
+                "psp_rfs_lfr_psd",
+                "psp_rfs_hfr_psd",
+                "df_psp_spani",
+                "df_psp_spc",
+                "psp_mag",
+                "psp_het_org",
+                "psp_epilo_ic_org",
+                "psp_epilo_org",
+                "df_stix_",
+                "df_goes_",
+                "psp_het_energies",
+                "psp_epilo_energies",
+                "psp_epilo_ic_energies"
+            ]
+            for df in dfs:
+                try:
+                    delattr(psp, df)
+                except AttributeError:
+                    pass
+
+            
         def _disable_checkbox(change):
             """
             Disable checkbox when options get update (e.g. MAG + MAG polarity).
@@ -205,9 +296,11 @@ class Options:
                 elif change.new == True:
                     self.goes_man_select.disabled = False
 
+
         def _no_negative_avg(change):
             if change.new < 0:
                 change.owner.value = 0
+
 
         self.mag.observe(_disable_checkbox, names="value")
         self.stix.observe(_disable_checkbox, names="value")
@@ -219,8 +312,11 @@ class Options:
         self.l1_av_erne.observe(_no_negative_avg, names="value")
         self.l1_av_sep.observe(_no_negative_avg, names="value")
             
-        #Set observer to listen for changes in S/C dropdown menu
         self.spacecraft.observe(_change_sc, names="value")
+
+        self.spacecraft.observe(_delete_previous_data, names="value")
+        self.startdate.observe(_delete_previous_data, names="value")
+        self.enddate.observe(_delete_previous_data, names="value")
 
         # Common attributes (dates, plot options etc.)
         self._commons = w.HBox([w.VBox([getattr(self, attr) for attr in _common_attrs]), 
@@ -234,7 +330,7 @@ class Options:
         self._outs = w.HBox((w.VBox([self._out1, self._txt_out]), self._out2))         # side-by-side outputs
 
     def show(self):
-        #options.spacecraft.value = None
+        self.spacecraft.value = None
         self._out1.clear_output()
         self._out2.clear_output()
         self._txt_out.clear_output()
@@ -243,7 +339,6 @@ class Options:
         with self._out1:
             display(self._commons)
         
-
 
 def load_data():
 
@@ -300,7 +395,6 @@ def load_data():
             print("STEREO A/B: no data before 26 Oct 2006")
     
     
-
 def energy_channel_selection():
 
     if options.spacecraft.value == "Parker Solar Probe":
@@ -322,6 +416,7 @@ def energy_channel_selection():
     layout = w.Layout(width="auto")
     ch_box = w.HBox(selection, layout=layout)
     display(ch_box)
+
     
 def range_selection(low_e_step=None, low_p_step=None, high_e_step=None, high_p_step=None):
     """
@@ -372,7 +467,8 @@ def range_selection(low_e_step=None, low_p_step=None, high_e_step=None, high_p_s
         options.solo_ch_het_p.value = tuple(range(0,36,high_p_step))
 
     
-def make_plot():
+def make_plot(show=True):
+    options.showplot = True
     if options.spacecraft.value == "Parker Solar Probe":
         return psp.make_plot(options)
     

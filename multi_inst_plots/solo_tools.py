@@ -139,6 +139,8 @@ def swa_load_grnd_mom(startdate, enddate, path=None):
 
 
 def load_data(options):
+    data = {}
+    metadata = {}
 
     startdate = options.startdt
     enddate = options.enddt
@@ -254,16 +256,6 @@ def load_data(options):
 def energy_channel_selection(options):
     cols = []
     df = pd.DataFrame()
-
-    try:
-        energies_ept = metadata["ept_energies"]
-    except KeyError:
-        pass
-
-    try:
-        energies_het = metadata["het_energies"]
-    except KeyError:
-        pass
 
     try:
         if options.solo_ept_e.value:
@@ -676,10 +668,7 @@ def make_plot(options):
         axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km s$^{-1}$]", fontsize=font_ylabel)
         i += 1
     
-    plt.show()
+    if options.showplot:
+        plt.show()
 
     return fig, axs
-
-
-data = {}
-metadata = {}
