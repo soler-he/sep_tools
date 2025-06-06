@@ -8,7 +8,7 @@ import warnings
 
 from matplotlib import pyplot as plt
 from solo_epd_loader import epd_load
-# from seppy.loader.soho import soho_load
+from seppy.loader.soho import soho_load
 from seppy.loader.psp import psp_isois_load
 from seppy.loader.stereo import stereo_load
 from seppy.loader.wind import wind3dp_load
@@ -79,6 +79,12 @@ class Event:
             if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
                 dataset = 'WI_SOSP_3DP'
             self.df, self.meta = wind3dp_load(dataset=dataset, startdate=self.startdate, enddate=self.enddate, path=data_path, resample=resample)
+
+        if self.spacecraft.lower() in ['soho']:
+            self.viewing = ''
+            self.erne_chstring = ['13-16 MeV', '16-20 MeV', '20-25 MeV', '25-32 MeV', '32-40 MeV', '40-50 MeV', '50-64 MeV', '64-80 MeV', '80-100 MeV', '100-130 MeV']
+            self.df, self.meta = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=self.startdate, enddate=self.enddate, path=data_path, resample=resample, max_conn=1)
+
 
         if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
             if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
@@ -157,6 +163,16 @@ class Event:
                 label = self.meta['channels_dict_df']['Bins_Text'][f'ENERGY_{channel}']
                 axs.plot(self.df.index, self.df[f'{flux_id}_{channel}']*1e6, label=label)
 
+        if self.spacecraft.lower() in ['soho']:
+            flux_id = 'PH'
+            show_channels = np.arange(len(self.erne_chstring))
+
+            # plotting
+            for channel in show_channels:
+                label = self.erne_chstring[channel]
+                axs.plot(self.df.index, self.df[f'{flux_id}_{channel}'], label=label)
+                
+       
         if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
             # if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:  # !!! no fluxes available for electrons
             #     print('!!! no intensity data available for PSP electrons!')
@@ -259,6 +275,12 @@ class Event:
             fluxes = self.df[cols]
             self.spec_E = self.meta['channels_dict_df']['mean_E'].values*1e-6
 
+        if self.spacecraft.lower() in ['soho']:
+            cols = self.df.filter(like='PH').columns
+            flux_id = 'PH_'
+            #fluxes = self.df[cols]
+            self.spec_E = self.meta['channels_dict_df_p']['mean_E']
+
         if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
             if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:  # !!! no fluxes available for electrons
                 print('!!! no intensity data available for PSP electrons!')
@@ -277,6 +299,9 @@ class Event:
         if self.spacecraft.lower() == 'wind':
             I_spec = np.nanmean(df_fluxes.iloc[ind], axis=0)*1e6
             unc_spec = np.zeros(len(I_spec))*np.nan
+        elif self.spacecraft.lower() == 'soho':
+            I_spec = np.nanmean(df_fluxes.iloc[ind], axis=0)
+            unc_spec = np.zeros(len(I_spec))*np.nan
         else:
             df_uncs = self.df[self.df.filter(like=unc_id).columns]
             unc_spec = np.nanmean(df_uncs.iloc[ind], axis=0)
@@ -285,7 +310,7 @@ class Event:
             print('subtracting background')
             bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
             self.integrated_spec = I_spec - bg_spec
-            if self.spacecraft.lower() == 'wind':
+            if self.spacecraft.lower() in ['wind', 'soho']:
                 self.integrated_unc = np.zeros(len(I_spec))*np.nan
             else:
                 bg_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)
