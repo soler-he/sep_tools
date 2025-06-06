@@ -1,11 +1,10 @@
 import ipywidgets as widgets
 
 # a list of available spacecraft:
-list_of_sc = ["PSP", "SOHO", "Solar Orbiter", "STEREO-A", "STEREO-B", "Wind"]
+list_of_sc = ["PSP", "Solar Orbiter", "STEREO-A", "STEREO-B", "Wind"]
 
 stereo_instr = ["HET", "SEPT"]
 solo_instr = ["EPT", "HET"]
-soho_instr = ["ERNE-HED"]
 psp_instr = ["isois-epihi"]
 wind_instr = ["3DP"]
 
@@ -13,7 +12,6 @@ sensor_dict = {
     "STEREO-A": stereo_instr,
     "STEREO-B": stereo_instr,
     "Solar Orbiter": solo_instr,
-    "SOHO": soho_instr,
     "PSP": psp_instr,
     "Wind": wind_instr
 }
@@ -40,7 +38,7 @@ species_dict = {
     # ("Solar Orbiter", "STEP"): ("ions",),  # , "electrons"),
     ("Solar Orbiter", "EPT"): ("ions", "electrons"),
     ("Solar Orbiter", "HET"): ("protons", "electrons"),
-    ("SOHO", "ERNE-HED"): ("protons",),
+    # ("SOHO", "ERNE-HED"): ("protons",),
     # ("SOHO", "EPHIN"): ("electrons",),
     ("PSP", "isois-epihi"): ("protons", ),  # "electrons"),
     # ("PSP", "isois-epilo"): ("electrons",),
