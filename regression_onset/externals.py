@@ -218,7 +218,7 @@ def combine_energy_channels(event, channels:list) -> tuple:
                                                 event.current_energies['channels_dict_df_p'],
                                                 channels,
                                                 species='p',
-                                                sensor='HET')
+                                                sensor='HED')
 
             if event.sensor == 'ephin':
                 # convert single-element "channels" list to integer
