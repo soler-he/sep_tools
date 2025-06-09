@@ -23,7 +23,7 @@ from .plotting_utilities import set_standard_ticks, set_xlims, set_ylims, fabric
 
 from .validate import _validate_index_choice, _validate_plot_style, _validate_fit_convergence, _validate_selection
 
-from .externals import export_seppy_data
+from .externals import export_seppy_data, generate_column_indices
 
 from .select_data import data_file
 
@@ -34,10 +34,28 @@ SECONDS_PER_DAY = 86400
 QUICKLOOK_TICK_LABELSIZE = 18
 QUICKLOOK_LEGENDSIZE = STANDARD_FONTSIZE-5
 
+VALID_DATA_SOURCES = ("SEPpy", "User defined")
+
 class Reg:
 
-    def __init__(self, data:pd.DataFrame):
+    def __init__(self, data:pd.DataFrame, data_source:str, meta_df:pd.DataFrame=None, meta_dict:dict=None):
+        """"
+        
+        data : {pd.Dataframe} The intensity data.
+        data_source : {str} Either 'SEPpy' or 'User defined'
+        meta_df : {pd.DataFrame} optional. Contains the channel energy strings.
+        meta_dict : {dict} A dictionary containing the names 
+        """
+
         self.data = data
+
+        if data_source not in VALID_DATA_SOURCES:
+            raise ValueError(f"{data_source} is not a valid data source; choose either one of the following: {VALID_DATA_SOURCES}.")
+
+        self.data_source = data_source
+        self.meta_df = meta_df
+        self.meta_dict = meta_dict
+
         self.selection_max_x = pd.NaT
         self.selection_max_y = np.nan
 
@@ -46,6 +64,28 @@ class Reg:
 
         # To keep track of how many times self._onclick() has been run
         self.times_clicked = 0
+
+        # For SEPpy data we change the column names
+        if data_source=="SEPpy":
+            new_columns = generate_column_indices(columns=data.columns, meta_index=meta_df.index)
+            self.data.rename(columns=new_columns, inplace=True)
+
+
+    def _title_str(self, channel_index):
+        """
+        Generates a title string for figures from SEPpy meta data.
+        """
+        spacecraft = self.meta_dict["Spacecraft"]
+        sensor = self.meta_dict["Sensor"]
+        viewing = self.meta_dict["Viewing"]
+        species = self.meta_dict["Species"]
+        energy = self.meta_df["Energy range"].iloc[channel_index]
+        # A check for the energy string; it may be an element of the dataframe or the string:
+        if len(energy)==1:
+            energy = energy.values[0]
+        title_str = f"{spacecraft} / {sensor}$^{{\\mathrm{{{viewing}}}}}$\n{energy} {species}"
+        return title_str
+
 
     def set_selection_max(self, x, y=None) -> None:
         """
@@ -183,7 +223,11 @@ class Reg:
         self.quicklook_ax.set_ylabel(r"Intensity [1/(cm$^{2}$ sr s MeV)]", fontsize=QUICKLOOK_LEGENDSIZE)
 
         # Add the legend and show the figure
-        self.quicklook_ax.legend(fontsize=QUICKLOOK_LEGENDSIZE)
+        # self.quicklook_ax.legend(fontsize=QUICKLOOK_LEGENDSIZE)
+
+        if self.data_source=="SEPpy":
+            title = self._title_str(channel_index=channel)
+            self.quicklook_ax.set_title(title, fontsize=QUICKLOOK_LEGENDSIZE)
 
         self.quicklook_fig.tight_layout()
         plt.show()
@@ -398,8 +442,14 @@ class Reg:
             ax.set_ylabel(r"Intensity [1/(cm$^{2}$ sr s MeV)]", fontsize=STANDARD_FONTSIZE)
             set_xlims(ax=ax, data=data, xlim=xlim)
 
-            ax.set_title(title, fontsize=STANDARD_TITLE_FONTSIZE)
-            ax.legend(fontsize=STANDARD_FONTSIZE)
+            # ax.legend(fontsize=STANDARD_FONTSIZE)
+
+            if self.data_source=="SEPpy":
+                seppy_title = self._title_str(channel_index=channel)
+                ax.set_title(seppy_title, fontsize=STANDARD_TITLE_FONTSIZE)
+            if title is not None:
+                ax.set_title(title, fontsize=STANDARD_TITLE_FONTSIZE)
+
             plt.show()
 
             results_dict["fig"] = fig

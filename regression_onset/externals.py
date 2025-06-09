@@ -15,6 +15,50 @@ from seppy.tools import calc_av_en_flux_ST_HET, calc_av_en_flux_SEPT, calc_av_en
 FIGURE_KEY = "fig"
 
 
+def parse_seppy_metadata(event):
+    """
+    
+    """
+
+    meta_keys = ("Spacecraft", "Sensor", "Viewing", "Species")
+    seppy_names = [event.spacecraft, event.sensor, event.viewing, event.species]
+
+    # Fill in a dictionary with the proper names
+    meta_dict = {}
+    for i, key in enumerate(meta_keys):
+
+        name = seppy_names[i]
+        if key=="Spacecraft":
+            name = _proper_sc_name(name)
+        if key=="Sensor":
+            name = name.upper()
+        if key=="Viewing":
+            name = str(name)
+        if key=="Species":
+            name = _proper_species_name(name)
+
+        meta_dict[key] = name
+
+    # Gets the energy channel values as strings
+    meta_df = print_energies(event=event, return_df=True)
+
+    return meta_df, meta_dict
+
+
+def generate_column_indices(columns:list, meta_index:list):
+    """
+    Generates a dictionary mapping the old column names to integer
+    numbers; a convention used in SEPpy.
+
+    columns : {pd.DataFrame.columns} The columns of the dataframe that contains the intensity data.
+    meta_index : {pd.DataFrame.index} The index of the meta dataframe (contains energy channel strings).
+    """
+    new_columns = {}
+    for i, idx in enumerate(meta_index):
+        new_columns[columns[i]] = idx
+    return new_columns
+
+
 def export_seppy_data(event, viewing=None, species:str=None) -> pd.DataFrame:
     """
     The data is contained inside SEPpy Event objects. This function
@@ -77,7 +121,7 @@ def export_seppy_data(event, viewing=None, species:str=None) -> pd.DataFrame:
             return event.current_df_i.copy(deep=True)
 
 
-def save_figure(results: dict, name: str, facecolor:str="white", transparent:bool=False) -> None:
+def save_figure(results:dict, name:str, facecolor:str="white", transparent:bool=False) -> None:
     """
     Saves a figure to local directory with name.
     """
@@ -333,3 +377,136 @@ def combine_energy_channels(event, channels:list) -> tuple:
         flux_series = flux_series.squeeze()
 
     return flux_series, en_channel_string
+
+def print_energies(event, return_df=False):
+    """
+    Prints out the channel name / energy range pairs.
+
+    THIS IS A COPYPASTE OF A METHOD WITH IDENTICAL NAME IN SEPPY.
+    ACTS AS A PLACEHOLDER FUNCTION UNTIL SEPPY HAS BEEN PATCHED.
+
+    Parameter:
+    ---------
+    return_df : {bool} default False. If True, returns the df instead of displaying it.
+    """
+
+    import numpy as np
+    from IPython.display import display
+
+    # This has to be run first, otherwise event.current_df does not exist
+    # Note that PSP will by default have its viewing=='all', which does not yield proper dataframes
+    if event.viewing != 'all':
+        if event.spacecraft == 'solo' and not event.viewing:
+            raise Warning("For this operation the instrument's 'viewing' direction must be defined in the call of 'Event'! Please define and re-run.")
+            return
+        else:
+            event.choose_data(event.viewing)
+    else:
+        if event.sensor == "isois-epihi":
+            # Just choose data with either ´A´ or ´B´. I'm not sure if there's a difference
+            event.choose_data('A')
+        if event.sensor == "isois-epilo":
+            # ...And here with ´3´ or ´7´. Again I don't know if it'll make a difference
+            event.choose_data('3')
+
+    if event.species in ['e', "electron"]:
+        channel_names = event.current_df_e.columns
+        SOLO_EPT_CHANNELS_AMOUNT = 34
+        SOLO_HET_CHANNELS_AMOUNT = 4
+    if event.species in ['p', 'i', 'H', "proton", "ion"]:
+        channel_names = event.current_df_i.columns
+        SOLO_EPT_CHANNELS_AMOUNT = 64
+        SOLO_HET_CHANNELS_AMOUNT = 36
+
+    # Extract only the numbers from channel names
+    if event.spacecraft == "solo":
+
+        if event.sensor == "step":
+            channel_names = list(channel_names)
+            channel_numbers = np.array([int(name.split('_')[-1]) for name in channel_names])
+
+        if event.sensor == "ept":
+            channel_names = [name[1] for name in channel_names[:SOLO_EPT_CHANNELS_AMOUNT]]
+            channel_numbers = np.array([int(name.split('_')[-1]) for name in channel_names])
+
+        if event.sensor == "het":
+            channel_names = [name[1] for name in channel_names[:SOLO_HET_CHANNELS_AMOUNT]]
+            channel_numbers = np.array([int(name.split('_')[-1]) for name in channel_names])
+
+    if event.spacecraft in ["sta", "stb"] or event.sensor == "erne":
+        channel_numbers = np.array([int(name.split('_')[-1]) for name in channel_names])
+
+    if event.sensor == "ephin":
+        channel_numbers = np.array([int(name.split('E')[-1]) for name in channel_names])
+
+    if event.sensor in ["ephin-5", "ephin-15"]:
+        channel_numbers = [5, 15]
+
+    if event.sensor == "isois-epihi":
+        channel_numbers = np.array([int(name.split('_')[-1]) for name in channel_names])
+
+    if event.sensor == "isois-epilo":
+        channel_numbers = [int(name.split('_E')[-1].split('_')[0]) for name in channel_names]
+
+    if event.sensor == "3dp":
+        channel_numbers = [int(name.split('_')[1][-1]) for name in channel_names]
+
+    # Remove any duplicates from the numbers array, since some dataframes come with, e.g., 'ch_2' and 'err_ch_2'
+    channel_numbers = np.unique(channel_numbers)
+    energy_strs = event.get_channel_energy_values("str")
+
+    # Assemble a pandas dataframe here for nicer presentation
+    column_names = ("Channel", "Energy range")
+    column_data = {
+        column_names[0]: channel_numbers,
+        column_names[1]: energy_strs}
+
+    df = pd.DataFrame(data=column_data)
+
+    # Set the channel number as the index of the dataframe
+    df = df.set_index(column_names[0])
+
+    # Finally display the dataframe such that ALL rows are shown
+    if not return_df:
+        with pd.option_context('display.max_rows', None,
+                                'display.max_columns', None,
+                                ):
+            display(df)
+    else:
+        return df
+
+def _proper_sc_name(name) -> str:
+    """
+    Returns the proper name instead of the seppy inside name.
+    """
+
+    if name=="psp":
+        return "Parker Solar Probe"
+    if name=="soho":
+        return "SOHO"
+    if name=="solo":
+        return "Solar Orbiter"
+    if name=="sta":
+        return "STEREO-A"
+    if name=="stb":
+        return "STEREO-B"
+    if name=="wind":
+        return "Wind"
+
+    # If none of the identified names:
+    return "Unidentified Spacecraft"
+
+def _proper_species_name(name) -> str:
+    """
+    Returns the proper particle species name instead of 'e', 'p', etc like inside seppy.
+    """
+
+    if name=='p':
+        return "Protons"
+    if name=='e':
+        return "Electrons"
+    if name in ('i', 'H'):
+        return "Ions"
+
+    # If none of the identified particle species
+    return "Unidentified particle"
