@@ -79,7 +79,7 @@ class Reg:
         sensor = self.meta_dict["Sensor"]
         viewing = self.meta_dict["Viewing"]
         species = self.meta_dict["Species"]
-        energy = self.meta_df["Energy range"].iloc[channel_index]
+        energy = self.meta_df["Energy range"][channel_index]
         # A check for the energy string; it may be an element of the dataframe or the string:
         if len(energy)==1:
             energy = energy.values[0]
