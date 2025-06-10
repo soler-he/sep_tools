@@ -285,7 +285,7 @@ def combine_energy_channels(event, channels:list) -> tuple:
                 if len(channels) == 1:
                     channels = channels[0]
                 else:
-                    print("No multi-channel support for Wind/3DP included yet! Select only one single channel.")
+                    raise NotImplementedError("No multi-channel support for Wind/3DP included yet! Select only one single channel.")
             if event.species in ['p', 'i']:
                 if viewing != "omnidirectional":
                     df_flux = event.current_df_i.filter(like=f"FLUX_E{channels}_P{event.viewing[-1]}")

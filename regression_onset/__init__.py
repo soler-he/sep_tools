@@ -23,7 +23,7 @@ from .plotting_utilities import set_standard_ticks, set_xlims, set_ylims, fabric
 
 from .validate import _validate_index_choice, _validate_plot_style, _validate_fit_convergence, _validate_selection
 
-from .externals import export_seppy_data, generate_column_indices
+from .externals import export_seppy_data, generate_column_indices, combine_energy_channels
 
 from .select_data import data_file
 
@@ -75,6 +75,7 @@ class Reg:
         """
         Generates a title string for figures from SEPpy meta data.
         """
+        # Unpack the metadata
         spacecraft = self.meta_dict["Spacecraft"]
         sensor = self.meta_dict["Sensor"]
         viewing = self.meta_dict["Viewing"]
@@ -83,6 +84,12 @@ class Reg:
         # A check for the energy string; it may be an element of the dataframe or the string:
         if len(energy)==1:
             energy = energy.values[0]
+        # A check for the viewing str; if the viewing is None, there should be no print output.
+        viewing = viewing if viewing != "None" or viewing is None else ""
+        # A further check for viewing; if sc==wind, then add "sector" to sectored viewing
+        if spacecraft=="Wind":
+            if len(viewing)==1:
+                viewing = f"Sector {viewing}"
         title_str = f"{spacecraft} / {sensor}$^{{\\mathrm{{{viewing}}}}}$\n{energy} {species}"
         return title_str
 
@@ -167,11 +174,9 @@ class Reg:
         if isinstance(xlim, tuple|list):
             data = data.loc[(data.index >= xlim[0])&(data.index <= xlim[1])]
 
-        # Make sure that channel is a list to iterate over
-        if channel is None:
-            channel = list(data.columns)
-        if isinstance(channel,(str,int)):
-            channel = [channel]
+        # A list for the channel means combining channels
+        if isinstance(channel, (tuple,list)):
+            raise NotImplementedError("Combining channels on the fly not yet implemented! Use the 'combine_channels()' -method to combine channels.")
 
         # Attach the fig and axes to class attributes
         self.quicklook_fig, self.quicklook_ax = plt.subplots(figsize=STANDARD_QUICKLOOK_FIGSIZE)
@@ -213,9 +218,9 @@ class Reg:
         set_xlims(ax=self.quicklook_ax, data=data, xlim=xlim)
         set_standard_ticks(ax=self.quicklook_ax, labelsize=QUICKLOOK_TICK_LABELSIZE)
 
-        # Plot the curves
-        for ch in channel:
-            self.quicklook_ax.step(data.index.values, data[ch].values, where="mid", label=ch)
+        # Plot the curve
+        intensity_label = channel if not self.data_source=="SEPpy" else None
+        self.quicklook_ax.step(data.index.values, data[channel].values, where="mid", label=intensity_label)
 
         # Formatting the x-axis and setting the axis labels
         self.quicklook_ax.xaxis.set_major_formatter(DateFormatter("%H:%M\n%d"))
@@ -463,6 +468,27 @@ class Reg:
             results_dict["data_df"] = data
 
         return results_dict
+
+
+    def combine_channels(self, seppy_data, channels:list) -> None:
+        """
+        Combines a range of energy channels into one channel.
+
+        seppy_data : {seppy.Event}
+        channels: {list|tuple} A pair of integer numbers corresponding to the energy range one 
+                                wants to combine. Accepts None, having no effect.
+        """
+
+        if channels is None:
+            return None
+
+        if self.data_source != "SEPpy":
+            raise NotImplementedError("Combining channels so far only implemented for SEPpy missions!")
+
+        f, d = combine_energy_channels(event=seppy_data, channels=channels)
+
+        self.data[len(self.meta_df)] = f
+        self.meta_df.loc[self.meta_df.iloc[-1].name+1] = d
 
 
 def break_regression(ints, indices, starting_values:list=None, num_of_breaks:int=None) -> tuple[dict, pd.Series]:
