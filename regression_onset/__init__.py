@@ -382,10 +382,11 @@ class Reg:
             fig, ax = plt.subplots(figsize=STANDARD_FIGSIZE)
 
             # Plot the intensities
+            intensity_label = channel if not self.data_source=="SEPpy" else None
             if plot_style=="step":
-                ax.step(plot_series.index, plot_series.values, label=channel, zorder=2, where="mid")
+                ax.step(plot_series.index, plot_series.values, label=intensity_label, zorder=2, where="mid")
             if plot_style=="scatter":
-                ax.scatter(plot_series.index, plot_series.values, label=channel, zorder=2)
+                ax.scatter(plot_series.index, plot_series.values, label=intensity_label, zorder=2)
 
             # The fits and breakpoints only exists if regression converged
             if regression_converged:
@@ -442,7 +443,7 @@ class Reg:
             ax.set_ylabel(r"Intensity [1/(cm$^{2}$ sr s MeV)]", fontsize=STANDARD_FONTSIZE)
             set_xlims(ax=ax, data=data, xlim=xlim)
 
-            # ax.legend(fontsize=STANDARD_FONTSIZE)
+            ax.legend(fontsize=STANDARD_FONTSIZE)
 
             if self.data_source=="SEPpy":
                 seppy_title = self._title_str(channel_index=channel)
