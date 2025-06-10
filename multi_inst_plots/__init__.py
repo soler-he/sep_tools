@@ -1,10 +1,7 @@
 # TODO:
-# - fontsize as options?
-# - SOLO/RPW still under development
 # - copy of fig and axs? to make modifying it a bit easier. Or just implement some tool to do shading automatically
 #       (make it also so that the original figure isn't modified...)
 # - colormapping stuff that Nina mentioned (plotly/PFSS notebook? dunno)
-# - figure out how to check if older data persists over a date change (or reset dataframes after date change)
 
 
 import datetime as dt
@@ -18,6 +15,25 @@ import multi_inst_plots.psp_tools as psp
 import multi_inst_plots.l1_tools as l1
 import multi_inst_plots.solo_tools as solo
 
+PSP_EPILO_PE_CH_MAX = 6
+L1_3DP_E_CH_MAX = 6
+ST_SEPT_E_CH_MAX = 15
+SOL_EPT_E_CH_MAX = 17
+
+PSP_EPILO_IC_CH_MAX = 32
+L1_3DP_P_CH_MAX = 7
+ST_SEPT_P_CH_MAX = 30
+SOL_EPT_P_CH_MAX = 32
+
+PSP_HET_E_CH_MAX = 19
+L1_EPHIN_E_CH_MAX = 4
+ST_HET_E_CH_MAX = 3
+SOL_HET_E_CH_MAX = 4
+
+PSP_HET_P_CH_MAX = 15
+L1_ERNE_P_CH_MAX = 10
+ST_HET_P_CH_MAX = 11
+SOL_HET_P_CH_MAX = 36
 
 _style = {'description_width' : '60%'} 
 
@@ -94,14 +110,14 @@ class Options:
                                             style=_style, disabled=True, value='F')
         self.psp_epilo_ic_channel = w.Dropdown(description="EPI-Lo IC channel", options=['T', 'D', 'R', 'P', 'C'], 
                                                style=_style, disabled=True, value='T')
-        self.psp_ch_het_e = w.SelectMultiple(description="EPI-Hi/HET Electrons", options=range(0,18+1), 
-                                             value=tuple(range(0,18+1,3)), rows=10, style=_style)
-        self.psp_ch_het_p = w.SelectMultiple(description="EPI-Hi/HET Protons", options=range(0,14+1), 
-                                             value=tuple(range(0,14+1,2)), rows=10, style=_style)
-        self.psp_ch_epilo_pe =  w.SelectMultiple(description="EPI-Lo PE Electrons", options=range(0,5+1), 
-                                                 value=tuple(range(0,5+1,1)), rows=10, style=_style)
-        self.psp_ch_epilo_ic = w.SelectMultiple(description="EPI-Lo IC Protons", options=range(0,31+1), 
-                                                value=tuple(range(0,31+1,4)), rows=10, style=_style)
+        self.psp_ch_het_e = w.SelectMultiple(description="EPI-Hi/HET Electrons", options=range(0,PSP_HET_E_CH_MAX), 
+                                             value=tuple(range(0,PSP_HET_E_CH_MAX,3)), rows=10, style=_style)
+        self.psp_ch_het_p = w.SelectMultiple(description="EPI-Hi/HET Protons", options=range(0,PSP_HET_P_CH_MAX), 
+                                             value=tuple(range(0,PSP_HET_P_CH_MAX,2)), rows=10, style=_style)
+        self.psp_ch_epilo_pe =  w.SelectMultiple(description="EPI-Lo PE Electrons", options=range(0,PSP_EPILO_PE_CH_MAX), 
+                                                 value=tuple(range(0,PSP_EPILO_PE_CH_MAX,1)), rows=10, style=_style)
+        self.psp_ch_epilo_ic = w.SelectMultiple(description="EPI-Lo IC Protons", options=range(0,PSP_EPILO_IC_CH_MAX), 
+                                                value=tuple(range(0,PSP_EPILO_IC_CH_MAX,4)), rows=10, style=_style)
         
         self.solo_ept_e = w.Checkbox(value=True, description="EPD/EPT Electrons")
         self.solo_ept_p = w.Checkbox(value=True, description="EPD/EPT Protons")
@@ -110,27 +126,27 @@ class Options:
         self.solo_viewing = w.Dropdown(options=['sun', 'asun', 'north', 'south'], value='sun', style=_style, 
                                        description="HET+EPT viewing:")
         #self.solo_resample_particles = w.BoundedIntText(value=10, min=0, description="HET+EPT averaging:", style=_style)
-        self.solo_ch_ept_e = w.SelectMultiple(description="EPT Electrons", options=range(0,16+1), 
-                                              value=tuple(range(0,15+1,2)), rows=10, style=_style)
-        self.solo_ch_het_e = w.SelectMultiple(description="HET Electrons", options=range(0,3+1), 
-                                              value=tuple(range(0,3+1,1)), style=_style)
-        self.solo_ch_ept_p = w.SelectMultiple(description="EPT Protons", options=range(0,31+1), 
-                                              value=tuple(range(0,31+1,5)), rows=10, style=_style)
-        self.solo_ch_het_p = w.SelectMultiple(description="HET Protons", options=range(0,35+1), 
-                                              value=tuple(range(0,35+1,5)), rows=10, style=_style)
+        self.solo_ch_ept_e = w.SelectMultiple(description="EPT Electrons", options=range(0,SOL_EPT_E_CH_MAX), 
+                                              value=tuple(range(0,SOL_EPT_E_CH_MAX,2)), rows=10, style=_style)
+        self.solo_ch_het_e = w.SelectMultiple(description="HET Electrons", options=range(0,SOL_HET_E_CH_MAX), 
+                                              value=tuple(range(0,SOL_HET_E_CH_MAX,1)), style=_style)
+        self.solo_ch_ept_p = w.SelectMultiple(description="EPT Protons", options=range(0,SOL_EPT_P_CH_MAX), 
+                                              value=tuple(range(0,SOL_EPT_P_CH_MAX,5)), rows=10, style=_style)
+        self.solo_ch_het_p = w.SelectMultiple(description="HET Protons", options=range(0,SOL_HET_P_CH_MAX), 
+                                              value=tuple(range(0,SOL_HET_P_CH_MAX,5)), rows=10, style=_style)
 
         self.l1_wind_e =  w.Checkbox(value=True, description="Wind/3DP Electrons")
         self.l1_wind_p = w.Checkbox(value=True, description="Wind/3DP Protons")
         self.l1_ephin = w.Checkbox(value=True, description="SOHO/COSTEP-EPHIN Electrons")
         self.l1_erne = w.Checkbox(value=True, description="SOHO/ERNE-HED Protons")
-        self.l1_ch_erne_p = w.SelectMultiple(description="ERNE-HED Protons", options=range(0, 9+1, 1), 
-                                             value=tuple(range(0,9+1,2)), rows=10, disabled=False, style=_style)
-        self.l1_ch_ephin_e = w.SelectMultiple(description="EPHIN Electrons", options=range(0,4), 
+        self.l1_ch_erne_p = w.SelectMultiple(description="ERNE-HED Protons", options=range(0, L1_ERNE_P_CH_MAX, 1), 
+                                             value=tuple(range(0,L1_ERNE_P_CH_MAX,2)), rows=10, disabled=False, style=_style)
+        self.l1_ch_ephin_e = w.SelectMultiple(description="EPHIN Electrons", options=range(0,L1_EPHIN_E_CH_MAX), 
                                               value=(0,2), rows=10, style=_style)
-        self.l1_ch_wind_e = w.SelectMultiple(description="3DP Electrons", options=range(0,6), 
-                                              value=tuple(range(0,6,1)), rows=10, style=_style)
-        self.l1_ch_wind_p = w.SelectMultiple(description="3DP Protons", options=range(0,7), 
-                                              value=tuple(range(0,7,1)), rows=10, style=_style)
+        self.l1_ch_wind_e = w.SelectMultiple(description="3DP Electrons", options=range(0,L1_3DP_E_CH_MAX), 
+                                              value=tuple(range(0,L1_3DP_E_CH_MAX,1)), rows=10, style=_style)
+        self.l1_ch_wind_p = w.SelectMultiple(description="3DP Protons", options=range(0,L1_3DP_P_CH_MAX), 
+                                              value=tuple(range(0,L1_3DP_P_CH_MAX,1)), rows=10, style=_style)
         self.l1_av_sep = w.IntText(value=10, description="3DP+EPHIN averaging", style=_style)
         self.l1_av_erne = w.IntText(value=10, description="ERNE averaging", style=_style)
         
@@ -142,12 +158,12 @@ class Options:
         self.ster_sept_viewing = w.Dropdown(description="SEPT viewing", options=['sun', 'asun', 'north', 'south'], 
                                             style=_style)
         
-        self.ster_ch_sept_e = w.SelectMultiple(description="SEPT Electrons", options=range(0,14+1), 
-                                               value=tuple(range(0,14+1, 2)), rows=10, style=_style)
-        self.ster_ch_sept_p = w.SelectMultiple(description="SEPT Protons", options=range(0,29+1), 
-                                               value=tuple(range(0,29+1,4)), rows=10, style=_style)
-        self.ster_ch_het_p =  w.SelectMultiple(description="HET Protons", options=range(0,10+1), 
-                                               value=tuple(range(0,10+1,2)), rows=10, style=_style)
+        self.ster_ch_sept_e = w.SelectMultiple(description="SEPT Electrons", options=range(0,ST_SEPT_E_CH_MAX), 
+                                               value=tuple(range(0,ST_SEPT_E_CH_MAX, 2)), rows=10, style=_style)
+        self.ster_ch_sept_p = w.SelectMultiple(description="SEPT Protons", options=range(0,ST_SEPT_P_CH_MAX), 
+                                               value=tuple(range(0,ST_SEPT_P_CH_MAX,4)), rows=10, style=_style)
+        self.ster_ch_het_p =  w.SelectMultiple(description="HET Protons", options=range(0,ST_HET_P_CH_MAX), 
+                                               value=tuple(range(0,ST_HET_P_CH_MAX,2)), rows=10, style=_style)
         self.ster_ch_het_e = w.SelectMultiple(description="HET Electrons", options=(0, 1, 2), 
                                               value=(0, 1, 2), style=_style)
 
@@ -175,6 +191,8 @@ class Options:
                     
                 if change.new == "STEREO":
                     display(self._stereo_box)
+
+            range_selection()    # reset ranges to original optimal ones
 
 
         def _delete_previous_data(change):
@@ -418,53 +436,121 @@ def energy_channel_selection():
     display(ch_box)
 
     
-def range_selection(low_e_step=None, low_p_step=None, high_e_step=None, high_p_step=None):
+def range_selection(**kwargs):
     """
     Defines evenly spaced energy channel ranges. Defaults (i.e. calling without args) to nice, sensible ranges.
+
+    Arguments
+    ---------
+    low_e_start/_stop/_step: (int) (optional)
+        low energy electron range selection params
+
+    low_p_start/_stop/_step: (int) (optional)
+        low energy proton/ion range selection params
+
+    high_e_start/_stop/_step: (int) (optional)
+        high energy electron range selection params
+
+    high_p_start/_stop/_step: (int) (optional)
+        high energy proton/ion range selection params
     """
-    if low_e_step is None:
-        options.psp_ch_epilo_pe.value = tuple(range(0,5+1,1))
-        options.l1_ch_wind_e.value = tuple(range(0,6,1))
-        options.ster_ch_sept_e.value = tuple(range(0,15,2))
-        options.solo_ch_ept_e.value = tuple(range(0,17,2))
-    else:
-        options.psp_ch_epilo_pe.value = tuple(range(0,5+1,low_e_step))
-        options.l1_ch_wind_e.value = tuple(range(0,6,low_e_step))
-        options.ster_ch_sept_e.value = tuple(range(0,15,low_e_step))
-        options.solo_ch_ept_e.value = tuple(range(0,17,low_e_step))
 
-    if low_p_step is None:
-        options.psp_ch_epilo_ic.value = tuple(range(0,31+1,6))
-        options.l1_ch_wind_p.value = tuple(range(0,7,1))
-        options.ster_ch_sept_p.value = tuple(range(0,30,4))
-        options.solo_ch_ept_p.value = tuple(range(0,32,5))
-    else:
-        options.psp_ch_epilo_ic.value = tuple(range(0,31+1,low_p_step))
-        options.l1_ch_wind_p.value = tuple(range(0,7,low_p_step))
-        options.ster_ch_sept_p.value = tuple(range(0,30,low_p_step))
-        options.solo_ch_ept_p.value = tuple(range(0,32,low_p_step))
+    for kwarg in kwargs.keys():
+        if kwarg not in ["low_e_start", "low_e_stop", "low_e_step",
+                         "low_p_start", "low_p_stop", "low_p_step",
+                         "high_e_start", "high_e_stop", "high_e_step",
+                         "high_p_start", "high_p_stop", "high_p_step"]:
+            raise KeyError("invalid keyword argument")
 
-    if high_e_step is None:
-        options.psp_ch_het_e.value = tuple(range(0,18+1,4))
-        options.l1_ch_ephin_e.value = (0,2)
-        options.ster_ch_het_e.value = (0,1,2)
-        options.solo_ch_het_e.value = tuple(range(0,4,1))
-    else:
-        options.psp_ch_het_e.value = tuple(range(0,18+1,high_e_step))
-        options.l1_ch_ephin_e.value = tuple(range(0,4,high_e_step))
-        options.ster_ch_het_e.value = tuple(range(0,3,high_e_step))
-        options.solo_ch_het_e.value = tuple(range(0,4,high_e_step))
+        
+    psp_le_range = [0, PSP_EPILO_PE_CH_MAX, 1]
+    l1_le_range = [0, L1_3DP_E_CH_MAX, 1]
+    st_le_range = [0, ST_SEPT_E_CH_MAX, 2]
+    sol_le_range = [0, SOL_EPT_E_CH_MAX, 2]
+
+    psp_lp_range = [0, PSP_EPILO_IC_CH_MAX, 4]
+    l1_lp_range = [0, L1_3DP_P_CH_MAX, 1]
+    st_lp_range = [0, ST_SEPT_P_CH_MAX, 4]
+    sol_lp_range = [0, SOL_EPT_P_CH_MAX, 5]
+
+    psp_he_range = [0, PSP_HET_E_CH_MAX, 3]
+    l1_he_range = [0, L1_EPHIN_E_CH_MAX, 2]
+    st_he_range = [0, ST_HET_E_CH_MAX, 2]
+    sol_he_range = [0, SOL_HET_E_CH_MAX, 1]
+
+    psp_hp_range = [0, PSP_HET_P_CH_MAX, 2]
+    l1_hp_range = [0, L1_ERNE_P_CH_MAX, 2]
+    st_hp_range = [0, ST_HET_P_CH_MAX, 1]
+    sol_hp_range = [0, SOL_HET_P_CH_MAX, 5]
+
+
+    le_range_list = [psp_le_range, l1_le_range, st_le_range, sol_le_range]
+    lp_range_list = [psp_lp_range, l1_lp_range, st_lp_range, sol_lp_range]
+    he_range_list = [psp_he_range, l1_he_range, st_he_range, sol_he_range]
+    hp_range_list = [psp_hp_range, l1_hp_range, st_hp_range, sol_hp_range]
     
-    if high_p_step is None:
-        options.psp_ch_het_p.value = tuple(range(0,14+1,3))
-        options.l1_ch_erne_p.value = tuple(range(0,10,2))
-        options.ster_ch_het_p.value = tuple(range(0,11,2))
-        options.solo_ch_het_p.value = tuple(range(0,36,5))
-    else:
-        options.psp_ch_het_p.value = tuple(range(0,14+1,high_p_step))
-        options.l1_ch_erne_p.value = tuple(range(0,10,high_p_step))
-        options.ster_ch_het_p.value = tuple(range(0,11,high_p_step))
-        options.solo_ch_het_p.value = tuple(range(0,36,high_p_step))
+    if kwargs is not None:
+        for sc in le_range_list:
+           
+            if "low_e_start" in kwargs.keys():
+                sc[0] = kwargs["low_e_start"]
+            if "low_e_stop" in kwargs.keys():
+                if kwargs["low_e_stop"] < sc[1]:
+                    sc[1] = kwargs["low_e_stop"]
+            if "low_e_step" in kwargs.keys():
+                sc[2] = kwargs["low_e_step"]
+            
+
+        for sc in lp_range_list:
+            
+            if "low_p_start" in kwargs.keys():
+                sc[0] = kwargs["low_p_start"]
+            if "low_p_stop" in kwargs.keys():
+                if kwargs["low_p_stop"] < sc[1]:
+                    sc[1] = kwargs["low_p_stop"]
+            if "low_p_step" in kwargs.keys():
+                sc[2] = kwargs["low_p_step"]
+            
+
+        for sc in he_range_list:
+            
+            if "high_e_start" in kwargs.keys():
+                sc[0] = kwargs["high_e_start"]
+            if "high_e_stop" in kwargs.keys():
+                if kwargs["high_e_stop"] < sc[1]:
+                    sc[1] = kwargs["high_e_stop"]
+            if "high_e_step" in kwargs.keys():
+                sc[2] = kwargs["high_e_step"]
+            
+        for sc in hp_range_list:
+        
+            if "high_p_start" in kwargs.keys():
+                sc[0] = kwargs["high_p_start"]
+            if "high_p_stop" in kwargs.keys():
+                if kwargs["high_p_stop"] < sc[1]:
+                    sc[1] = kwargs["high_p_stop"]
+            if "high_p_step" in kwargs.keys():
+                sc[2] = kwargs["high_p_step"]
+           
+
+    options.psp_ch_epilo_pe.value = tuple(range(psp_le_range[0], psp_le_range[1], psp_le_range[2]))
+    options.l1_ch_wind_e.value = tuple(range(l1_le_range[0], l1_le_range[1], l1_le_range[2]))
+    options.ster_ch_sept_e.value = tuple(range(st_le_range[0], st_le_range[1], st_le_range[2]))
+    options.solo_ch_ept_e.value = tuple(range(sol_le_range[0], sol_le_range[1], sol_le_range[2]))
+    options.psp_ch_epilo_ic.value = tuple(range(psp_lp_range[0], psp_lp_range[1], psp_lp_range[2]))
+    options.l1_ch_wind_p.value = tuple(range(l1_lp_range[0], l1_lp_range[1], l1_lp_range[2]))
+    options.ster_ch_sept_p.value = tuple(range(st_lp_range[0], st_lp_range[1], st_lp_range[2]))
+    options.solo_ch_ept_p.value = tuple(range(sol_lp_range[0], sol_lp_range[1], sol_lp_range[2]))
+    options.psp_ch_het_e.value = tuple(range(psp_he_range[0], psp_he_range[1], psp_he_range[2]))
+    options.l1_ch_ephin_e.value = tuple(range(l1_he_range[0], l1_he_range[1], l1_he_range[2]))
+    options.ster_ch_het_e.value = tuple(range(st_he_range[0], st_he_range[1], st_he_range[2]))
+    options.solo_ch_het_e.value = tuple(range(sol_he_range[0], sol_he_range[1], sol_he_range[2]))
+    options.psp_ch_het_p.value = tuple(range(psp_hp_range[0], psp_hp_range[1], psp_hp_range[2]))
+    options.l1_ch_erne_p.value = tuple(range(l1_hp_range[0], l1_hp_range[1], l1_hp_range[2]))
+    options.ster_ch_het_p.value = tuple(range(st_hp_range[0], st_hp_range[1], st_hp_range[2]))
+    options.solo_ch_het_p.value = tuple(range(sol_hp_range[0], sol_hp_range[1], sol_hp_range[2]))
+
+    return                
 
     
 def make_plot(show=True):
