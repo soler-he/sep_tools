@@ -494,7 +494,7 @@ class Event:
                                                                                        self.erne_energies['channels_dict_df_p'],
                                                                                        self.channels_p['SOHO/ERNE-HED p'],
                                                                                        species='p',
-                                                                                       sensor='HET')
+                                                                                       sensor='HED')
 
         if 'Solar Orbiter/EPT e' in plot_instruments:
             if self.ept_data_product == 'l2':
