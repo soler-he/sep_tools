@@ -25,7 +25,7 @@ from .validate import _validate_index_choice, _validate_plot_style, _validate_fi
 
 from .externals import export_seppy_data, generate_column_indices, combine_energy_channels
 
-from .select_data import data_file
+from .select_data import data_file, SOURCE_OPTIONS
 
 DEFAULT_NUM_OF_BREAKPOINTS = 1
 DEFAULT_NUM_OF_TRIALS = 5
@@ -34,7 +34,8 @@ SECONDS_PER_DAY = 86400
 QUICKLOOK_TICK_LABELSIZE = 18
 QUICKLOOK_LEGENDSIZE = STANDARD_FONTSIZE-5
 
-VALID_DATA_SOURCES = ("SEPpy", "User defined")
+# SEPpy is the first of the source options; the other is 'User defined'
+SEPPY = SOURCE_OPTIONS[0]
 
 class Reg:
 
@@ -49,8 +50,9 @@ class Reg:
 
         self.data = data
 
-        if data_source not in VALID_DATA_SOURCES:
-            raise ValueError(f"{data_source} is not a valid data source; choose either one of the following: {VALID_DATA_SOURCES}.")
+        # Check that the data source is valid
+        if data_source not in SOURCE_OPTIONS:
+            raise ValueError(f"{data_source} is not a valid data source; choose either one of the following: {SOURCE_OPTIONS}.")
 
         self.data_source = data_source
         self.meta_df = meta_df
@@ -66,7 +68,7 @@ class Reg:
         self.times_clicked = 0
 
         # For SEPpy data we change the column names
-        if data_source=="SEPpy":
+        if data_source==SEPPY:
             new_columns = generate_column_indices(columns=data.columns, meta_index=meta_df.index)
             self.data.rename(columns=new_columns, inplace=True)
 
@@ -219,7 +221,7 @@ class Reg:
         set_standard_ticks(ax=self.quicklook_ax, labelsize=QUICKLOOK_TICK_LABELSIZE)
 
         # Plot the curve
-        intensity_label = channel if not self.data_source=="SEPpy" else None
+        intensity_label = channel if not self.data_source==SEPPY else None
         self.quicklook_ax.step(data.index.values, data[channel].values, where="mid", label=intensity_label)
 
         # Formatting the x-axis and setting the axis labels
@@ -230,7 +232,7 @@ class Reg:
         # Add the legend and show the figure
         # self.quicklook_ax.legend(fontsize=QUICKLOOK_LEGENDSIZE)
 
-        if self.data_source=="SEPpy":
+        if self.data_source==SEPPY:
             title = self._title_str(channel_index=channel)
             self.quicklook_ax.set_title(title, fontsize=QUICKLOOK_LEGENDSIZE)
 
@@ -387,7 +389,7 @@ class Reg:
             fig, ax = plt.subplots(figsize=STANDARD_FIGSIZE)
 
             # Plot the intensities
-            intensity_label = channel if not self.data_source=="SEPpy" else None
+            intensity_label = channel if not self.data_source==SEPPY else None
             if plot_style=="step":
                 ax.step(plot_series.index, plot_series.values, label=intensity_label, zorder=2, where="mid")
             if plot_style=="scatter":
@@ -450,7 +452,7 @@ class Reg:
 
             ax.legend(fontsize=STANDARD_FONTSIZE)
 
-            if self.data_source=="SEPpy":
+            if self.data_source==SEPPY:
                 seppy_title = self._title_str(channel_index=channel)
                 ax.set_title(seppy_title, fontsize=STANDARD_TITLE_FONTSIZE)
             if title is not None:
@@ -482,7 +484,7 @@ class Reg:
         if channels is None:
             return None
 
-        if self.data_source != "SEPpy":
+        if self.data_source != SEPPY:
             raise NotImplementedError("Combining channels so far only implemented for SEPpy missions!")
 
         f, d = combine_energy_channels(event=seppy_data, channels=channels)
