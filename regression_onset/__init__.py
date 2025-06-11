@@ -18,8 +18,8 @@ import piecewise_regression
 # Relative imports cannot be used with "import .a" form; use "from . import a" instead. -Pylance
 from . import calc_utilities as calc
 from .plotting_utilities import set_standard_ticks, set_xlims, set_ylims, fabricate_yticks, STANDARD_QUICKLOOK_FIGSIZE, \
-                                STANDARD_TITLE_FONTSIZE, STANDARD_FIGSIZE, STANDARD_FONTSIZE, DEFAULT_SELECTION_ALPHA, \
-                                BREAKPOINT_SHADING_ALPHA, LATEX_PM
+                                STANDARD_TITLE_FONTSIZE, STANDARD_FIGSIZE, STANDARD_FONTSIZE, \
+                                BREAKPOINT_SHADING_ALPHA, SELECTION_SHADE_COLOR, SELECTION_SHADE_ALPHA, LATEX_PM
 
 from .validate import _validate_index_choice, _validate_plot_style, _validate_fit_convergence, _validate_selection
 
@@ -72,8 +72,10 @@ class Reg:
             new_columns = generate_column_indices(columns=data.columns, meta_index=meta_df.index)
             self.data.rename(columns=new_columns, inplace=True)
 
+    def _restart_clicks(self) -> None:
+        self.times_clicked = 0
 
-    def _title_str(self, channel_index):
+    def _title_str(self, channel_index) -> str:
         """
         Generates a title string for figures from SEPpy meta data.
         """
@@ -96,7 +98,7 @@ class Reg:
         return title_str
 
 
-    def set_selection_max(self, x, y=None) -> None:
+    def _set_selection_max(self, x, y=None) -> None:
         """
         Sets the parameters by which data selection maximum will be applied when running
         regression analysis.
@@ -133,19 +135,48 @@ class Reg:
         Store coordinates to class attributes when clicking the interactive plot.
         Also draws a vertical line marking the end of the selection criterion.
         """
-        # Update counter before doing anything
+
+        # This method only works for two clicks; the start and the end of the selection
+        if self.times_clicked==0:
+
+            if event.xdata is not None and event.ydata is not None:
+                # First convert matplotlib's xdata (days after epoch) to seconds and then to datetime
+                x = pd.to_datetime(event.xdata*SECONDS_PER_DAY, unit='s')
+                self._set_selection_min(x=x, y=event.ydata)
+                self._draw_selection_line_marker(x=x)
+                print("First selection marked")
+            else:
+                raise TypeError("Event xdata or ydata was None")
+
+        if self.times_clicked==1:
+
+            if event.xdata is not None and event.ydata is not None:
+                # Convert matplotlib's xdata (days after epoch) to seconds and then to datetime
+                x = pd.to_datetime(event.xdata*SECONDS_PER_DAY, unit='s')
+                self._set_selection_max(x=x, y=event.ydata)
+                self._draw_selection_line_marker(x=x)
+                print("Second selection marked")
+                self._apply_selection_shading(ax=self.quicklook_ax)
+            else:
+                raise TypeError("Event xdata or ydata was None")
+
+        # Finally update counter
         self.times_clicked += 1
-        if event.xdata is not None and event.ydata is not None:
-            # First convert matplotlib's xdata (days after epoch) to seconds and then to datetime
-            x = pd.to_datetime(event.xdata*SECONDS_PER_DAY, unit='s')
-            self.set_selection_max(x=x, y=event.ydata)
-            self._draw_selection_line_marker(x=x)
-        else:
-            raise TypeError("Event xdata or ydata was None")
 
 
     def _draw_selection_line_marker(self, x) -> None:
         self.quicklook_ax.axvline(x=x, color="green", zorder=10)
+
+
+    def _apply_selection_shading(self, ax:plt.Axes) -> None:
+        """
+        Applies a matplotlib axhspan over xmin and xmax on the give Axes if they both exist.
+        """
+        if not isinstance(self.selection_min_x, pd._libs.tslibs.nattype.NaTType) and not isinstance(self.selection_max_x, pd._libs.tslibs.nattype.NaTType):
+
+            print("Shade applied")
+            ax.axvspan(xmin=self.selection_min_x, xmax=self.selection_max_x,
+                       color=SELECTION_SHADE_COLOR, alpha=SELECTION_SHADE_ALPHA)
 
 
     def quicklook(self, channel:str=None, resample:str=None, xlim:list=None, selection:list[str]|str=None) -> None:
@@ -189,6 +220,7 @@ class Reg:
         # Attach the onclick() -method to a mouse button press event for the interactive plot if
         # the selection parameter was not provided
         if selection is None:
+            self._restart_clicks()
             cid = self.quicklook_fig.canvas.mpl_connect(s="button_press_event", func=self._onclick)
         else:
             # First make sure that selection is of correct type
@@ -213,6 +245,7 @@ class Reg:
             self.set_selection_max(x=selection_max_dt,
                                     y=data.iat[closest_max_dt_index, idx_of_channel])
             self._draw_selection_line_marker(x=selection_max_dt)
+            self._apply_selection_shading(ax=self.quicklook_ax)
 
 
         # Set the axis settings
@@ -430,8 +463,9 @@ class Reg:
                 print(f"Regression converged: {regression_converged}")
 
                 # Apply a span over xmin=start and xmax=max_idx to display the are considered for the fit
-                ax.axvspan(xmin=series.index[0], xmax=series.index[-1], facecolor="green",
-                           alpha=DEFAULT_SELECTION_ALPHA, label="selection area", zorder=1)
+                #ax.axvspan(xmin=series.index[0], xmax=series.index[-1], facecolor="green",
+                 #          alpha=DEFAULT_SELECTION_ALPHA, label="selection area", zorder=1)
+                self._apply_selection_shading(ax=ax)
 
                 # Initialize a parallel y-axis to plot the original values to (invisible). This is to compare
                 # that the original values align with 
