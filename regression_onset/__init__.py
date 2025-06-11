@@ -72,8 +72,10 @@ class Reg:
             new_columns = generate_column_indices(columns=data.columns, meta_index=meta_df.index)
             self.data.rename(columns=new_columns, inplace=True)
 
+
     def _restart_clicks(self) -> None:
         self.times_clicked = 0
+
 
     def _title_str(self, channel_index) -> str:
         """
@@ -173,8 +175,6 @@ class Reg:
         Applies a matplotlib axhspan over xmin and xmax on the give Axes if they both exist.
         """
         if not isinstance(self.selection_min_x, pd._libs.tslibs.nattype.NaTType) and not isinstance(self.selection_max_x, pd._libs.tslibs.nattype.NaTType):
-
-            print("Shade applied")
             ax.axvspan(xmin=self.selection_min_x, xmax=self.selection_max_x,
                        color=SELECTION_SHADE_COLOR, alpha=SELECTION_SHADE_ALPHA)
 
@@ -227,7 +227,7 @@ class Reg:
             _validate_selection(selection=selection)
 
             # The numerical index of channel is needed to access the right selection y values
-            idx_of_channel = data.columns.get_indexer(target=[channel[0]])[0]
+            idx_of_channel = data.columns.get_indexer(target=[channel])[0]
 
             # Check for selection; is it a single str or a pair of strs?
             if isinstance(selection, str):
@@ -242,7 +242,7 @@ class Reg:
             # This is ran regardless of wether selection was str or list
             selection_max_dt = pd.to_datetime(selection[-1])
             closest_max_dt_index = data.index.get_indexer(target=[selection_max_dt], method="nearest")[0]
-            self.set_selection_max(x=selection_max_dt,
+            self._set_selection_max(x=selection_max_dt,
                                     y=data.iat[closest_max_dt_index, idx_of_channel])
             self._draw_selection_line_marker(x=selection_max_dt)
             self._apply_selection_shading(ax=self.quicklook_ax)
