@@ -43,7 +43,7 @@ def stereo_download_and_prepare(sc, instrument, startdate, enddate, path, averag
 
     en_ch_df = pd.DataFrame({'energy':energies['ch_strings']})
     en_ch_df.index.names = ['channel']
-    en_ch_df.to_csv(f'channels_STEREO_{instrument}_{species}.csv')
+    en_ch_df.to_csv(f'anisotropy/channels_STEREO_{instrument}_{species}.csv')
 
     mag_sc, mag_rtn = stereo_mag_preparation(startdate, enddate, sc, path)
     mag_sc = resample_mag_to_sept(df_dict["sun"].index, mag_sc, averaging=averaging)

@@ -27,7 +27,7 @@ def wind_download_and_prepare(instrument, startdate, enddate, path, averaging, s
    
     en_ch_df = pd.DataFrame({'energy':meta_angle['channels_dict_df']['Bins_Text'].values})
     en_ch_df.index.names = ['channel']
-    en_ch_df.to_csv(f'channels_Wind_{instrument}_{species}.csv')
+    en_ch_df.to_csv(f'anisotropy/channels_Wind_{instrument}_{species}.csv')
 
     df_omni = df_omni.loc[(df_omni.index >= startdate) & (df_omni.index <= enddate)]
     df_angle = df_angle.loc[(df_angle.index >= startdate) & (df_angle.index <= enddate)]

@@ -49,7 +49,7 @@ def solo_download_and_prepare(instrument, startdate, enddate, path, averaging, s
         
     en_ch_df = pd.DataFrame(energies[f'{sp_str}_Bins_Text'], columns=['energy'])
     en_ch_df.index.names = ['channel']
-    en_ch_df.to_csv(f'channels_Solar_Orbiter_{instrument}_{species}.csv')
+    en_ch_df.to_csv(f'anisotropy/channels_Solar_Orbiter_{instrument}_{species}.csv')
 
     df_sun = df_sun.loc[(df_sun.index >= startdate) & (df_sun.index <= enddate)]
     df_asun = df_asun.loc[(df_asun.index >= startdate) & (df_asun.index <= enddate)]

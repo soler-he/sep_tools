@@ -93,8 +93,8 @@ def print_available_channels(spacecraft_instrument):
         spacecraft = 'Wind'
         instrument = '3DP'
 
-    en_ch_df_p = pd.read_csv(f'channels_{spacecraft}_{instrument}_p.csv')
-    en_ch_df_e = pd.read_csv(f'channels_{spacecraft}_{instrument}_e.csv')
+    en_ch_df_p = pd.read_csv(f'anisotropy/channels_{spacecraft}_{instrument}_p.csv')
+    en_ch_df_e = pd.read_csv(f'anisotropy/channels_{spacecraft}_{instrument}_e.csv')
 
     pd.set_option('display.max_rows', 500)
     print(spacecraft_instrument)
