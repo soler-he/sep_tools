@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from astropy.constants import e, k_B
+from astropy.constants import e, k_B, m_p
 from sunpy.coordinates import get_horizons_coord
 from sunpy.coordinates import frames
 from sunpy.net import Fido
@@ -140,16 +140,19 @@ def load_waves_rad(dataset, startdate, enddate, file_path=None):
 
     # append data 
     for file in files:
-        cdf = cdflib.CDF(file)
+        try:
+            cdf = cdflib.CDF(file)
 
-        # PSD shape (nTime, nFreq)
-        psd_raw = cdf.varget("PSD_V2_SP")
-        # Time
-        time_ns = cdf.varget("Epoch")  # shape (nTime,)
+            # PSD shape (nTime, nFreq)
+            psd_raw = cdf.varget("PSD_V2_SP")
+            # Time
+            time_ns = cdf.varget("Epoch")  # shape (nTime,)
 
-        time_dt = np.append(time_dt, cdflib.epochs.CDFepoch.to_datetime(time_ns))
+            time_dt = np.append(time_dt, cdflib.epochs.CDFepoch.to_datetime(time_ns))
 
-        psd_v2hz = np.append(psd_v2hz, psd_raw, axis=0)
+            psd_v2hz = np.append(psd_v2hz, psd_raw, axis=0)
+        except ValueError:
+            pass
 
     
     # Some files use a fill value ~ -9.9999998e+30
@@ -224,58 +227,7 @@ def wind_mfi_loader(startdate, enddate, path=None):
     # return concat_df
     return  df
 
-def read_widget_values(options):
-    
 
-    global startdate
-    global enddate
-
-    global plot_radio
-    global plot_electrons
-    global plot_protons
-    global plot_wind
-    global plot_wind_e
-    global plot_wind_p
-    global plot_ephin
-    global plot_erne
-    global plot_mag_angles
-    global plot_mag
-    global plot_Vsw
-    global plot_N
-    global plot_T
-    global plot_polarity
-    global plot_stix
-    global stix_ltc
-    global plot_goes
-    global path
-
-    plot_wind_e = options.l1_wind_e.value
-    plot_wind_p = options.l1_wind_p.value
-    plot_wind = plot_wind_e or plot_wind_p
-
-    plot_ephin = options.l1_ephin.value
-    plot_erne = options.l1_erne.value
-
-    plot_electrons = plot_wind_e or plot_ephin
-    plot_protons = plot_wind_p or plot_erne
-
-    startdate = options.startdt
-    enddate = options.enddt
-
-    plot_radio = options.radio.value
-    plot_mag = options.mag.value
-    plot_mag_angles = options.mag_angles.value
-    plot_Vsw = options.Vsw.value
-    plot_N = options.N.value
-    plot_T = options.T.value
-    plot_polarity = options.polarity.value
-    plot_stix = options.stix.value
-    stix_ltc = options.stix_ltc.value
-    plot_goes = options.goes.value
-    path = options.path
-
-    if not plot_mag:
-        plot_polarity = False
 
 def load_data(options):
     data = {}
@@ -293,19 +245,27 @@ def load_data(options):
     global meta_erne
     global meta_e
     global meta_p
-    global intercal
     global df_stix_
     global df_goes_
     global goes_sat
 
-    read_widget_values(options)
+    startdate = options.startdt
+    enddate = options.enddt
+    path = options.path
+    stix_ltc = options.stix_ltc.value
 
-    intercal = 1
+    options.plot_start = None
+    options.plot_end = None
+
+    if options.mag.value == False:
+        options.polarity.value = False
+
+    
     wind_flux_thres = None
 
     # LOAD DATA
     ####################################################################
-    if plot_wind:
+    if options.l1_wind_e.value or options.l1_wind_p.value:
         edic_, meta_e = wind3dp_load(dataset="WI_SFSP_3DP",
                             startdate=startdate,
                             enddate=enddate,
@@ -326,7 +286,7 @@ def load_data(options):
         metadata["3dp_e"] = meta_e
         metadata["3dp_p"] = meta_p
         
-    if plot_radio:
+    if options.radio.value == True:
         try:
             df_wind_wav_rad1 = load_waves_rad(dataset="RAD1", startdate=startdate, enddate=enddate, file_path=path)
         except IndexError:
@@ -342,7 +302,7 @@ def load_data(options):
         data["wav_rad1"] = df_wind_wav_rad1
         data["wav_rad2"] = df_wind_wav_rad2
 
-    if plot_ephin:
+    if options.l1_ephin.value == True:
         try:
             ephin_, meta_ephin = soho_load(dataset="SOHO_COSTEP-EPHIN_L2-1MIN", startdate=startdate, enddate=enddate,
                             path=path, resample=None)
@@ -356,7 +316,7 @@ def load_data(options):
         data["ephin"] = ephin_
         metadata["ephin"] = meta_ephin
 
-    if plot_erne:
+    if options.l1_erne.value == True:
         erne_p_, meta_erne = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=startdate, enddate=enddate,
                             path=path, resample=None)
         
@@ -364,7 +324,7 @@ def load_data(options):
         metadata["erne"] = meta_erne
         
 
-    if plot_mag or plot_mag_angles:
+    if options.mag.value or options.mag_angles.value:
         try:
             mag_data = wind_mfi_loader(startdate, enddate, path=path)
             
@@ -375,7 +335,7 @@ def load_data(options):
         data["mag"] = mag_data
     
 
-    if plot_Vsw or plot_N or plot_T:
+    if options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value:
         try:
             product = a.cdaweb.Dataset('WI_K0_3DP')
 
@@ -385,7 +345,8 @@ def load_data(options):
             sw_data = TimeSeries(files, concatenate=True)
             df_solwind = sw_data.to_dataframe()
             df_solwind['vsw'] = np.sqrt(df_solwind['ion_vel_0']**2 + df_solwind['ion_vel_1']**2 + df_solwind['ion_vel_2']**2)
-            df_solwind['ion_temp'] = df_solwind['ion_temp'] * e / k_B   # in Kelvin
+            df_solwind['ion_temp'] = df_solwind['ion_temp'] * e / k_B   # Kelvin
+            df_solwind['p_dyn'] = m_p * df_solwind['ion_density'] * 1e6 * (df_solwind['vsw'] * 1e3)**2 * 1e9    # nPa
         except IndexError:
             print(f"Unable to obtain WI_K0_3DP data for {startdate} - {enddate}!")
             df_solwind = []
@@ -393,11 +354,11 @@ def load_data(options):
         data["solwind"] = df_solwind
 
       
-    if plot_stix:
+    if options.stix.value == True:
         df_stix_ = load_solo_stix(startdate, enddate, resample=None, ltc = stix_ltc)
         data["stix"] = df_stix_
 
-    if plot_goes:
+    if options.goes.value == True:
         df_goes_, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, 
                                            resample=None, path=path)
         data["goes"] = df_goes_
@@ -406,28 +367,41 @@ def load_data(options):
     return data, metadata
     
 
-def energy_channel_selection():
-    cols = ["3DP Electrons", "3DP Protons", "EPHIN Electrons", "ERNE Protons"]
+def energy_channel_selection(options):
+    cols = []
     df = pd.DataFrame()
 
-    series_e = meta_e['channels_dict_df']['Bins_Text'].reset_index(drop=True)
-    series_e[0] = np.nan
-    df = pd.concat([df, series_e], axis=1)
+    try:
+        if options.l1_wind_e.value == True:
+            if isinstance(meta_e, dict):
+                cols.append("3DP Electrons")
+                series_e = meta_e['channels_dict_df']['Bins_Text'].iloc[1:].reset_index(drop=True)
+                df = pd.concat([df, series_e], axis=1)
+            
+        if options.l1_wind_p.value == True:
+            if isinstance(meta_p, dict):
+                cols.append("3DP Protons")
+                series_p = meta_p['channels_dict_df']['Bins_Text'].iloc[2:].reset_index(drop=True)
+                df = pd.concat([df, series_p], axis=1)
+        
+        if options.l1_ephin.value == True:
+            if isinstance(meta_ephin, dict):
+                cols.append("EPHIN Electrons")
+                energy_list = []
+                for ch in ["E150", "E300", "E1300", "E3000"]:
+                    energy_list.append(meta_ephin[ch])
+                series_ephin = pd.Series(energy_list)
+                df = pd.concat([df, series_ephin], axis=1)
 
-    series_p = meta_p['channels_dict_df']['Bins_Text'].reset_index(drop=True)
-    series_p[0] = np.nan
-    series_p[1] = np.nan
-    df = pd.concat([df, series_p], axis=1)
+        if options.l1_erne.value == True:
+            if isinstance(meta_erne, dict):
+                cols.append("ERNE Protons")
+                series_erne = meta_erne['channels_dict_df_p']['ch_strings'].reset_index(drop=True)
+                df = pd.concat([df, series_erne], axis=1)
 
-    energy_list = []
-    for ch in ["E150", "E300", "E1300", "E3000"]:
-        energy_list.append(meta_ephin[ch])
-    series_ephin = pd.Series(energy_list)
-    df = pd.concat([df, series_ephin], axis=1)
-
-    series_erne = meta_erne['channels_dict_df_p']['ch_strings'].reset_index(drop=True)
-    df = pd.concat([df, series_erne], axis=1)
-
+    except NameError:
+        print("Some particle data option was selected but not loaded. Run load_data() first!")
+        
     df.columns = cols
     return df
 
@@ -436,7 +410,8 @@ def make_plot(options):
 
     wind_ev2MeV_fac = 1e6
     
-    read_widget_values(options)
+    plot_electrons = options.l1_wind_e.value or options.l1_ephin.value
+    plot_protons = options.l1_wind_p.value or options.l1_erne.value
 
     ### AVERAGING ###
     
@@ -445,7 +420,7 @@ def make_plot(options):
     av_erne = str(options.l1_av_erne.value) + "min"
     av_stixgoes = str(options.resample_stixgoes.value) + "min"   
 
-    if plot_mag or plot_mag_angles:
+    if options.mag.value or options.mag_angles.value:
         # If no data, mag_data is an empty list and resample_df would crash (no resample method). 
         # Else if no averaging is done, rename to df_mag.
         if isinstance(mag_data, pd.DataFrame) and (av_mag != "0min"):
@@ -459,21 +434,20 @@ def make_plot(options):
             # for i in range(len(df_mag.index) - 1):
             #     if df_mag.index[i+1] - df_mag.index[i] > pd.Timedelta(seconds=60):
             #         df_mag[i,:] = np.nan
+        if options.polarity.value:
+            if isinstance(mag_data, pd.DataFrame):
+                df_mag_pol = resample_df(mag_data, '1min')  # resampling to 1min for polarity plot
+            else:
+                df_mag_pol = []
             
-    if plot_Vsw or plot_N or plot_T:
+    if options.Vsw.value or options.N.value or options.T.value:
         if isinstance(df_solwind, pd.DataFrame) and av_mag != "0min" and av_mag != "1min":
             df_vsw = resample_df(df_solwind, av_mag)
         else:
             df_vsw = df_solwind
 
-    if plot_polarity:
-        if isinstance(mag_data, pd.DataFrame):
-            df_mag_pol = resample_df(mag_data, '1min')  # resampling to 1min for polarity plot
-        else:
-            df_mag_pol = []
-        
     
-    if plot_wind:
+    if options.l1_wind_e.value or options.l1_wind_p.value:
         if isinstance(edic_, pd.DataFrame) and av_sep != "0min":
             edic = resample_df(edic_, av_sep)
         else:
@@ -484,25 +458,25 @@ def make_plot(options):
         else:
             pdic = pdic_
     
-    if plot_ephin:
+    if options.l1_ephin.value:
         if isinstance(ephin_, pd.DataFrame) and av_sep != "0min":
             ephin = resample_df(ephin_, av_sep)
         else:
             ephin = ephin_
 
-    if plot_erne:
+    if options.l1_erne.value:
         if isinstance(erne_p_, pd.DataFrame) and av_erne != "0min":
             erne_p = resample_df(erne_p_, av_erne)
         else:
             erne_p = erne_p_
 
-    if plot_goes:
+    if options.goes.value:
         if isinstance(df_goes_, pd.DataFrame) and av_stixgoes != "0min":
             df_goes = resample_df(df_goes_, av_stixgoes)
         else:
             df_goes = df_goes_
         
-    if plot_stix:
+    if options.stix.value:
         if isinstance(df_stix_, pd.DataFrame) and av_stixgoes != "0min":
             df_stix = resample_df(df_stix_, av_stixgoes)
         else:
@@ -517,6 +491,8 @@ def make_plot(options):
     legends_inside = options.legends_inside.value
     cmap = options.radio_cmap.value
 
+    intercal = 1
+
     font_ylabel = 20
     font_legend = 10
 
@@ -525,7 +501,7 @@ def make_plot(options):
     color_offset = 3
     i = 0
 
-    if plot_radio:
+    if options.radio.value == True:
         vmin, vmax = 1e-15, 1e-10
         log_norm = LogNorm(vmin=vmin, vmax=vmax)
         mesh = None
@@ -552,25 +528,25 @@ def make_plot(options):
         
         i += 1
 
-    if plot_stix:
-        plot_solo_stix(df_stix, axs[i], stix_ltc, legends_inside, font_ylabel)
+    if options.stix.value == True:
+        plot_solo_stix(df_stix, axs[i], options.stix_ltc.value, legends_inside, font_ylabel)
         i += 1 
 
-    if plot_goes:
+    if options.goes.value == True:
         plot_goes_xrs(options=options, data=df_goes, sat=goes_sat, ax=axs[i], font_legend=font_legend)
         i += 1
 
     if plot_electrons:
         # electrons
         ax = axs[i]
-        if plot_wind and isinstance(edic, pd.DataFrame):
+        if options.l1_wind_e.value and isinstance(edic, pd.DataFrame):
             ax.set_prop_cycle('color', plt.cm.Greens_r(np.linspace(0,1, len(meta_e['channels_dict_df'])+color_offset)))
             for ch in wind_ch_e:
                 ax.plot(edic.index, edic[f'FLUX_{ch}'] * wind_ev2MeV_fac, 
-                        label='Wind/3DP '+meta_e['channels_dict_df']['Bins_Text'].values[ch], drawstyle='steps-mid')
+                        label='Wind/3DP '+meta_e['channels_dict_df']['Bins_Text'].iloc[1:].values[ch], drawstyle='steps-mid')
         
         color_offset = 2
-        if plot_ephin and isinstance(ephin, pd.DataFrame):
+        if options.l1_ephin.value and isinstance(ephin, pd.DataFrame):
                 ax.set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0, 1, 4+color_offset)))
                 for ch in ephin_ch:
                     ax.plot(ephin.index, ephin[ch]*intercal, label='SOHO/EPHIN '+meta_ephin[ch], drawstyle='steps-mid')
@@ -591,14 +567,14 @@ def make_plot(options):
     if plot_protons:    
         # protons low en:
         ax = axs[i]
-        if plot_wind and isinstance(pdic, pd.DataFrame):
+        if options.l1_wind_p.value and isinstance(pdic, pd.DataFrame):
             ax.set_prop_cycle('color', plt.cm.Wistia_r(np.linspace(0,1, len(meta_p['channels_dict_df'])+color_offset)))
             for ch in wind_ch_p:
                 ax.plot(pdic.index, pdic[f'FLUX_{ch}'] * wind_ev2MeV_fac, 
-                        label='Wind/3DP '+meta_p['channels_dict_df']['Bins_Text'].values[ch], drawstyle='steps-mid')
+                        label='Wind/3DP '+meta_p['channels_dict_df']['Bins_Text'].iloc[2:].values[ch], drawstyle='steps-mid')
 
         # protons high en:
-        if plot_erne and isinstance(erne_p, pd.DataFrame):
+        if options.l1_erne.value and isinstance(erne_p, pd.DataFrame):
             ax.set_prop_cycle('color', plt.cm.Reds_r(np.linspace(0.2,1,10))) #cm.RdPu_r
             for ch in erne_ch:
                 ax.plot(erne_p.index, erne_p[f'PH_{ch}'], 
@@ -615,7 +591,7 @@ def make_plot(options):
         i += 1
 
     
-    if plot_mag:    
+    if options.mag.value == True:    
         ax = axs[i]
         if isinstance(df_mag, pd.DataFrame):
             ax.plot(df_mag.index, df_mag.B.values, label='B', color='k', linewidth=1)
@@ -632,7 +608,7 @@ def make_plot(options):
         
         i += 1
         
-        if plot_polarity and isinstance(df_mag_pol, pd.DataFrame):
+        if options.polarity.value and isinstance(df_mag_pol, pd.DataFrame):
             pos = get_horizons_coord('Wind', time={'start':df_mag_pol.index[0]-pd.Timedelta(minutes=15),
                                                 'stop':df_mag_pol.index[-1]+pd.Timedelta(minutes=15),'step':"1min"}) 
                                                     # (lon, lat, radius) in (deg, deg, AU)
@@ -671,7 +647,7 @@ def make_plot(options):
             pol_ax.set_xlim(options.plot_start, options.plot_end)
         
         
-    if plot_mag_angles:
+    if options.mag_angles.value == True:
         ax = axs[i]
         if isinstance(df_mag, pd.DataFrame):
             alpha, phi = mag_angles(df_mag.B.values, df_mag.BRTN_0.values, df_mag.BRTN_1.values, df_mag.BRTN_2.values)
@@ -692,29 +668,39 @@ def make_plot(options):
         i += 1
         
     ### Temperature
-    if plot_T:
+    if options.T.value == True:
         if isinstance(df_vsw, pd.DataFrame):
             axs[i].plot(df_vsw.index, df_vsw['ion_temp'], '-k', label="Temperature")
         axs[i].set_ylabel(r"T$_\mathrm{p}$ [K]", fontsize=font_ylabel)
         axs[i].set_yscale('log')
         i += 1
 
+    ### Dynamic pressure
+    if options.p_dyn.value == True:
+        if isinstance(df_vsw, pd.DataFrame):
+            axs[i].plot(df_vsw.index, df_vsw['p_dyn'], '-k', label="Dynamic pressure")
+        axs[i].set_ylabel(r"P$_\mathrm{dyn}$ [nPa]", fontsize=font_ylabel)
+        i += 1
+
     ### Density
-    if plot_N:
+    if options.N.value == True:
         if isinstance(df_vsw, pd.DataFrame):
             axs[i].plot(df_vsw.index, df_vsw.ion_density,
                         '-k', label="Ion density")
         axs[i].set_ylabel(r"N$_\mathrm{p}$ [cm$^{-3}$]", fontsize=font_ylabel)
         i += 1
 
-    ### Sws
-    if plot_Vsw:
+    ### Vsw
+    if options.Vsw.value == True:
         if isinstance(df_vsw, pd.DataFrame):
             axs[i].plot(df_vsw.index, df_vsw.vsw,
                         '-k', label="Bulk speed")
         axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km s$^{-1}$]", fontsize=font_ylabel)
         i += 1
             
-    plt.show()
+    if options.showplot:
+        plt.show()
 
     return fig, axs
+
+

@@ -3,17 +3,19 @@ import pandas as pd
 import datetime as dt
 import os
 import sunpy
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 from matplotlib.colors import Normalize
 from matplotlib import cm
+from matplotlib import ticker
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from matplotlib import pyplot as plt
 from stixdcpy.quicklook import LightCurves
 from seppy.tools import resample_df
 from sunpy import timeseries as ts
 from sunpy.net import Fido
 from sunpy.net import attrs as a
-import matplotlib.dates as mdates
+
 from time import sleep
 
 
@@ -366,13 +368,11 @@ def make_fig_axs(options):
     font_ylabel = 20
     font_legend = 10
 
-    if options.spacecraft.value == "Parker Solar Probe":
-        panels = 1*plot_radio + 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T + 1*plot_Pdyn 
-    elif options.spacecraft.value == "Solar Orbiter":
-        panels = 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T
+    if options.spacecraft.value == "Solar Orbiter":
+        panels = 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T + 1* plot_Pdyn
         
     else: 
-        panels = 1*plot_radio + 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T
+        panels = 1*plot_radio + 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T + 1*plot_Pdyn 
 
     panel_ratios = list(np.zeros(panels)+1)
 
@@ -419,6 +419,9 @@ def make_fig_axs(options):
         axs[0].set_title(f'Solar Orbiter', pad=pad, fontsize=font_ylabel)
 
     
+    axs[-1].xaxis.minorticks_on()
+    axs[-1].xaxis.set(major_locator=mdates.AutoDateLocator(minticks=6, maxticks=9), 
+                      minor_locator=mdates.AutoDateLocator(minticks=10, maxticks=28))
     axs[-1].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M\n%b %d'))
     axs[-1].xaxis.set_tick_params(rotation=0)
     axs[-1].set_xlabel(f"Time (UTC) / Date in {options.plot_start.year}", fontsize=15)
@@ -433,3 +436,21 @@ def make_fig_axs(options):
         print(f"Plotting STEREO {options.ster_sc.value} data for timerange {options.plot_start} - {options.plot_end}")
 
     return fig, axs
+
+def add_line(time, ax, **kwargs):
+    
+    if isinstance(ax, np.ndarray):
+        for axis in ax:
+            axis.axvline(time, **kwargs)
+
+    else:
+        ax.axvline(time, **kwargs)
+    
+def add_shaded_area(start, end, ax, **kwargs):
+
+    if isinstance(ax, np.ndarray):
+        for axis in ax:
+            axis.axvspan(start, end, **kwargs)
+
+    else:
+        ax.axvline(start, end, **kwargs)
