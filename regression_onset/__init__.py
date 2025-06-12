@@ -18,14 +18,14 @@ import piecewise_regression
 # Relative imports cannot be used with "import .a" form; use "from . import a" instead. -Pylance
 from . import calc_utilities as calc
 from .plotting_utilities import set_standard_ticks, set_xlims, set_ylims, fabricate_yticks, STANDARD_QUICKLOOK_FIGSIZE, \
-                                STANDARD_TITLE_FONTSIZE, STANDARD_FIGSIZE, STANDARD_FONTSIZE, DEFAULT_SELECTION_ALPHA, \
-                                BREAKPOINT_SHADING_ALPHA, LATEX_PM
+                                STANDARD_TITLE_FONTSIZE, STANDARD_FIGSIZE, STANDARD_FONTSIZE, \
+                                BREAKPOINT_SHADING_ALPHA, SELECTION_SHADE_COLOR, SELECTION_SHADE_ALPHA, LATEX_PM
 
 from .validate import _validate_index_choice, _validate_plot_style, _validate_fit_convergence, _validate_selection
 
-from .externals import export_seppy_data
+from .externals import export_seppy_data, generate_column_indices, combine_energy_channels
 
-from .select_data import data_file
+from .select_data import data_file, SOURCE_OPTIONS
 
 DEFAULT_NUM_OF_BREAKPOINTS = 1
 DEFAULT_NUM_OF_TRIALS = 5
@@ -34,10 +34,30 @@ SECONDS_PER_DAY = 86400
 QUICKLOOK_TICK_LABELSIZE = 18
 QUICKLOOK_LEGENDSIZE = STANDARD_FONTSIZE-5
 
+# SEPpy is the first of the source options; the other is 'User defined'
+SEPPY = SOURCE_OPTIONS[0]
+
 class Reg:
 
-    def __init__(self, data:pd.DataFrame):
+    def __init__(self, data:pd.DataFrame, data_source:str, meta_df:pd.DataFrame=None, meta_dict:dict=None):
+        """"
+        
+        data : {pd.Dataframe} The intensity data.
+        data_source : {str} Either 'SEPpy' or 'User defined'
+        meta_df : {pd.DataFrame} optional. Contains the channel energy strings.
+        meta_dict : {dict} A dictionary containing the names 
+        """
+
         self.data = data
+
+        # Check that the data source is valid
+        if data_source not in SOURCE_OPTIONS:
+            raise ValueError(f"{data_source} is not a valid data source; choose either one of the following: {SOURCE_OPTIONS}.")
+
+        self.data_source = data_source
+        self.meta_df = meta_df
+        self.meta_dict = meta_dict
+
         self.selection_max_x = pd.NaT
         self.selection_max_y = np.nan
 
@@ -47,7 +67,40 @@ class Reg:
         # To keep track of how many times self._onclick() has been run
         self.times_clicked = 0
 
-    def set_selection_max(self, x, y=None) -> None:
+        # For SEPpy data we change the column names
+        if data_source==SEPPY:
+            new_columns = generate_column_indices(columns=data.columns, meta_index=meta_df.index)
+            self.data.rename(columns=new_columns, inplace=True)
+
+
+    def _restart_clicks(self) -> None:
+        self.times_clicked = 0
+
+
+    def _title_str(self, channel_index) -> str:
+        """
+        Generates a title string for figures from SEPpy meta data.
+        """
+        # Unpack the metadata
+        spacecraft = self.meta_dict["Spacecraft"]
+        sensor = self.meta_dict["Sensor"]
+        viewing = self.meta_dict["Viewing"]
+        species = self.meta_dict["Species"]
+        energy = self.meta_df["Energy range"][channel_index]
+        # A check for the energy string; it may be an element of the dataframe or the string:
+        if len(energy)==1:
+            energy = energy.values[0]
+        # A check for the viewing str; if the viewing is None, there should be no print output.
+        viewing = viewing if viewing != "None" or viewing is None else ""
+        # A further check for viewing; if sc==wind, then add "sector" to sectored viewing
+        if spacecraft=="Wind":
+            if len(viewing)==1:
+                viewing = f"Sector {viewing}"
+        title_str = f"{spacecraft} / {sensor}$^{{\\mathrm{{{viewing}}}}}$\n{energy} {species}"
+        return title_str
+
+
+    def _set_selection_max(self, x, y=None) -> None:
         """
         Sets the parameters by which data selection maximum will be applied when running
         regression analysis.
@@ -84,19 +137,46 @@ class Reg:
         Store coordinates to class attributes when clicking the interactive plot.
         Also draws a vertical line marking the end of the selection criterion.
         """
-        # Update counter before doing anything
+
+        # This method only works for two clicks; the start and the end of the selection
+        if self.times_clicked==0:
+
+            if event.xdata is not None and event.ydata is not None:
+                # First convert matplotlib's xdata (days after epoch) to seconds and then to datetime
+                x = pd.to_datetime(event.xdata*SECONDS_PER_DAY, unit='s')
+                self._set_selection_min(x=x, y=event.ydata)
+                self._draw_selection_line_marker(x=x)
+                print("First selection marked")
+            else:
+                raise TypeError("Event xdata or ydata was None")
+
+        if self.times_clicked==1:
+
+            if event.xdata is not None and event.ydata is not None:
+                # Convert matplotlib's xdata (days after epoch) to seconds and then to datetime
+                x = pd.to_datetime(event.xdata*SECONDS_PER_DAY, unit='s')
+                self._set_selection_max(x=x, y=event.ydata)
+                self._draw_selection_line_marker(x=x)
+                print("Second selection marked")
+                self._apply_selection_shading(ax=self.quicklook_ax)
+            else:
+                raise TypeError("Event xdata or ydata was None")
+
+        # Finally update counter
         self.times_clicked += 1
-        if event.xdata is not None and event.ydata is not None:
-            # First convert matplotlib's xdata (days after epoch) to seconds and then to datetime
-            x = pd.to_datetime(event.xdata*SECONDS_PER_DAY, unit='s')
-            self.set_selection_max(x=x, y=event.ydata)
-            self._draw_selection_line_marker(x=x)
-        else:
-            raise TypeError("Event xdata or ydata was None")
 
 
     def _draw_selection_line_marker(self, x) -> None:
         self.quicklook_ax.axvline(x=x, color="green", zorder=10)
+
+
+    def _apply_selection_shading(self, ax:plt.Axes) -> None:
+        """
+        Applies a matplotlib axhspan over xmin and xmax on the give Axes if they both exist.
+        """
+        if not isinstance(self.selection_min_x, pd._libs.tslibs.nattype.NaTType) and not isinstance(self.selection_max_x, pd._libs.tslibs.nattype.NaTType):
+            ax.axvspan(xmin=self.selection_min_x, xmax=self.selection_max_x,
+                       color=SELECTION_SHADE_COLOR, alpha=SELECTION_SHADE_ALPHA)
 
 
     def quicklook(self, channel:str=None, resample:str=None, xlim:list=None, selection:list[str]|str=None) -> None:
@@ -127,11 +207,9 @@ class Reg:
         if isinstance(xlim, tuple|list):
             data = data.loc[(data.index >= xlim[0])&(data.index <= xlim[1])]
 
-        # Make sure that channel is a list to iterate over
-        if channel is None:
-            channel = list(data.columns)
-        if isinstance(channel,(str,int)):
-            channel = [channel]
+        # A list for the channel means combining channels
+        if isinstance(channel, (tuple,list)):
+            raise NotImplementedError("Combining channels on the fly not yet implemented! Use the 'combine_channels()' -method to combine channels.")
 
         # Attach the fig and axes to class attributes
         self.quicklook_fig, self.quicklook_ax = plt.subplots(figsize=STANDARD_QUICKLOOK_FIGSIZE)
@@ -142,13 +220,14 @@ class Reg:
         # Attach the onclick() -method to a mouse button press event for the interactive plot if
         # the selection parameter was not provided
         if selection is None:
+            self._restart_clicks()
             cid = self.quicklook_fig.canvas.mpl_connect(s="button_press_event", func=self._onclick)
         else:
             # First make sure that selection is of correct type
             _validate_selection(selection=selection)
 
             # The numerical index of channel is needed to access the right selection y values
-            idx_of_channel = data.columns.get_indexer(target=[channel[0]])[0]
+            idx_of_channel = data.columns.get_indexer(target=[channel])[0]
 
             # Check for selection; is it a single str or a pair of strs?
             if isinstance(selection, str):
@@ -163,9 +242,10 @@ class Reg:
             # This is ran regardless of wether selection was str or list
             selection_max_dt = pd.to_datetime(selection[-1])
             closest_max_dt_index = data.index.get_indexer(target=[selection_max_dt], method="nearest")[0]
-            self.set_selection_max(x=selection_max_dt,
+            self._set_selection_max(x=selection_max_dt,
                                     y=data.iat[closest_max_dt_index, idx_of_channel])
             self._draw_selection_line_marker(x=selection_max_dt)
+            self._apply_selection_shading(ax=self.quicklook_ax)
 
 
         # Set the axis settings
@@ -173,9 +253,9 @@ class Reg:
         set_xlims(ax=self.quicklook_ax, data=data, xlim=xlim)
         set_standard_ticks(ax=self.quicklook_ax, labelsize=QUICKLOOK_TICK_LABELSIZE)
 
-        # Plot the curves
-        for ch in channel:
-            self.quicklook_ax.step(data.index.values, data[ch].values, where="mid", label=ch)
+        # Plot the curve
+        intensity_label = channel if not self.data_source==SEPPY else None
+        self.quicklook_ax.step(data.index.values, data[channel].values, where="mid", label=intensity_label)
 
         # Formatting the x-axis and setting the axis labels
         self.quicklook_ax.xaxis.set_major_formatter(DateFormatter("%H:%M\n%d"))
@@ -183,7 +263,11 @@ class Reg:
         self.quicklook_ax.set_ylabel(r"Intensity [1/(cm$^{2}$ sr s MeV)]", fontsize=QUICKLOOK_LEGENDSIZE)
 
         # Add the legend and show the figure
-        self.quicklook_ax.legend(fontsize=QUICKLOOK_LEGENDSIZE)
+        # self.quicklook_ax.legend(fontsize=QUICKLOOK_LEGENDSIZE)
+
+        if self.data_source==SEPPY:
+            title = self._title_str(channel_index=channel)
+            self.quicklook_ax.set_title(title, fontsize=QUICKLOOK_LEGENDSIZE)
 
         self.quicklook_fig.tight_layout()
         plt.show()
@@ -338,10 +422,11 @@ class Reg:
             fig, ax = plt.subplots(figsize=STANDARD_FIGSIZE)
 
             # Plot the intensities
+            intensity_label = channel if not self.data_source==SEPPY else None
             if plot_style=="step":
-                ax.step(plot_series.index, plot_series.values, label=channel, zorder=2, where="mid")
+                ax.step(plot_series.index, plot_series.values, label=intensity_label, zorder=2, where="mid")
             if plot_style=="scatter":
-                ax.scatter(plot_series.index, plot_series.values, label=channel, zorder=2)
+                ax.scatter(plot_series.index, plot_series.values, label=intensity_label, zorder=2)
 
             # The fits and breakpoints only exists if regression converged
             if regression_converged:
@@ -378,8 +463,9 @@ class Reg:
                 print(f"Regression converged: {regression_converged}")
 
                 # Apply a span over xmin=start and xmax=max_idx to display the are considered for the fit
-                ax.axvspan(xmin=series.index[0], xmax=series.index[-1], facecolor="green",
-                           alpha=DEFAULT_SELECTION_ALPHA, label="selection area", zorder=1)
+                #ax.axvspan(xmin=series.index[0], xmax=series.index[-1], facecolor="green",
+                 #          alpha=DEFAULT_SELECTION_ALPHA, label="selection area", zorder=1)
+                self._apply_selection_shading(ax=ax)
 
                 # Initialize a parallel y-axis to plot the original values to (invisible). This is to compare
                 # that the original values align with 
@@ -398,8 +484,14 @@ class Reg:
             ax.set_ylabel(r"Intensity [1/(cm$^{2}$ sr s MeV)]", fontsize=STANDARD_FONTSIZE)
             set_xlims(ax=ax, data=data, xlim=xlim)
 
-            ax.set_title(title, fontsize=STANDARD_TITLE_FONTSIZE)
             ax.legend(fontsize=STANDARD_FONTSIZE)
+
+            if self.data_source==SEPPY:
+                seppy_title = self._title_str(channel_index=channel)
+                ax.set_title(seppy_title, fontsize=STANDARD_TITLE_FONTSIZE)
+            if title is not None:
+                ax.set_title(title, fontsize=STANDARD_TITLE_FONTSIZE)
+
             plt.show()
 
             results_dict["fig"] = fig
@@ -412,6 +504,27 @@ class Reg:
             results_dict["data_df"] = data
 
         return results_dict
+
+
+    def combine_channels(self, seppy_data, channels:list) -> None:
+        """
+        Combines a range of energy channels into one channel.
+
+        seppy_data : {seppy.Event}
+        channels: {list|tuple} A pair of integer numbers corresponding to the energy range one 
+                                wants to combine. Accepts None, having no effect.
+        """
+
+        if channels is None:
+            return None
+
+        if self.data_source != SEPPY:
+            raise NotImplementedError("Combining channels so far only implemented for SEPpy missions!")
+
+        f, d = combine_energy_channels(event=seppy_data, channels=channels)
+
+        self.data[len(self.meta_df)] = f
+        self.meta_df.loc[self.meta_df.iloc[-1].name+1] = d
 
 
 def break_regression(ints, indices, starting_values:list=None, num_of_breaks:int=None) -> tuple[dict, pd.Series]:

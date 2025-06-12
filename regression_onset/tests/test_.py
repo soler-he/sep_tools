@@ -55,14 +55,16 @@ def test_SEP_Regression_Analysis():
                            data_path=data_path, viewing=w.view_drop.value)
         # Exports the data to a pandas dataframe
         df = reg.externals.export_seppy_data(event=seppy_data)
+        meta_df, meta_dict = reg.externals.parse_seppy_metadata(event=seppy_data)
     else:
         # Uses pandas to_csv() to load in a local data file:
         df = pd.read_csv(f"{data_path}{os.sep}{filename}", parse_dates=True, index_col=0)
+        meta_df, meta_dict = None, None
     #
     display(df)
     #
     # Initializing the tool with input data
-    event = reg.Reg(data=df)
+    event = reg.Reg(data=df, data_source=select_data.data_file.value, meta_df=meta_df, meta_dict=meta_dict)
     # Choose the channel (column name, see display(df) above)
     channel = "E4"
     selection = ["2022-01-20 02:00", "2022-01-20 12:00"]
