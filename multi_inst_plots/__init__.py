@@ -1,9 +1,3 @@
-# TODO:
-# - copy of fig and axs? to make modifying it a bit easier. Or just implement some tool to do shading automatically
-#       (make it also so that the original figure isn't modified...)
-# - colormapping stuff that Nina mentioned (plotly/PFSS notebook? dunno)
-
-
 import datetime as dt
 import ipywidgets as w
 import os
@@ -58,6 +52,9 @@ _solo_attrs = ['solo_ept_e', 'solo_ept_p', 'solo_het_e', 'solo_het_p', 'solo_vie
 
 
 class Options:
+    """
+    A class for displaying and storing plot options.
+    """
     def __init__(self):
 
         self.spacecraft = w.Dropdown(value=None, description="Spacecraft", 
@@ -197,7 +194,7 @@ class Options:
 
         def _delete_previous_data(change):
             """
-            Delete data related to previous selection.
+            Delete spacecraft-specific data.
             """
 
             # L1 
@@ -332,6 +329,7 @@ class Options:
             
         self.spacecraft.observe(_change_sc, names="value")
 
+        # Whenever S/C or dates are changed, throw out the previous data
         self.spacecraft.observe(_delete_previous_data, names="value")
         self.startdate.observe(_delete_previous_data, names="value")
         self.enddate.observe(_delete_previous_data, names="value")
@@ -359,7 +357,9 @@ class Options:
         
 
 def load_data():
-
+    """
+    Load whichever data was selected from widget interface.
+    """
     options.startdt = dt.datetime(options.startdate.value.year, options.startdate.value.month,
                                   options.startdate.value.day, 0, 0)
     
@@ -414,6 +414,9 @@ def load_data():
     
     
 def energy_channel_selection():
+    """
+    Display energy channels of particle instruments. Only shows those which are selected.
+    """
 
     if options.spacecraft.value == "Parker Solar Probe":
         display(psp.energy_channel_selection(options))
@@ -442,118 +445,120 @@ def range_selection(**kwargs):
 
     Arguments
     ---------
-    low_e_start/_stop/_step: (int) (optional)
+    low_e_start/_stop/_step : int, optional
         low energy electron range selection params
 
-    low_p_start/_stop/_step: (int) (optional)
+    low_p_start/_stop/_step : int, optional
         low energy proton/ion range selection params
 
-    high_e_start/_stop/_step: (int) (optional)
+    high_e_start/_stop/_step : int, optional
         high energy electron range selection params
 
-    high_p_start/_stop/_step: (int) (optional)
+    high_p_start/_stop/_step : int, optional
         high energy proton/ion range selection params
     """
 
-    for kwarg in kwargs.keys():
-        if kwarg not in ["low_e_start", "low_e_stop", "low_e_step",
-                         "low_p_start", "low_p_stop", "low_p_step",
-                         "high_e_start", "high_e_stop", "high_e_step",
-                         "high_p_start", "high_p_stop", "high_p_step"]:
-            raise KeyError("invalid keyword argument")
-
-        
-    psp_le_range = [0, PSP_EPILO_PE_CH_MAX, 1]
-    l1_le_range = [0, L1_3DP_E_CH_MAX, 1]
-    st_le_range = [0, ST_SEPT_E_CH_MAX, 2]
-    sol_le_range = [0, SOL_EPT_E_CH_MAX, 2]
-
-    psp_lp_range = [0, PSP_EPILO_IC_CH_MAX, 4]
-    l1_lp_range = [0, L1_3DP_P_CH_MAX, 1]
-    st_lp_range = [0, ST_SEPT_P_CH_MAX, 4]
-    sol_lp_range = [0, SOL_EPT_P_CH_MAX, 5]
-
-    psp_he_range = [0, PSP_HET_E_CH_MAX, 3]
-    l1_he_range = [0, L1_EPHIN_E_CH_MAX, 2]
-    st_he_range = [0, ST_HET_E_CH_MAX, 2]
-    sol_he_range = [0, SOL_HET_E_CH_MAX, 1]
-
-    psp_hp_range = [0, PSP_HET_P_CH_MAX, 2]
-    l1_hp_range = [0, L1_ERNE_P_CH_MAX, 2]
-    st_hp_range = [0, ST_HET_P_CH_MAX, 1]
-    sol_hp_range = [0, SOL_HET_P_CH_MAX, 5]
-
-
-    le_range_list = [psp_le_range, l1_le_range, st_le_range, sol_le_range]
-    lp_range_list = [psp_lp_range, l1_lp_range, st_lp_range, sol_lp_range]
-    he_range_list = [psp_he_range, l1_he_range, st_he_range, sol_he_range]
-    hp_range_list = [psp_hp_range, l1_hp_range, st_hp_range, sol_hp_range]
+    valid_kwargs = ["low_e_start", "low_e_stop", "low_e_step",
+                "low_p_start", "low_p_stop", "low_p_step",
+                "high_e_start", "high_e_stop", "high_e_step",
+                "high_p_start", "high_p_stop", "high_p_step"]
     
-    if kwargs is not None:
-        for sc in le_range_list:
-           
-            if "low_e_start" in kwargs.keys():
-                sc[0] = kwargs["low_e_start"]
-            if "low_e_stop" in kwargs.keys():
-                if kwargs["low_e_stop"] < sc[1]:
-                    sc[1] = kwargs["low_e_stop"]
-            if "low_e_step" in kwargs.keys():
-                sc[2] = kwargs["low_e_step"]
-            
+    for kwarg in kwargs.keys():
+        if kwarg not in valid_kwargs:
+            raise KeyError("Invalid argument, valid options are {low/high}_{e/p}_{start/stop/step}, e.g. low_e_step")
 
-        for sc in lp_range_list:
-            
-            if "low_p_start" in kwargs.keys():
-                sc[0] = kwargs["low_p_start"]
-            if "low_p_stop" in kwargs.keys():
-                if kwargs["low_p_stop"] < sc[1]:
-                    sc[1] = kwargs["low_p_stop"]
-            if "low_p_step" in kwargs.keys():
-                sc[2] = kwargs["low_p_step"]
-            
+    if options.spacecraft.value == "Parker Solar Probe":
+        le_range = [0, PSP_EPILO_PE_CH_MAX, 1]
+        lp_range = [0, PSP_EPILO_IC_CH_MAX, 4]
+        he_range = [0, PSP_HET_E_CH_MAX, 3]
+        hp_range = [0, PSP_HET_P_CH_MAX, 2]
 
-        for sc in he_range_list:
-            
-            if "high_e_start" in kwargs.keys():
-                sc[0] = kwargs["high_e_start"]
-            if "high_e_stop" in kwargs.keys():
-                if kwargs["high_e_stop"] < sc[1]:
-                    sc[1] = kwargs["high_e_stop"]
-            if "high_e_step" in kwargs.keys():
-                sc[2] = kwargs["high_e_step"]
-            
-        for sc in hp_range_list:
+    if options.spacecraft.value == "L1 (Wind/SOHO)":
+        le_range = [0, L1_3DP_E_CH_MAX, 1]
+        lp_range = [0, L1_3DP_P_CH_MAX, 1]
+        he_range = [0, L1_EPHIN_E_CH_MAX, 2]
+        hp_range = [0, L1_ERNE_P_CH_MAX, 2]
+    
+    if options.spacecraft.value == "STEREO":
+        le_range = [0, ST_SEPT_E_CH_MAX, 1]
+        lp_range = [0, ST_SEPT_P_CH_MAX, 4]
+        he_range = [0, ST_HET_E_CH_MAX, 2]
+        hp_range = [0, ST_HET_P_CH_MAX, 1]
+    
+    if options.spacecraft.value == "Solar Orbiter":
+        le_range = [0, SOL_EPT_E_CH_MAX, 3]
+        lp_range = [0, SOL_EPT_P_CH_MAX, 5]
+        he_range = [0, SOL_HET_E_CH_MAX, 1]
+        hp_range = [0, SOL_HET_P_CH_MAX, 5]
+    
+    if len(kwargs) > 0:
+        for species, rang in zip(["low_e_", "low_p_", "high_e_", "high_p_"], [le_range, lp_range, he_range, hp_range]):
+            start_key_str = species + "start"
+            if start_key_str in kwargs.keys():
+                start = kwargs[start_key_str]
+                if start in range(rang[0], rang[1]):
+                    rang[0] = start
+                else:
+                    raise ValueError("range start not in allowed range")
+                
+            stop_key_str = species + "stop"
+            if stop_key_str in kwargs.keys():
+                stop = kwargs[stop_key_str]
+                if stop in range(rang[0], rang[1]):
+                    rang[1] = stop
+                else:
+                    raise ValueError("range stop not in allowed range (also make sure that start precedes stop!)")
+                
+            step_key_str = species + "step"
+            if step_key_str in kwargs.keys():
+                step = kwargs[step_key_str]
+                if step > 0:
+                    rang[2] = step
+                else:
+                    raise ValueError("step must be a positive integer")
         
-            if "high_p_start" in kwargs.keys():
-                sc[0] = kwargs["high_p_start"]
-            if "high_p_stop" in kwargs.keys():
-                if kwargs["high_p_stop"] < sc[1]:
-                    sc[1] = kwargs["high_p_stop"]
-            if "high_p_step" in kwargs.keys():
-                sc[2] = kwargs["high_p_step"]
-           
+    
+    if options.spacecraft.value == "Parker Solar Probe":
+        options.psp_ch_epilo_pe.value = tuple(range(le_range[0], le_range[1], le_range[2]))
+        options.psp_ch_epilo_ic.value = tuple(range(lp_range[0], lp_range[1], lp_range[2]))
+        options.psp_ch_het_e.value = tuple(range(he_range[0], he_range[1], he_range[2]))
+        options.psp_ch_het_p.value = tuple(range(hp_range[0], hp_range[1], hp_range[2]))
 
-    options.psp_ch_epilo_pe.value = tuple(range(psp_le_range[0], psp_le_range[1], psp_le_range[2]))
-    options.l1_ch_wind_e.value = tuple(range(l1_le_range[0], l1_le_range[1], l1_le_range[2]))
-    options.ster_ch_sept_e.value = tuple(range(st_le_range[0], st_le_range[1], st_le_range[2]))
-    options.solo_ch_ept_e.value = tuple(range(sol_le_range[0], sol_le_range[1], sol_le_range[2]))
-    options.psp_ch_epilo_ic.value = tuple(range(psp_lp_range[0], psp_lp_range[1], psp_lp_range[2]))
-    options.l1_ch_wind_p.value = tuple(range(l1_lp_range[0], l1_lp_range[1], l1_lp_range[2]))
-    options.ster_ch_sept_p.value = tuple(range(st_lp_range[0], st_lp_range[1], st_lp_range[2]))
-    options.solo_ch_ept_p.value = tuple(range(sol_lp_range[0], sol_lp_range[1], sol_lp_range[2]))
-    options.psp_ch_het_e.value = tuple(range(psp_he_range[0], psp_he_range[1], psp_he_range[2]))
-    options.l1_ch_ephin_e.value = tuple(range(l1_he_range[0], l1_he_range[1], l1_he_range[2]))
-    options.ster_ch_het_e.value = tuple(range(st_he_range[0], st_he_range[1], st_he_range[2]))
-    options.solo_ch_het_e.value = tuple(range(sol_he_range[0], sol_he_range[1], sol_he_range[2]))
-    options.psp_ch_het_p.value = tuple(range(psp_hp_range[0], psp_hp_range[1], psp_hp_range[2]))
-    options.l1_ch_erne_p.value = tuple(range(l1_hp_range[0], l1_hp_range[1], l1_hp_range[2]))
-    options.ster_ch_het_p.value = tuple(range(st_hp_range[0], st_hp_range[1], st_hp_range[2]))
-    options.solo_ch_het_p.value = tuple(range(sol_hp_range[0], sol_hp_range[1], sol_hp_range[2]))
+    if options.spacecraft.value == "L1 (Wind/SOHO)":
+        options.l1_ch_wind_e.value = tuple(range(le_range[0], le_range[1], le_range[2]))
+        options.l1_ch_wind_p.value = tuple(range(lp_range[0], lp_range[1], lp_range[2]))
+        options.l1_ch_ephin_e.value = tuple(range(he_range[0], he_range[1], he_range[2]))
+        options.l1_ch_erne_p.value = tuple(range(hp_range[0], hp_range[1], hp_range[2]))
+
+    if options.spacecraft.value == "STEREO":
+        options.ster_ch_sept_e.value = tuple(range(le_range[0], le_range[1], le_range[2]))
+        options.ster_ch_sept_p.value = tuple(range(lp_range[0], lp_range[1], lp_range[2]))
+        options.ster_ch_het_e.value = tuple(range(he_range[0], he_range[1], he_range[2]))
+        options.ster_ch_het_p.value = tuple(range(hp_range[0], hp_range[1], hp_range[2]))
+
+    if options.spacecraft.value == "Solar Orbiter":
+        options.solo_ch_ept_e.value = tuple(range(le_range[0], le_range[1], le_range[2]))
+        options.solo_ch_ept_p.value = tuple(range(lp_range[0], lp_range[1], lp_range[2]))
+        options.solo_ch_het_e.value = tuple(range(he_range[0], he_range[1], he_range[2]))
+        options.solo_ch_het_p.value = tuple(range(hp_range[0], hp_range[1], hp_range[2]))
 
     return                
 
     
 def make_plot(show=True):
+    """
+    Reads the selected options and makes the plot based on loaded data. Returns the created Figure and Axes objects
+    for further fine tuning and/or editing. 
+
+    Please do note, that data needs to be loaded using load_data() first. You can disable options that have been loaded between
+    loading and plotting, but you obviously cannot include data that hasn't been loaded in the first place.
+
+    Arguments
+    ---------
+    show : boolean, optional
+        show plot with Matplotlib frontend, default=True
+
+    """
     options.showplot = show
     if options.spacecraft.value == "Parker Solar Probe":
         return psp.make_plot(options)
