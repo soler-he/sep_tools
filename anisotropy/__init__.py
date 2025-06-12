@@ -32,7 +32,7 @@ def select_sc_inst():
     return spacecraft_instrument
 
 
-def run_SEPevent(path, spacecraft_instrument, starttime, endtime, bg_start=None, bg_end=None, species=None, channels=None, specieschannel=None, averaging=None, corr_window_end=None, solo_ept_ion_contamination_correction=False, plot_folder=None):
+def run_SEPevent(path, spacecraft_instrument, starttime, endtime, species, bg_start=None, bg_end=None, channels=2, specieschannel=None, averaging=None, corr_window_end=None, solo_ept_ion_contamination_correction=False, plot_folder=None):
     if spacecraft_instrument in ['Solar Orbiter EPT', 'Solar Orbiter HET', 'STEREO-A SEPT', 'STEREO-B SEPT', 'Wind 3DP']:
         if spacecraft_instrument == 'Solar Orbiter EPT':
             spacecraft = 'Solar Orbiter'
@@ -53,7 +53,6 @@ def run_SEPevent(path, spacecraft_instrument, starttime, endtime, bg_start=None,
         print(f'{spacecraft_instrument} is not a supported string for spacecraft & instrument selection!')
         raise
         return None
-
     # Check that the spacecraft is valid and implemented
     try:
         sc, instrument, species, channels, av_min = initial_checks(spacecraft, specieschannel, instrument, species, channels, starttime, endtime, averaging)
@@ -77,6 +76,34 @@ def run_SEPevent(path, spacecraft_instrument, starttime, endtime, bg_start=None,
 
     return event
 
+def print_available_channels(spacecraft_instrument):
+    if spacecraft_instrument == 'Solar Orbiter EPT':
+        spacecraft = 'Solar Orbiter'.replace(' ', '_')
+        instrument = 'EPT'
+    elif spacecraft_instrument == 'Solar Orbiter HET':
+        spacecraft = 'Solar Orbiter'.replace(' ', '_')
+        instrument = 'HET'
+    elif spacecraft_instrument == 'STEREO-A SEPT':
+        spacecraft = 'STEREO'
+        instrument = 'SEPT'
+    elif spacecraft_instrument == 'STEREO-B SEPT':
+        spacecraft = 'STEREO'
+        instrument = 'SEPT'
+    elif spacecraft_instrument == 'Wind 3DP':
+        spacecraft = 'Wind'
+        instrument = '3DP'
+
+    en_ch_df_p = pd.read_csv(f'anisotropy/channels_{spacecraft}_{instrument}_p.csv')
+    en_ch_df_e = pd.read_csv(f'anisotropy/channels_{spacecraft}_{instrument}_e.csv')
+
+    pd.set_option('display.max_rows', 500)
+    print(spacecraft_instrument)
+    print('Protons/Ions:')
+    print(en_ch_df_p.to_string(index=False))
+    print('')
+    print('Electrons:')
+    print(en_ch_df_e.to_string(index=False))
+    return None
 
 def initial_checks(spacecraft, specieschannel, instrument, species, channels, starttime, endtime, averaging):
     sc = check_spacecraft(spacecraft)
