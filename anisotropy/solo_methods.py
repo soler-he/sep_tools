@@ -35,10 +35,6 @@ def solo_download_and_prepare(instrument, startdate, enddate, path, averaging, s
         elif instrument == "HET":
             ch_string = "Protons"
             sp_str = "H"
-        print('')
-        print('Available energy channels:')
-        print(pd.DataFrame(energies[f'{sp_str}_Bins_Text'], columns=['energy']).rename_axis('channel'))
-        print('')
     elif species == "e":
         df_sun = df_sun_e
         df_asun = df_asun_e
@@ -50,10 +46,10 @@ def solo_download_and_prepare(instrument, startdate, enddate, path, averaging, s
             t_str = "DELTA_EPOCH_1"
         elif instrument == "HET":
             t_str = "DELTA_EPOCH_4"
-        print('')
-        print('Available energy channels:')
-        print(pd.DataFrame(energies[f'{sp_str}_Bins_Text'], columns=['energy']).rename_axis('channel'))
-        print('')
+        
+    en_ch_df = pd.DataFrame(energies[f'{sp_str}_Bins_Text'], columns=['energy'])
+    en_ch_df.index.names = ['channel']
+    en_ch_df.to_csv(f'anisotropy/channels_Solar_Orbiter_{instrument}_{species}.csv')
 
     df_sun = df_sun.loc[(df_sun.index >= startdate) & (df_sun.index <= enddate)]
     df_asun = df_asun.loc[(df_asun.index >= startdate) & (df_asun.index <= enddate)]
