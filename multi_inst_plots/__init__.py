@@ -486,7 +486,7 @@ def range_selection(**kwargs):
         hp_range = [0, ST_HET_P_CH_MAX, 1]
     
     if options.spacecraft.value == "Solar Orbiter":
-        le_range = [0, SOL_EPT_E_CH_MAX, 3]
+        le_range = [0, SOL_EPT_E_CH_MAX, 2]
         lp_range = [0, SOL_EPT_P_CH_MAX, 5]
         he_range = [0, SOL_HET_E_CH_MAX, 1]
         hp_range = [0, SOL_HET_P_CH_MAX, 5]
