@@ -17,6 +17,7 @@ from sunpy.net import Fido
 from sunpy.net import attrs as a
 
 from time import sleep
+from copy import deepcopy
 
 
 def polarity_rtn(Br,Bt,Bn,r,lat,V=400,delta_angle=10):
@@ -437,20 +438,20 @@ def make_fig_axs(options):
 
     return fig, axs
 
-def add_line(time, ax, **kwargs):
-    
-    if isinstance(ax, np.ndarray):
-        for axis in ax:
-            axis.axvline(time, **kwargs)
+def copy_fig_axs(fig):
+    """
+    Copy Figure and Axes objects (to make modifications easier).
 
-    else:
-        ax.axvline(time, **kwargs)
-    
-def add_shaded_area(start, end, ax, **kwargs):
+    Args:
+        fig (matplotlib.Figure): figure object
 
-    if isinstance(ax, np.ndarray):
-        for axis in ax:
-            axis.axvspan(start, end, **kwargs)
+    Returns:
+        tuple: tuple (matplotlib.Figure, matplotlib.Axes) of copied figure and axes
 
-    else:
-        ax.axvline(start, end, **kwargs)
+    """
+    fig_copy = deepcopy(fig)
+    fig_copy.set_dpi(200)
+    axs_copy = fig_copy.get_axes()
+
+    return fig_copy, axs_copy
+
