@@ -14,7 +14,7 @@ L1_3DP_E_CH_MAX = 6
 ST_SEPT_E_CH_MAX = 15
 SOL_EPT_E_CH_MAX = 16
 
-PSP_EPILO_IC_CH_MAX = 32
+PSP_EPILO_IC_CH_MAX = 31
 L1_3DP_P_CH_MAX = 7
 ST_SEPT_P_CH_MAX = 30
 SOL_EPT_P_CH_MAX = 31
@@ -480,10 +480,10 @@ def range_selection(**kwargs):
         hp_range = [0, L1_ERNE_P_CH_MAX, 2]
     
     if options.spacecraft.value == "STEREO":
-        le_range = [0, ST_SEPT_E_CH_MAX, 1]
+        le_range = [0, ST_SEPT_E_CH_MAX, 3]
         lp_range = [0, ST_SEPT_P_CH_MAX, 4]
         he_range = [0, ST_HET_E_CH_MAX, 2]
-        hp_range = [0, ST_HET_P_CH_MAX, 1]
+        hp_range = [0, ST_HET_P_CH_MAX, 2]
     
     if options.spacecraft.value == "Solar Orbiter":
         le_range = [0, SOL_EPT_E_CH_MAX, 2]
@@ -496,7 +496,7 @@ def range_selection(**kwargs):
             start_key_str = species + "start"
             if start_key_str in kwargs.keys():
                 start = kwargs[start_key_str]
-                if start in range(rang[0], rang[1]):
+                if start in range(rang[0], rang[1]+1):
                     rang[0] = start
                 else:
                     raise ValueError("range start not in allowed range")
@@ -504,7 +504,7 @@ def range_selection(**kwargs):
             stop_key_str = species + "stop"
             if stop_key_str in kwargs.keys():
                 stop = kwargs[stop_key_str]
-                if stop in range(rang[0], rang[1]):
+                if stop in range(rang[0], rang[1]+1):
                     rang[1] = stop
                 else:
                     raise ValueError("range stop not in allowed range (also make sure that start precedes stop!)")
