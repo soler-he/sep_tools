@@ -465,7 +465,7 @@ def range_selection(**kwargs):
     
     for kwarg in kwargs.keys():
         if kwarg not in valid_kwargs:
-            raise KeyError("Invalid argument, valid options are {low/high}_{e/p}_{start/stop/step}, e.g. low_e_step")
+            raise KeyError(f"Invalid argument '{kwarg}', valid options are (low/high)_(e/p)_(start/stop/step), e.g. low_e_step")
 
     if options.spacecraft.value == "Parker Solar Probe":
         le_range = [0, PSP_EPILO_PE_CH_MAX, 1]
@@ -499,7 +499,7 @@ def range_selection(**kwargs):
                 if start in range(rang[0], rang[1]+1):
                     rang[0] = start
                 else:
-                    raise ValueError("range start not in allowed range")
+                    raise ValueError(f"{start_key_str} not in allowed range")
                 
             stop_key_str = species + "stop"
             if stop_key_str in kwargs.keys():
@@ -507,7 +507,7 @@ def range_selection(**kwargs):
                 if stop in range(rang[0], rang[1]+1):
                     rang[1] = stop
                 else:
-                    raise ValueError("range stop not in allowed range (also make sure that start precedes stop!)")
+                    raise ValueError(f"{stop_key_str} not in allowed range")
                 
             step_key_str = species + "step"
             if step_key_str in kwargs.keys():
@@ -515,7 +515,7 @@ def range_selection(**kwargs):
                 if step > 0:
                     rang[2] = step
                 else:
-                    raise ValueError("step must be a positive integer")
+                    raise ValueError(f"{step_key_str} must be a positive integer")
         
     
     if options.spacecraft.value == "Parker Solar Probe":
