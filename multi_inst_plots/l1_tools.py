@@ -440,7 +440,7 @@ def make_plot(options):
             else:
                 df_mag_pol = []
             
-    if options.Vsw.value or options.N.value or options.T.value:
+    if options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value:
         if isinstance(df_solwind, pd.DataFrame) and av_mag != "0min" and av_mag != "1min":
             df_vsw = resample_df(df_solwind, av_mag)
         else:
@@ -497,7 +497,7 @@ def make_plot(options):
         if options.l1_wind_p.value:
             print(f'Wind/3DP protons: {wind_ch_p}, {len(wind_ch_p)}')
         if options.l1_erne.value:
-            print(f'HET protons: {erne_ch}, {len(erne_ch)}')
+            print(f'ERNE-HED protons: {erne_ch}, {len(erne_ch)}')
 
     legends_inside = options.legends_inside.value
     cmap = options.radio_cmap.value
