@@ -240,7 +240,7 @@ def load_data(options):
             swa_vsw = np.sqrt(swa_data.V_RTN_0**2 + swa_data.V_RTN_1**2 + swa_data.V_RTN_2**2)
             swa_data['vsw'] = swa_vsw
 
-            temp = np.sqrt(swa_data.TxTyTz_RTN_0**2 + swa_data.TxTyTz_RTN_2**2 + swa_data.TxTyTz_RTN_2**2) * e / k_B 
+            temp = np.sqrt(swa_data.TxTyTz_RTN_0**2 + swa_data.TxTyTz_RTN_1**2 + swa_data.TxTyTz_RTN_2**2) * e / k_B 
             swa_data['temp'] = temp
             swa_data['p_dyn'] = m_p * swa_data['N'] * 1e6 * (swa_data['vsw'] * 1e3)**2 * 1e9    # nPa
 
@@ -638,7 +638,7 @@ def make_plot(options):
     ### Temperature
     if options.T.value:
         if isinstance(df_swa, pd.DataFrame):
-            axs[i].plot(df_swa.index, df_swa['T'], '-k', label="Temperature")
+            axs[i].plot(df_swa.index, df_swa['temp'], '-k', label="Temperature")
         axs[i].set_ylabel(r"T$_\mathrm{p}$ [K]", fontsize=font_ylabel)
         axs[i].set_yscale('log')
         i += 1

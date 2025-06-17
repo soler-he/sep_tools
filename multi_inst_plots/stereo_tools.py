@@ -356,6 +356,7 @@ def make_plot(options):
 
     #Chosen channels
     if plot_protons or plot_electrons:
+        print("Chosen energy channels:")
         if options.ster_sept_e.value:
             print(f'SEPT electrons: {ch_sept_e}, {len(ch_sept_e)}')
         if options.ster_het_e.value:
