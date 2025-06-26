@@ -440,7 +440,7 @@ def make_plot(options):
             else:
                 df_mag_pol = []
             
-    if options.Vsw.value or options.N.value or options.T.value:
+    if options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value:
         if isinstance(df_solwind, pd.DataFrame) and av_mag != "0min" and av_mag != "1min":
             df_vsw = resample_df(df_solwind, av_mag)
         else:
@@ -487,6 +487,17 @@ def make_plot(options):
     erne_ch = options.l1_ch_erne_p.value
     ephin_ch_index = list(options.l1_ch_ephin_e.value)
     ephin_ch = np.array(["E150", "E300", "E1300", "E3000"])[ephin_ch_index]
+
+    if plot_protons or plot_electrons:
+        print("Chosen energy channels:")
+        if options.l1_wind_e.value:
+            print(f'Wind/3DP electrons: {wind_ch_e}, {len(wind_ch_e)}')
+        if options.l1_ephin.value:
+            print(f'EPHIN electrons: {tuple(ephin_ch_index)}, {len(ephin_ch_index)}')
+        if options.l1_wind_p.value:
+            print(f'Wind/3DP protons: {wind_ch_p}, {len(wind_ch_p)}')
+        if options.l1_erne.value:
+            print(f'ERNE-HED protons: {erne_ch}, {len(erne_ch)}')
 
     legends_inside = options.legends_inside.value
     cmap = options.radio_cmap.value
