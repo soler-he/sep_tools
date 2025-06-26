@@ -260,12 +260,18 @@ def load_data(options):
     if options.mag.value == False:
         options.polarity.value = False
 
-    
     wind_flux_thres = None
 
+    dataset_num = (options.l1_wind_e.value or options.l1_wind_p.value) + options.radio.value + options.l1_ephin.value \
+                    + options.l1_erne.value + (options.mag.value or options.mag_angles.value) \
+                    + (options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value) \
+                    + options.stix.value + options.goes.value
+
+    dataset_index = 1
     # LOAD DATA
     ####################################################################
     if options.l1_wind_e.value or options.l1_wind_p.value:
+        print(f"Loading Wind/3DP data... (dataset {dataset_index}/{dataset_num})")
         edic_, meta_e = wind3dp_load(dataset="WI_SFSP_3DP",
                             startdate=startdate,
                             enddate=enddate,
@@ -285,8 +291,10 @@ def load_data(options):
         data["3dp_p"] = pdic_
         metadata["3dp_e"] = meta_e
         metadata["3dp_p"] = meta_p
-        
+        dataset_index += 1
+
     if options.radio.value == True:
+        print(f"Loading Wind/WAVES data... (dataset {dataset_index}/{dataset_num})")
         try:
             df_wind_wav_rad1 = load_waves_rad(dataset="RAD1", startdate=startdate, enddate=enddate, file_path=path)
         except IndexError:
@@ -301,9 +309,11 @@ def load_data(options):
 
         data["wav_rad1"] = df_wind_wav_rad1
         data["wav_rad2"] = df_wind_wav_rad2
+        dataset_index += 1
 
     if options.l1_ephin.value == True:
-        try:
+        print(f"Loading SOHO/EPHIN data... (dataset {dataset_index}/{dataset_num})")
+        try: 
             ephin_, meta_ephin = soho_load(dataset="SOHO_COSTEP-EPHIN_L2-1MIN", startdate=startdate, enddate=enddate,
                             path=path, resample=None)
         except UnboundLocalError:   
@@ -315,27 +325,36 @@ def load_data(options):
 
         data["ephin"] = ephin_
         metadata["ephin"] = meta_ephin
+        dataset_index += 1
 
     if options.l1_erne.value == True:
+        print(f"Loading SOHO/ERNE data... (dataset {dataset_index}/{dataset_num})")
         erne_p_, meta_erne = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=startdate, enddate=enddate,
                             path=path, resample=None)
         
         data["erne"] = erne_p_
         metadata["erne"] = meta_erne
+        dataset_index += 1
         
 
     if options.mag.value or options.mag_angles.value:
+        print(f"Loading Wind/MFI data... (dataset {dataset_index}/{dataset_num})")
         try:
             mag_data = wind_mfi_loader(startdate, enddate, path=path)
+            # L1 mag has values surrounded by NaN's, meaning line plot's won't show
+            mag_data = mag_data[~np.isnan(mag_data["B"]) & ~np.isnan(mag_data["BRTN_0"]) 
+                              & ~np.isnan(mag_data["BRTN_1"]) & ~np.isnan(mag_data["BRTN_2"]) ]
             
         except IndexError:  # TimeSeries() call throws IndexError when trying to pop from an empty list
             print(f"No MFI data found for {startdate} - {enddate}!")
             mag_data = []
 
         data["mag"] = mag_data
+        dataset_index += 1
     
 
     if options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value:
+        print(f"Loading Wind solar wind (WI_K0_3DP) data... (dataset {dataset_index}/{dataset_num})")
         try:
             product = a.cdaweb.Dataset('WI_K0_3DP')
 
@@ -352,17 +371,23 @@ def load_data(options):
             df_solwind = []
 
         data["solwind"] = df_solwind
+        dataset_index += 1
 
       
     if options.stix.value == True:
+        print(f"Loading SolO/STIX data... (dataset {dataset_index}/{dataset_num})")
         df_stix_ = load_solo_stix(startdate, enddate, resample=None, ltc = stix_ltc)
         data["stix"] = df_stix_
+        dataset_index += 1
 
     if options.goes.value == True:
+        print(f"Loading GOES/XRS data... (dataset {dataset_index}/{dataset_num})")
         df_goes_, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, 
                                            resample=None, path=path)
         data["goes"] = df_goes_
-       
+        dataset_index += 1
+    
+    print("Data loaded!")
     
     return data, metadata
     
@@ -415,25 +440,19 @@ def make_plot(options):
 
     ### AVERAGING ###
     
-    av_sep = str(options.l1_av_sep.value) + "min"
-    av_mag =  str(options.resample_mag.value) + "min"
-    av_erne = str(options.l1_av_erne.value) + "min"
-    av_stixgoes = str(options.resample_stixgoes.value) + "min"   
+    av_sep =  options.l1_av_sep.value
+    av_mag =  options.resample_mag.value
+    av_erne =  options.l1_av_sep.value
+    av_stixgoes =  options.resample_stixgoes.value
 
     if options.mag.value or options.mag_angles.value:
-        # If no data, mag_data is an empty list and resample_df would crash (no resample method). 
-        # Else if no averaging is done, rename to df_mag.
-        if isinstance(mag_data, pd.DataFrame) and (av_mag != "0min"):
-            df_mag = resample_df(mag_data, av_mag)
+        if av_mag > 0 and av_mag <= 1.5:
+            print("Wind/MFI native cadence is 1.5 min, so no averaging was applied.")
+        if isinstance(mag_data, pd.DataFrame) and av_mag > 1.5:
+            df_mag = resample_df(mag_data, str(60 * av_mag) + "s")
         else:
-            # L1 mag has values surrounded by NaN's, meaning line plot's won't show
-            df_mag = mag_data[~np.isnan(mag_data["B"]) & ~np.isnan(mag_data["BRTN_0"]) 
-                              & ~np.isnan(mag_data["BRTN_1"]) & ~np.isnan(mag_data["BRTN_2"]) ]
-            
-            # # Fix lines connecting over time gaps
-            # for i in range(len(df_mag.index) - 1):
-            #     if df_mag.index[i+1] - df_mag.index[i] > pd.Timedelta(seconds=60):
-            #         df_mag[i,:] = np.nan
+            df_mag = mag_data
+
         if options.polarity.value:
             if isinstance(mag_data, pd.DataFrame):
                 df_mag_pol = resample_df(mag_data, '1min')  # resampling to 1min for polarity plot
@@ -441,44 +460,52 @@ def make_plot(options):
                 df_mag_pol = []
             
     if options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value:
-        if isinstance(df_solwind, pd.DataFrame) and av_mag != "0min" and av_mag != "1min":
-            df_vsw = resample_df(df_solwind, av_mag)
+        if av_mag > 0 and av_mag <= 1.5:
+            print("WI_K0_3DP native cadence is 1.5 min, so no averaging was applied.")
+        if isinstance(df_solwind, pd.DataFrame) and av_mag >= 1.5:
+            df_vsw = resample_df(df_solwind, str(60 * av_mag) + "s")
         else:
             df_vsw = df_solwind
 
     
     if options.l1_wind_e.value or options.l1_wind_p.value:
-        if isinstance(edic_, pd.DataFrame) and av_sep != "0min":
-            edic = resample_df(edic_, av_sep)
+        if av_sep > 0 and av_sep <= 0.2:
+            print("Wind/3DP native cadence is 12 s, so no averaging was applied.")
+        if isinstance(edic_, pd.DataFrame) and av_sep > 0.2:
+            edic = resample_df(edic_, str(60 * av_sep) + "s")
         else:
             edic = edic_
 
-        if isinstance(pdic_, pd.DataFrame) and av_sep != "0min":
-            pdic = resample_df(pdic_, av_sep)
+        if isinstance(pdic_, pd.DataFrame) and av_sep > 0.2:
+            pdic = resample_df(pdic_, str(60 * av_sep) + "s")
         else:
             pdic = pdic_
     
     if options.l1_ephin.value:
-        if isinstance(ephin_, pd.DataFrame) and av_sep != "0min":
-            ephin = resample_df(ephin_, av_sep)
+        if av_sep > 0 and av_sep <= 1:
+            print("EPHIN native cadence is 1 min, so no averaging was applied.")
+        if isinstance(ephin_, pd.DataFrame) and av_sep > 1:
+            ephin = resample_df(ephin_, str(60 * av_sep) + "s")
         else:
             ephin = ephin_
 
     if options.l1_erne.value:
-        if isinstance(erne_p_, pd.DataFrame) and av_erne != "0min":
-            erne_p = resample_df(erne_p_, av_erne)
+        if av_erne > 0 and av_erne <= 1:
+            print("ERNE native cadence is 1 min, so no averaging was applied.")
+        if isinstance(erne_p_, pd.DataFrame) and av_erne > 1:
+            erne_p = resample_df(erne_p_, str(60 * av_erne) + "s")
         else:
             erne_p = erne_p_
 
     if options.goes.value:
-        if isinstance(df_goes_, pd.DataFrame) and av_stixgoes != "0min":
-            df_goes = resample_df(df_goes_, av_stixgoes)
+        if isinstance(df_goes_, pd.DataFrame) and av_stixgoes > 0:
+            df_goes = resample_df(df_goes_, str(60 * av_stixgoes) + "s")
         else:
             df_goes = df_goes_
         
     if options.stix.value:
-        if isinstance(df_stix_, pd.DataFrame) and av_stixgoes != "0min":
-            df_stix = resample_df(df_stix_, av_stixgoes)
+        if isinstance(df_stix_, pd.DataFrame) and av_stixgoes > 0:
+            df_stix = resample_df(df_stix_, str(60 * av_stixgoes) + "s")
         else:
             df_stix = df_stix_
 
