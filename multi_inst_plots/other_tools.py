@@ -19,6 +19,8 @@ from sunpy.net import attrs as a
 from time import sleep
 from copy import deepcopy
 
+FIG_DPI = 200
+
 
 def polarity_rtn(Br,Bt,Bn,r,lat,V=400,delta_angle=10):
     """
@@ -417,7 +419,7 @@ def make_fig_axs(options):
     axs[-1].set_xlim(options.plot_start, options.plot_end)
     fig.subplots_adjust(hspace=0.1)
     fig.patch.set_facecolor('white')
-    fig.set_dpi(200)
+    fig.set_dpi(FIG_DPI)
 
     if options.spacecraft.value != "STEREO":
         print(f"Plotting {options.spacecraft.value} data for timerange {options.plot_start} - {options.plot_end}")
@@ -438,7 +440,7 @@ def copy_fig_axs(fig):
 
     """
     fig_copy = deepcopy(fig)
-    fig_copy.set_dpi(200)
+    fig_copy.set_dpi(FIG_DPI)
     axs_copy = fig_copy.get_axes()
 
     return fig_copy, axs_copy
