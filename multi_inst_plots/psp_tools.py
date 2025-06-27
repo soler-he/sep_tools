@@ -87,16 +87,33 @@ def load_data(options):
     if options.mag.value == False:
         options.polarity.value = False
     
+    dataset_num = (options.psp_epihi_e.value or options.psp_epihi_p.value) + options.radio.value + options.psp_epilo_e.value \
+                    + options.psp_epilo_p.value + (options.mag.value or options.mag_angles.value) \
+                    + (options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value) \
+                    + options.stix.value + options.goes.value
+
+    dataset_index = 1
+
     if options.stix.value == True:
+        print(f"Loading SolO/STIX... (dataset {dataset_index}/{dataset_num})")
+
         df_stix_ = load_solo_stix(startdate, enddate, ltc=stix_ltc, resample=None)
         data["stix"] = df_stix_
+
+        dataset_index += 1
     
     if options.goes.value == True:
+        print(f"Loading GOES/XRS... (dataset {dataset_index}/{dataset_num})")
+
         df_goes_, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, resample=None, path=file_path)
         data["goes"] = df_goes_
+
+        dataset_index += 1
         
 
     if options.psp_epihi_p.value == True or options.psp_epihi_e.value == True:
+        print(f"Loading EPI-Hi... (dataset {dataset_index}/{dataset_num})")
+
         psp_het_org, psp_het_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-HET-RATES60', startdate, enddate, 
                                                                     path=file_path, resample=None)
         
@@ -126,9 +143,13 @@ def load_data(options):
 
         data["het"] = psp_het_org
         metadata["het"] = psp_het_energies
+
+        dataset_index += 1
         
 
     if options.psp_epilo_e.value:
+        print(f"Loading EPI-Lo PE... (dataset {dataset_index}/{dataset_num})")
+
         psp_epilo_org, psp_epilo_energies = psp_isois_load('PSP_ISOIS-EPILO_L2-PE', startdate, enddate, 
                                                                             path=file_path, resample=None, epilo_channel=epilo_pe_channel, 
                                                                             epilo_threshold=None)
@@ -139,9 +160,13 @@ def load_data(options):
 
         data["epilo_pe"] = psp_epilo_org
         metadata["epilo_pe"] = psp_epilo_energies
+
+        dataset_index += 1
         
 
     if options.psp_epilo_p.value:
+        print(f"Loading EPI-Lo IC... (dataset {dataset_index}/{dataset_num})")
+
         psp_epilo_ic_org, psp_epilo_ic_energies = psp_isois_load('PSP_ISOIS-EPILO_L2-IC', startdate, enddate, 
                                                                                     path=file_path, resample=None, epilo_channel=epilo_ic_channel, 
                                                                                     epilo_threshold=None)
@@ -149,8 +174,11 @@ def load_data(options):
         data["epilo_ic"] = psp_epilo_ic_org
         metadata["epilo_ic"] = psp_epilo_ic_energies
     
+        dataset_index += 1
 
     if options.radio.value:
+        print(f"Loading FIELDS/RFS... (dataset {dataset_index}/{dataset_num})")
+
         try:
             psp_rfs_lfr_psd = spz.get_data(spz.inventories.data_tree.cda.ParkerSolarProbe.PSP_FLD.RFS_LFR.PSP_FLD_L3_RFS_LFR.psp_fld_l3_rfs_lfr_PSD_SFU,
                                         startdate, enddate).replace_fillval_by_nan()
@@ -168,7 +196,7 @@ def load_data(options):
                 if (psp_rfs_lfr_psd.index[i+1] - psp_rfs_lfr_psd.index[i]) > np.timedelta64(5, "m"):   
                     psp_rfs_lfr_psd.iloc[i,:] = np.nan
             
-        except (AttributeError, IndexError):
+        except (AttributeError, IndexError, ValueError):
             print("Unable to obtain FIELDS/RFS LFR data!")
             psp_rfs_lfr_psd = []
             psp_rfs_lfr_freq = []
@@ -182,7 +210,7 @@ def load_data(options):
             for i in range(len(psp_rfs_hfr_psd.index) - 1):
                 if (psp_rfs_hfr_psd.index[i+1] - psp_rfs_hfr_psd.index[i]) > np.timedelta64(5, "m"):
                     psp_rfs_hfr_psd.iloc[i,:] = np.nan
-        except (AttributeError, IndexError):
+        except (AttributeError, IndexError, ValueError):
             print("Unable to obtain FIELDS/RFS HFR data!")
             psp_rfs_hfr_psd = []
             psp_rfs_hfr_freq = []
@@ -192,8 +220,12 @@ def load_data(options):
         metadata["rfs_lfr_freq"] = psp_rfs_lfr_freq
         metadata["rfs_hfr_freq"] = psp_rfs_hfr_freq
 
+        dataset_index += 1
+
 
     if options.mag.value or options.mag_angles.value:
+        print(f"Loading FIELDS/MAG... (dataset {dataset_index}/{dataset_num})")
+
         try:
             df_psp_mag_rtn = spz.get_data(spz.inventories.data_tree.amda.Parameters.PSP.FIELDS_MAG.psp_mag_1min.psp_b_1min, 
                                         startdate, enddate, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
@@ -221,7 +253,11 @@ def load_data(options):
 
         data["mag"] = psp_mag
 
+        dataset_index += 1
+
     if options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value:
+        print(f"Loading SPC and SPAN-i... (dataset {dataset_index}/{dataset_num})")
+
         try:    
             # SPC
             df_psp_spc_np_tot = spz.get_data(spz.inventories.data_tree.amda.Parameters.PSP.SWEAP_SPC.psp_spc_fit.psp_spc_np_tot, 
@@ -344,6 +380,7 @@ def load_data(options):
         data["magplas_spani"] = df_psp_spani
         data["magplas_spc"] = df_psp_spc 
 
+    print("Data loaded!")
 
     return data, metadata
 
@@ -405,57 +442,81 @@ def make_plot(options):
     resample_stixgoes = options.resample_stixgoes.value
 
     if (options.psp_epihi_e.value or options.psp_epihi_p.value):
-        if isinstance(psp_het_org, pd.DataFrame) and resample != 0:
-            psp_het = resample_df(psp_het_org, str(resample) + "min")
+        
+        if isinstance(psp_het_org, pd.DataFrame):
+            if resample > 1:
+                psp_het = resample_df(psp_het_org, str(60 * resample) + "s")
+            else:
+                print("EPI-Hi/HET native cadence is 1 min, so no averaging was applied.")
+                psp_het = psp_het_org
             
         else:
             psp_het = psp_het_org
 
     if options.psp_epilo_e.value == True:
-        if isinstance(psp_epilo_org, pd.DataFrame) and resample != 0:
-            psp_epilo = resample_df(psp_epilo_org, str(resample) + "min")
-            
+
+        if isinstance(psp_epilo_org, pd.DataFrame):
+            if resample > 0.1:
+                psp_epilo = resample_df(psp_epilo_org, str(60 * resample) + "s")
+            else:
+                print("EPI-Lo PE native cadence is 10 s, so no averaging was applied.")
+                psp_epilo = psp_epilo_org
+
         else:
             psp_epilo = psp_epilo_org
 
     if options.psp_epilo_p.value:
-        if isinstance(psp_epilo_ic_org, pd.DataFrame) and resample != 0:
-            psp_epilo_ic = resample_df(psp_epilo_ic_org, str(resample) + "min")
-            
+
+        if isinstance(psp_epilo_ic_org, pd.DataFrame):
+            if resample > 1:
+                psp_epilo_ic = resample_df(psp_epilo_ic_org, str(60 * resample) + "s")
+            else:
+                print("EPI-Lo IC native cadence is 1 min, so no averaging was applied.")
+                psp_epilo_ic = psp_epilo_ic_org
+
         else:
             psp_epilo_ic = psp_epilo_ic_org
     
     if options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value:
-        if isinstance(df_psp_spani, pd.DataFrame) and resample_mag >= 5:    # cadence varies, but it seems to be < 5min most of the time
-            df_magplas_spani = resample_df(df_psp_spani, str(resample_mag) + "min")
-        elif isinstance(df_psp_spani, pd.DataFrame) and resample_mag in range(1,5):
-            print(f"PSP SPAN-i/SPC: data is of lower cadence. Averaging is applied only from 5 minutes upwards.")
-            df_magplas_spani = df_psp_spani
+        if isinstance(df_psp_spani, pd.DataFrame):   
+            if resample > 3.75:  # cadence varies, but it seems to be somewhere around 3 min 45 s
+                df_magplas_spani = resample_df(df_psp_spani, str(60 * resample_mag) + "s")
+            else:
+                print("SPANI-i native cadence is around 3 min 45 s, so no averaging was applied")
+                df_magplas_spani = df_psp_spani
         else:
             df_magplas_spani = df_psp_spani
 
-        if isinstance(df_psp_spc, pd.DataFrame) and resample_mag >= 5:   
-            df_magplas_spc = resample_df(df_psp_spc, str(resample_mag) + "min")
+        if isinstance(df_psp_spc, pd.DataFrame):
+            if resample_mag > 0.5:   
+                df_magplas_spc = resample_df(df_psp_spc, str(60 * resample_mag) + "s")
+            else:
+                print("SPC native cadence is around 30 s, so no averaging was applied.")
+                df_magplas_spc = df_psp_spc
+
         else:
             df_magplas_spc = df_psp_spc
 
     if options.mag.value or options.mag_angles.value:
-        if isinstance(psp_mag, pd.DataFrame) and resample_mag != 0:
-            mag = resample_df(psp_mag, str(resample_mag) + "min")
-           
+        if isinstance(psp_mag, pd.DataFrame):
+            if resample_mag > 1:
+                mag = resample_df(psp_mag, str(60 * resample_mag) + "s")
+            else:
+                print("MAG native cadence is 1 min, so no averaging was applied.")
+                mag = psp_mag
         else:
             mag = psp_mag
 
     if options.goes.value == True:
-        if isinstance(df_goes_, pd.DataFrame) and resample_stixgoes != 0:
-            df_goes = resample_df(df_goes_, str(resample_stixgoes) + "min")
+        if isinstance(df_goes_, pd.DataFrame) and resample_stixgoes > 0:
+            df_goes = resample_df(df_goes_, str(60 * resample_stixgoes) + "s")
             
         else:
             df_goes = df_goes_    
         
     if options.stix.value == True:
-        if isinstance(df_stix_, pd.DataFrame) and resample_stixgoes != 0:
-            df_stix = resample_df(df_stix_, str(resample_stixgoes) + "min")
+        if isinstance(df_stix_, pd.DataFrame) and resample_stixgoes > 0:
+            df_stix = resample_df(df_stix_, str(60 * resample_stixgoes) + "s")
             
         else:
             df_stix = df_stix_

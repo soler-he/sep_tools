@@ -172,18 +172,21 @@ def load_data(options):
     options.plot_start = None
     options.plot_end = None
 
-    if options.ster_sept_e.value == True:
-        # print("loading sept_e...")
+    dataset_num = (options.ster_het_e.value or options.ster_het_p.value) + (options.ster_sept_e.value or options.ster_sept_p.value) \
+                     + options.radio.value + (options.mag.value or options.mag_angles.value) \
+                    + (options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value or options.polarity.value) \
+                    + options.stix.value + options.goes.value
+    
+    dataset_index = 1
+
+    if options.ster_sept_e.value == True or options.ster_sept_p.value == True:
+        print(f"Loading SEPT... (dataset {dataset_index}/{dataset_num})")
         df_sept_electrons_orig, meta_se = stereo_load(instrument='SEPT', startdate=startdate, enddate=enddate, 
                                                       sept_species='e', sept_viewing=sept_viewing,
                                                       path=path, spacecraft=sc)
         data["sept_electrons"] = df_sept_electrons_orig
         metadata["sept_electrons"] = meta_se
         
-        # print("sept_e loaded!")
-        
-    if options.ster_sept_p.value == True:
-        # print("loading sept_p...")
         df_sept_protons_orig, meta_sp = stereo_load(instrument='SEPT', startdate=startdate, enddate=enddate, 
                                                     sept_species='p', sept_viewing=sept_viewing,
                                                     path=path, spacecraft=sc)
@@ -191,60 +194,64 @@ def load_data(options):
         data["sept_protons"] = df_sept_protons_orig
         metadata["sept_protons"] = meta_sp
         
-        # print("sept_p loaded!")
+        dataset_index += 1
     
     if options.ster_het_e.value == True or options.ster_het_p.value == True:
-        # print("loading het...")
+        print(f"Loading HET... (dataset {dataset_index}/{dataset_num})")
         df_het_orig, meta_het = stereo_load(instrument='HET', startdate=startdate, enddate=enddate, 
                                             path=path, spacecraft=sc)
         
         data["het"] = df_het_orig
         metadata["het"] = meta_het
-        # print("het loaded!")
+        
+        dataset_index += 1
 
     if options.mag.value == True or options.mag_angles.value == True:
-        # print("loading mag...")
+        print(f"Loading MAG... (dataset {dataset_index}/{dataset_num})")
         df_mag_orig, meta_mag = stereo_load(spacecraft=sc, instrument='MAG', startdate=startdate, enddate=enddate, 
                                             mag_coord='RTN', path=path)
         
         data["mag"] = df_mag_orig
         metadata["mag"] = meta_mag
-        # print("mag loaded!")
 
-    if options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value or options.polarity.value:
+        dataset_index += 1
         
-        # print("loading magplasma...")
+    if options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value or options.polarity.value:
+        print(f"Loading MAGPLASMA... (dataset {dataset_index}/{dataset_num})")
         df_magplasma, meta_magplas = stereo_load(instrument='MAGPLASMA', startdate=startdate, enddate=enddate, 
                             path=path, spacecraft=sc)
         
         data["magplasma"] = df_magplasma
         metadata["magplasma"] = meta_magplas
-        # print("magplasma loaded!")
         
+        dataset_index += 1
 
     if options.radio.value == True:
-        # print("loading radio...")
+        print(f"Loading WAVES... (dataset {dataset_index}/{dataset_num})")
         df_waves_hfr = load_swaves(f"ST{sc}_L3_WAV_HFR", startdate=startdate, enddate=enddate, path=path)
         df_waves_lfr = load_swaves(f"ST{sc}_L3_WAV_LFR", startdate=startdate, enddate=enddate, path=path)
 
         data["waves_hfr"] = df_waves_hfr
         data["waves_lfr"] = df_waves_lfr
-        # print("radio loaded!")
+        
+        dataset_index += 1
 
     if options.stix.value == True:
-        # print("loading stix...")
+        print(f"Loading SolO/STIX... (dataset {dataset_index}/{dataset_num})")
         df_stix_ = load_solo_stix(start=startdate, end=enddate, ltc=stix_ltc, resample=None)
         data["stix"] = df_stix_
-        # print("stix loaded!")
+
+        dataset_index += 1
 
     if options.goes.value == True:
-        # print("loading goes...")
+        print(f"Loading GOES/XRS... (dataset {dataset_index}/{dataset_num})")
         df_goes_, goes_sat = load_goes_xrs(startdate, enddate, man_select=goes_man_select, resample=None, path=path)
 
         data["goes"] = df_goes_
         metadata["goes_sat"] = goes_sat
-        # print("goes loaded!")
-    
+
+    print("Data loaded!")
+
     return data, metadata
     
 
@@ -294,48 +301,64 @@ def make_plot(options):
     resample_stixgoes = options.resample_stixgoes.value
 
     if options.ster_sept_e.value == True:
-        if isinstance(df_sept_electrons_orig, pd.DataFrame) and resample > 1: # 1 min native resolution, but small errors cause gaps after resampling
-            df_sept_electrons = resample_df(df_sept_electrons_orig, str(resample) + "min")
+        if isinstance(df_sept_electrons_orig, pd.DataFrame):
+            if resample > 1:
+                df_sept_electrons = resample_df(df_sept_electrons_orig, str(60 * resample) + "s")
+            else:
+                print("SEPT native cadence is 1 min, so no averaging was applied.")
+                df_sept_electrons = df_sept_electrons_orig
         else:
             df_sept_electrons = df_sept_electrons_orig
 
     if options.ster_sept_p.value == True:
-        if isinstance(df_sept_protons_orig, pd.DataFrame) and resample > 1:
-            df_sept_protons = resample_df(df_sept_protons_orig, str(resample) + "min")
+        if isinstance(df_sept_protons_orig, pd.DataFrame):
+            if resample > 1:
+                df_sept_protons = resample_df(df_sept_protons_orig, str(60 * resample) + "s")
+            else:
+                print("SEPT native cadence is 1 min, so no averaging was applied.")
+                df_sept_protons = df_sept_protons_orig
         else:
             df_sept_protons = df_sept_protons_orig
 
     if options.ster_het_e.value or options.ster_het_p.value:
-        if isinstance(df_het_orig, pd.DataFrame) and resample != 0:
-            df_het = resample_df(df_het_orig, str(resample) + "min")  
+        if isinstance(df_het_orig, pd.DataFrame):
+            if resample > 1:
+                df_het = resample_df(df_het_orig, str(60 * resample) + "s") 
+            else:
+                print("HET native cadence is 1 min, so no averaging was applied.")
+                df_het = df_het_orig
         else:
             df_het = df_het_orig
             
         
     if options.Vsw.value or options.N.value or options.T.value or options.polarity.value:
-        if isinstance(df_magplasma, pd.DataFrame) and resample > 1:
-            df_magplas = resample_df(df_magplasma, str(resample_mag) + "min")
+        if isinstance(df_magplasma, pd.DataFrame):
+            if resample > 1:
+                df_magplas = resample_df(df_magplasma, str(60 * resample_mag) + "s")
+            else:
+                print("MAGPLASMA native cadence is 1 min, so no averaging was applied.")
+                df_magplas = df_magplasma
         else:
             df_magplas = df_magplasma
 
     if options.mag.value or options.mag_angles.value:
         if isinstance(df_mag_orig, pd.DataFrame):
             if resample == 0:
-                df_mag = resample_df(df_mag_orig, "10s") # high cadence, resample to ease load
+                df_mag = resample_df(df_mag_orig, "5s") # high cadence, resample to ease load
             else:
-                df_mag = resample_df(df_mag_orig, str(resample_mag) + "min")
+                df_mag = resample_df(df_mag_orig, str(60 * resample_mag) + "s")
         else:
             df_mag = df_mag_orig
 
     if options.goes.value == True:
-        if isinstance(df_goes_, pd.DataFrame) and resample_stixgoes != 0:
-            df_goes = resample_df(df_goes_, str(resample_stixgoes) + "min")
+        if isinstance(df_goes_, pd.DataFrame) and resample_stixgoes > 0:
+            df_goes = resample_df(df_goes_, str(60 * resample_stixgoes) + "s")
         else:
             df_goes = df_goes_
         
     if options.stix.value == True:
-        if isinstance(df_stix_, pd.DataFrame) and resample_stixgoes != 0:
-            df_stix = resample_df(df_stix_, str(resample_stixgoes) + "min")
+        if isinstance(df_stix_, pd.DataFrame) and resample_stixgoes > 0:
+            df_stix = resample_df(df_stix_, str(60 * resample_stixgoes) + "s")
         else:
             df_stix = df_stix_
 

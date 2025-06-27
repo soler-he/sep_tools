@@ -65,11 +65,11 @@ class Options:
         self.enddate = w.DatePicker(value=dt.date(2022, 3, 16), disabled=False, description="End date", 
                                     style={'description_width': "40%"})
 
-        self.resample = w.IntText(value=10, step=1, description='Averaging (min)', disabled=False, 
+        self.resample = w.FloatText(value=10, step=0.1, description='Averaging (min)', disabled=False, 
                                          style=_style)
-        self.resample_mag = w.IntText(value=5, step=1, description='MAG averaging (min)', 
+        self.resample_mag = w.FloatText(value=5, step=0.1, description='MAG averaging (min)', 
                                              disabled=False, style=_style)
-        self.resample_stixgoes = w.IntText(value=1, step=1, description="STIX/GOES averaging (min)", 
+        self.resample_stixgoes = w.FloatText(value=1, step=0.1, description="STIX/XRS averaging (min)", 
                                                   style=_style)
         
         self.radio_cmap = w.Dropdown(options=list(mpl.colormaps), value='jet', description='Radio colormap', style=_style)
@@ -144,8 +144,8 @@ class Options:
                                               value=tuple(range(0,L1_3DP_E_CH_MAX,1)), rows=10, style=_style)
         self.l1_ch_wind_p = w.SelectMultiple(description="3DP Protons", options=range(0,L1_3DP_P_CH_MAX), 
                                               value=tuple(range(0,L1_3DP_P_CH_MAX,1)), rows=10, style=_style)
-        self.l1_av_sep = w.IntText(value=10, description="3DP+EPHIN averaging", style=_style)
-        self.l1_av_erne = w.IntText(value=10, description="ERNE averaging", style=_style)
+        self.l1_av_sep = w.FloatText(value=10, step=0.1, description="3DP+EPHIN averaging", style=_style)
+        self.l1_av_erne = w.FloatText(value=10, step=0.1, description="ERNE averaging", style=_style)
         
         self.ster_sc = w.Dropdown(description="STEREO A/B", options=["A", "B"], style=_style)
         self.ster_sept_e = w.Checkbox(description="SEPT Electrons", value=True)
@@ -311,6 +311,13 @@ class Options:
                 elif change.new == True:
                     self.goes_man_select.disabled = False
 
+            # TODO: remove once RPW is included
+            if change.owner == self.spacecraft and change.new == "Solar Orbiter":
+                self.radio.disabled = True
+            elif change.owner == self.spacecraft and change.old == "Solar Orbiter":
+                self.radio.disabled = False
+
+
 
         def _no_negative_avg(change):
             if change.new < 0:
@@ -320,6 +327,8 @@ class Options:
         self.mag.observe(_disable_checkbox, names="value")
         self.stix.observe(_disable_checkbox, names="value")
         self.goes.observe(_disable_checkbox, names="value")
+        
+        self.spacecraft.observe(_disable_checkbox, names="value") # TODO: remove once RPW is included
 
         self.resample.observe(_no_negative_avg, names="value")
         self.resample_mag.observe(_no_negative_avg, names="value")

@@ -174,7 +174,15 @@ def load_data(options):
     if not options.mag.value:
         options.polarity.value = False
 
+    dataset_num = (options.solo_ept_e.value or options.solo_ept_p.value) + (options.solo_het_e.value or options.solo_het_p.value) \
+                 + (options.mag.value or options.mag_angles.value) \
+                + (options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value) \
+                + options.stix.value + options.goes.value # + options.radio.value TODO
+
+    dataset_index = 1
+
     if options.solo_ept_e.value or options.solo_ept_p.value:
+        print(f"Loading EPD/EPT... (dataset {dataset_index}/{dataset_num})")
         if ept_l3:
             try:
                 df_ept_org, df_rtn_ept, df_hci_ept, energies_ept, metadata_ept = epd_load(sensor='ept', level='l3', pos_timestamp=None,
@@ -200,13 +208,18 @@ def load_data(options):
             data["ept_e"] = electrons_ept
             metadata["ept_energies"] = energies_ept
 
+        dataset_index += 1
+
     if options.solo_het_e.value or options.solo_het_p.value:
+        print(f"Loading EPD/HET... (dataset {dataset_index}/{dataset_num})")
         protons_het, electrons_het, energies_het = epd_load(sensor='het', level='l2', startdate=startdate, enddate=enddate, 
                                                             pos_timestamp=None,viewing=viewing, path=path, autodownload=True)
         
         data["het_e"] = electrons_het
         data["het_p"] = protons_het
         metadata["het_energies"] = energies_het
+
+        dataset_index += 1
         
 
     # if plot_radio:
@@ -215,16 +228,23 @@ def load_data(options):
 
 
     if options.stix.value == True:
+        print(f"Loading STIX... (dataset {dataset_index}/{dataset_num})")
         df_stix_ = load_solo_stix(startdate, enddate, resample=None, ltc = stix_ltc)
         data["stix"] = df_stix_
 
+        dataset_index += 1
+
 
     if options.goes.value == True:
+        print(f"Loading GOES/XRS... (dataset {dataset_index}/{dataset_num})")
         df_goes_, goes_sat = load_goes_xrs(startdate, enddate, man_select=options.goes_man_select.value, resample=None, path=path)
         data["goes"] = df_goes_
 
+        dataset_index += 1
+
 
     if options.mag.value or options.mag_angles.value or options.polarity.value:
+        print(f"Loading MAG... (dataset {dataset_index}/{dataset_num})")
         try:
             mag_data_org = mag_load(startdate, enddate, level='l2', frame='rtn', path=path)
             mag_data_org['Bmag'] = np.sqrt(np.nansum((mag_data_org.B_RTN_0.values**2, mag_data_org.B_RTN_1.values**2, mag_data_org.B_RTN_2.values**2), axis=0))
@@ -234,7 +254,10 @@ def load_data(options):
 
         data["mag"] = mag_data_org
 
+        dataset_index += 1
+
     if options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value:
+        print(f"Loading SWA... (dataset {dataset_index}/{dataset_num})")
         try:
             swa_data = swa_load_grnd_mom(startdate, enddate, path=path)
             swa_vsw = np.sqrt(swa_data.V_RTN_0**2 + swa_data.V_RTN_1**2 + swa_data.V_RTN_2**2)
@@ -249,6 +272,8 @@ def load_data(options):
             swa_data = []
 
         data["swa"] = swa_data
+
+    print("Data loaded!")
 
     return data, metadata
 
@@ -294,6 +319,9 @@ def energy_channel_selection(options):
 def make_plot(options):
     
     ept_l3 = True
+
+    plot_electrons = options.solo_ept_e.value or options.solo_het_e.value
+    plot_protons = options.solo_ept_p.value or options.solo_het_p.value
     
     if viewing != options.solo_viewing.value:
         print(f"Data not loaded for chosen viewing direction ({options.solo_viewing.value}).", 
@@ -301,75 +329,75 @@ def make_plot(options):
         
     # Resampling 
 
-    resample_mag = str(options.resample_mag.value) + "min"
-    resample = str(options.resample.value) + "min"
-    resample_stixgoes = str(options.resample_stixgoes.value) + "min"
+    resample_mag = options.resample_mag.value
+    resample = options.resample.value
+    resample_stixgoes = options.resample_stixgoes.value
 
     if options.goes.value == True:
-        if isinstance(df_goes_, pd.DataFrame) and resample_stixgoes != "0min":
-            df_goes = resample_df(df_goes_, resample_stixgoes)
+        if isinstance(df_goes_, pd.DataFrame) and resample_stixgoes > 0:
+            df_goes = resample_df(df_goes_, str(60 * resample_stixgoes) + "s")
         else:
             df_goes = df_goes_
         
     if options.stix.value == True:
-        if isinstance(df_stix_, pd.DataFrame) and resample_stixgoes != "0min":
-            df_stix = resample_df(df_stix_, resample_stixgoes)
+        if isinstance(df_stix_, pd.DataFrame) and resample_stixgoes > 0:
+            df_stix = resample_df(df_stix_, str(60 * resample_stixgoes) + "s")
         else:
             df_stix = df_stix_
 
-    plot_electrons = options.solo_ept_e.value or options.solo_het_e.value
-    plot_protons = options.solo_ept_p.value or options.solo_het_p.value
-
-    if plot_electrons or plot_protons:
-        if plot_electrons:
-            if isinstance(electrons_het, pd.DataFrame) and resample != "0min":
-                df_electrons_het = resample_df(electrons_het, resample, pos_timestamp=None)
-            else:
-                df_electrons_het = electrons_het
-        if plot_protons:
-            if isinstance(protons_het, pd.DataFrame) and resample != "0min":
-                df_protons_het = resample_df(protons_het, resample, pos_timestamp=None)
-            else:
-                df_protons_het = protons_het
-
-        if ept_l3:
-            if isinstance(df_ept_org, pd.DataFrame) and resample != "0min":
-                df_ept = resample_df(df_ept_org, resample, pos_timestamp=None)
-            else:
-                df_ept = df_ept_org
-
-            if viewing.lower() == 'south':
-                view = 'D'
-            else:
-                view = viewing[0].upper()
-
+    if options.solo_het_e.value:
+        if isinstance(electrons_het, pd.DataFrame) and resample > 0:
+            df_electrons_het = resample_df(electrons_het, str(60 * resample) + "s", pos_timestamp=None)
         else:
-            if isinstance(electrons_ept, pd.DataFrame) and resample != "0min":
-                df_electrons_ept = resample_df(electrons_ept, resample, pos_timestamp=None)
+            df_electrons_het = electrons_het
+    if options.solo_het_p.value:
+        if isinstance(protons_het, pd.DataFrame) and resample > 0:
+            df_protons_het = resample_df(protons_het, str(60 * resample) + "s", pos_timestamp=None)
+        else:
+            df_protons_het = protons_het
+
+    if ept_l3:
+        if isinstance(df_ept_org, pd.DataFrame):
+            if resample > 1:
+                df_ept = resample_df(df_ept_org, str(60 * resample) + "s", pos_timestamp=None)
+            else:
+                print("EPT native cadence is 1 min, so no averaging was applied.")
+                df_ept = df_ept_org
+        else:
+            df_ept = df_ept_org
+
+        if viewing.lower() == 'south':
+            view = 'D'
+        else:
+            view = viewing[0].upper()
+
+    else:
+        if options.solo_ept_e.value:
+            if isinstance(electrons_ept, pd.DataFrame) and resample > 0:
+                df_electrons_ept = resample_df(electrons_ept, str(60 * resample) + "s", pos_timestamp=None)
             else:
                 df_electrons_ept = electrons_ept
-            if isinstance(protons_ept, pd.DataFrame) and resample != "0min":
-                df_protons_ept = resample_df(protons_ept, resample, pos_timestamp=None)
+        
+        if options.solo_ept_p.value:
+            if isinstance(protons_ept, pd.DataFrame) and resample > 0:
+                df_protons_ept = resample_df(protons_ept, str(60 * resample) + "s", pos_timestamp=None)
             else:
                 df_protons_ept = protons_ept
 
 
     if options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value:
-        if isinstance(swa_data, pd.DataFrame):
-            if resample_mag == "0min":
-                df_swa = resample_df(swa_data, "5s", pos_timestamp=None)    
-            else:
-                df_swa = resample_df(swa_data, resample_mag, pos_timestamp=None)
+        if isinstance(swa_data, pd.DataFrame) and resample_mag > 0:
+            df_swa = resample_df(swa_data, str(60 * resample_mag) + "s", pos_timestamp=None)
         else:
             df_swa = swa_data
 
     if options.mag.value or options.mag_angles.value or options.polarity.value:
         if isinstance(mag_data_org, pd.DataFrame):
-            if resample_mag == "0min":
-                # dataframe is very high cadence and so here we apply a minimum of 5 s to lighten the load
+            if resample_mag == 0:
+                # data is very high cadence and so here we apply a minimum of 5 s to lighten the load
                 mag_data = resample_df(mag_data_org, "5s", pos_timestamp=None)
-            else:
-                mag_data = resample_df(mag_data_org, resample_mag, pos_timestamp=None)
+            elif resample_mag > 0:
+                mag_data = resample_df(mag_data_org, str(60 * resample_mag) + "s", pos_timestamp=None)
         else:
             mag_data = mag_data_org
 

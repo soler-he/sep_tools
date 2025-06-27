@@ -19,6 +19,8 @@ from sunpy.net import attrs as a
 from time import sleep
 from copy import deepcopy
 
+FIG_DPI = 200
+
 
 def polarity_rtn(Br,Bt,Bn,r,lat,V=400,delta_angle=10):
     """
@@ -228,6 +230,7 @@ def load_goes_xrs(start, end, man_select=False, resample=None, path=None):
         sat = ''
         return df_goes, sat
 
+    # If the user chooses to pick the satellite manually, print out available satellites and prompt
     if man_select:
         print(result_goes)
         sats = tuple(np.unique(result_goes["xrs"]["SatelliteNumber"]).tolist())
@@ -256,18 +259,19 @@ def load_goes_xrs(start, end, man_select=False, resample=None, path=None):
     else:
         sat = int(max(result_goes["xrs"]["SatelliteNumber"]))
 
-    print(f"Fetching GOES-{sat} data for {start} - {end}")
+    print(f"Fetching GOES-{sat} XRS data for {start} - {end}")
     file_goes = Fido.fetch(result_goes["xrs"][result_goes["xrs", "SatelliteNumber"] == sat], path=path)    
 
     goes = ts.TimeSeries(file_goes, concatenate=True)
     df_goes = goes.to_dataframe()
     
-    # Filter data
-    df_goes['xrsa'] = df_goes['xrsa'].mask((df_goes['xrsa_quality'] != 0), other=np.nan)   # mask non-zero quality flagged entries as NaN
+    # mask non-zero quality flagged entries as NaN
+    df_goes['xrsa'] = df_goes['xrsa'].mask((df_goes['xrsa_quality'] != 0), other=np.nan)
     df_goes['xrsb'] = df_goes['xrsb'].mask((df_goes['xrsb_quality'] != 0), other=np.nan)  
-    df_goes = df_goes[(df_goes['xrsa_quality'] == 0) | (df_goes['xrsb_quality'] == 0)]     # keep entries that have at least one good quality flag
 
-    # Resampling
+    # keep entries that have at least one good quality flag
+    df_goes = df_goes[(df_goes['xrsa_quality'] == 0) | (df_goes['xrsb_quality'] == 0)]     
+
     if resample != "0min" and resample is not None:
         df_goes = resample_df(df_goes, resample=resample)
 
@@ -278,7 +282,7 @@ def plot_goes_xrs(options, data, sat, ax, font_legend):
     ax.hlines([1e-7, 1e-6, 1e-5, 1e-4], color="#cccccc", xmin=options.plot_start, xmax=options.plot_end)
     peak = 0
     if isinstance(data, pd.DataFrame):
-        peak = max(data["xrsb"])
+        peak = max(data[["xrsa","xrsb"]].to_numpy().flatten())
         for channel, wavelength in zip(["xrsa", "xrsb"], ["0.5 - 4.0 Å", "1.0 - 8.0 Å"]):
             ax.plot(data.index, data[channel], ds="steps-mid", label=wavelength)
         title = f"GOES-{sat}/XRS"
@@ -296,7 +300,7 @@ def plot_goes_xrs(options, data, sat, ax, font_legend):
         ax.annotate(text=cl, xy=(options.plot_end, log_midpoint), xycoords="data", xytext=(5, 0), 
                     textcoords="offset points", fontsize=font_legend, va="center")
     
-    # set minimum y-limits
+    # set the upper y-limit dynamically, if the flare is X10 or above
     if peak > 1e-3:
         ax.set_ylim(bottom=1e-8)
     else:
@@ -356,6 +360,7 @@ def make_fig_axs(options):
         plot_ept_p = options.solo_ept_p.value
         plot_electrons = plot_het_e or plot_ept_e
         plot_protons = plot_het_p or plot_ept_p
+        plot_radio = False # TODO: remove once RPW is included
 
     if options.spacecraft.value == "STEREO":
         plot_het_e = options.ster_het_e.value
@@ -369,31 +374,18 @@ def make_fig_axs(options):
     font_ylabel = 20
     font_legend = 10
 
-    if options.spacecraft.value == "Solar Orbiter":
-        panels = 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T + 1* plot_Pdyn
-        
-    else: 
-        panels = 1*plot_radio + 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T + 1*plot_Pdyn 
+    panels = 1*plot_radio + 1*plot_stix + 1*plot_goes + 1*plot_electrons + 1*plot_protons \
+            + 2*plot_mag_angles + 1*plot_mag + 1* plot_Vsw + 1* plot_N + 1* plot_T + 1*plot_Pdyn 
 
     panel_ratios = list(np.zeros(panels)+1)
 
-    if options.spacecraft.value == "Solar Orbiter":      # TODO remove this once RPW is included
-        # if plot_radio:
-        #     panel_ratios[0] = 2
-        if plot_electrons and plot_protons:
-            panel_ratios[0 + 1*plot_stix + 1*plot_goes] = 2
-            panel_ratios[1 + 1*plot_stix + 1*plot_goes] = 2
-        if plot_electrons or plot_protons:    
-            panel_ratios[0 + 1*plot_stix + 1*plot_goes] = 2
-
-    else:
-        if plot_radio:
-            panel_ratios[0] = 2
-        if plot_electrons and plot_protons:
-            panel_ratios[0 + 1*plot_radio + 1*plot_stix + 1*plot_goes] = 2
-            panel_ratios[1 + 1*plot_radio + 1*plot_stix + 1*plot_goes] = 2
-        if plot_electrons or plot_protons:    
-            panel_ratios[0 + 1*plot_radio + 1*plot_stix + 1*plot_goes] = 2
+    if plot_radio:
+        panel_ratios[0] = 2
+    if plot_electrons and plot_protons:
+        panel_ratios[0 + 1*plot_radio + 1*plot_stix + 1*plot_goes] = 2
+        panel_ratios[1 + 1*plot_radio + 1*plot_stix + 1*plot_goes] = 2
+    if plot_electrons or plot_protons:    
+        panel_ratios[0 + 1*plot_radio + 1*plot_stix + 1*plot_goes] = 2
     
     if panels == 3:
         fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 4*panels])
@@ -401,7 +393,6 @@ def make_fig_axs(options):
         fig, axs = plt.subplots(nrows=panels, sharex=True, figsize=[12, 3*panels], 
                                 gridspec_kw={'height_ratios': panel_ratios})
         
-
     if panels == 1:
         axs = [axs]
     
@@ -409,7 +400,7 @@ def make_fig_axs(options):
         print("No instruments chosen!")
         return (None, None)
 
-    pad = 12
+    pad = 14
     if options.spacecraft.value == "L1 (Wind/SOHO)":
         axs[0].set_title('Near-Earth spacecraft (Wind, SOHO)', pad=pad, fontsize=font_ylabel)
     elif options.spacecraft.value == "Parker Solar Probe":
@@ -419,7 +410,6 @@ def make_fig_axs(options):
     else:
         axs[0].set_title(f'Solar Orbiter', pad=pad, fontsize=font_ylabel)
 
-    
     axs[-1].xaxis.minorticks_on()
     axs[-1].xaxis.set(major_locator=mdates.AutoDateLocator(minticks=6, maxticks=9), 
                       minor_locator=mdates.AutoDateLocator(minticks=10, maxticks=28))
@@ -429,7 +419,7 @@ def make_fig_axs(options):
     axs[-1].set_xlim(options.plot_start, options.plot_end)
     fig.subplots_adjust(hspace=0.1)
     fig.patch.set_facecolor('white')
-    fig.set_dpi(200)
+    fig.set_dpi(FIG_DPI)
 
     if options.spacecraft.value != "STEREO":
         print(f"Plotting {options.spacecraft.value} data for timerange {options.plot_start} - {options.plot_end}")
@@ -450,7 +440,7 @@ def copy_fig_axs(fig):
 
     """
     fig_copy = deepcopy(fig)
-    fig_copy.set_dpi(200)
+    fig_copy.set_dpi(FIG_DPI)
     axs_copy = fig_copy.get_axes()
 
     return fig_copy, axs_copy
