@@ -272,8 +272,8 @@ def load_goes_xrs(start, end, man_select=False, resample=None, path=None):
     # keep entries that have at least one good quality flag
     df_goes = df_goes[(df_goes['xrsa_quality'] == 0) | (df_goes['xrsb_quality'] == 0)]     
 
-    if resample != "0min" and resample is not None:
-        df_goes = resample_df(df_goes, resample=resample)
+    # if resample != "0min" and resample is not None:
+    #     df_goes = resample_df(df_goes, resample=resample)
 
     return df_goes, sat
     

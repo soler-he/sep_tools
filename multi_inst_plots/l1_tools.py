@@ -442,7 +442,7 @@ def make_plot(options):
     
     av_sep =  options.l1_av_sep.value
     av_mag =  options.resample_mag.value
-    av_erne =  options.l1_av_sep.value
+    av_erne =  options.l1_av_erne.value
     av_stixgoes =  options.resample_stixgoes.value
 
     if options.mag.value or options.mag_angles.value:
@@ -462,7 +462,7 @@ def make_plot(options):
     if options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value:
         if av_mag > 0 and av_mag <= 1.5:
             print("WI_K0_3DP native cadence is 1.5 min, so no averaging was applied.")
-        if isinstance(df_solwind, pd.DataFrame) and av_mag >= 1.5:
+        if isinstance(df_solwind, pd.DataFrame) and av_mag > 1.5:
             df_vsw = resample_df(df_solwind, str(60 * av_mag) + "s")
         else:
             df_vsw = df_solwind
