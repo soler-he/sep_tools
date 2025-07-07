@@ -9,11 +9,12 @@ piecewise_regression
 pillow>=11.0.0
 git+https://github.com/Christian-Palmroos/PyOnset/
 pyspedas
-scipy<=1.15.3  # needed until https://github.com/statsmodels/statsmodels/issues/9584 is fixed
+scipy
 seppy>=0.2.0
 solarmach
 solo-epd-loader>=0.4.3
 speasy>=1.5.2
+statsmodels>=0.14.5
 stixdcpy
 sunpy
 sunpy_soar
