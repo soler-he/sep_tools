@@ -3,6 +3,7 @@
 [![pytest](https://github.com/soler-he/sep_tools/actions/workflows/pytest.yml/badge.svg?branch=main)](https://github.com/soler-he/sep_tools/actions/workflows/pytest.yml)
 [![codecov](https://codecov.io/gh/soler-he/sep_tools/graph/badge.svg?token=YW5I35VUIC)](https://codecov.io/gh/soler-he/sep_tools)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+[![website](https://img.shields.io/badge/Project%20Website-blue)](https://soler-horizon.eu)
 
 # SOLER SEP Tools
 
