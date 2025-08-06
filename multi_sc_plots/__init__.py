@@ -214,12 +214,15 @@ class Event:
 
         if 'SOHO/EPHIN e' in self.instruments or 'SOHO/EPHIN p' in self.instruments:
             # print('loading soho/ephin')
-            self.soho_ephin_org, self.ephin_energies = soho_load(dataset="SOHO_COSTEP-EPHIN_L2-1MIN",
-                                                                 startdate=self.startdate,
-                                                                 enddate=self.enddate,
-                                                                 path=soho_path,
-                                                                 resample=None,
-                                                                 pos_timestamp='center')
+            try:
+                self.soho_ephin_org, self.ephin_energies = soho_load(dataset="SOHO_COSTEP-EPHIN_L2-1MIN",
+                                                                    startdate=self.startdate,
+                                                                    enddate=self.enddate,
+                                                                    path=soho_path,
+                                                                    resample=None,
+                                                                    pos_timestamp='center')
+            except UnboundLocalError:
+                pass
 
         if 'SOHO/ERNE-HED p' in self.instruments:
             # print('loading soho/erne')
@@ -306,27 +309,47 @@ class Event:
             # if 'BepiColombo/SIXS_e' in self.instruments:
             #     print(self.sixs_meta)  # TODO:
             if 'Parker Solar Probe/EPI-Hi HET e' in self.instruments:
-                self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'Parker Solar Probe/EPI-Hi HET e': self.psp_het_energies['Electrons_ENERGY_LABL']})], axis=1)
+                try:
+                    self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'Parker Solar Probe/EPI-Hi HET e': self.psp_het_energies['Electrons_ENERGY_LABL']})], axis=1)
+                except TypeError:
+                    pass
             if 'Parker Solar Probe/EPI-Lo PE e' in self.instruments:
-                epilo_low = self.psp_epilo_energies['Electron_ChanF_Energy'].filter(like='_P0').values-self.psp_epilo_energies['Electron_ChanF_Energy_DELTAMINUS'].filter(like='_P0').values
-                epilo_high = self.psp_epilo_energies['Electron_ChanF_Energy'].filter(like='_P0').values+self.psp_epilo_energies['Electron_ChanF_Energy_DELTAPLUS'].filter(like='_P0').values
-                epilo_low = epilo_low[~np.isnan(epilo_low)]
-                epilo_high = epilo_high[~np.isnan(epilo_high)]
-                self.energies_e = pd.concat([self.energies_e, pd.DataFrame([f'{epilo_low[i]:.2f} - {epilo_high[i]:.2f} keV' for i in range(len(epilo_low))], columns=['Parker Solar Probe/EPI-Lo PE e'])], axis=1)
+                try:
+                    epilo_low = self.psp_epilo_energies['Electron_ChanF_Energy'].filter(like='_P0').values-self.psp_epilo_energies['Electron_ChanF_Energy_DELTAMINUS'].filter(like='_P0').values
+                    epilo_high = self.psp_epilo_energies['Electron_ChanF_Energy'].filter(like='_P0').values+self.psp_epilo_energies['Electron_ChanF_Energy_DELTAPLUS'].filter(like='_P0').values
+                    epilo_low = epilo_low[~np.isnan(epilo_low)]
+                    epilo_high = epilo_high[~np.isnan(epilo_high)]
+                    self.energies_e = pd.concat([self.energies_e, pd.DataFrame([f'{epilo_low[i]:.2f} - {epilo_high[i]:.2f} keV' for i in range(len(epilo_low))], columns=['Parker Solar Probe/EPI-Lo PE e'])], axis=1)
+                except TypeError:
+                    pass
             if 'SOHO/EPHIN e' in self.instruments:
-                self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'SOHO/EPHIN e': [self.ephin_energies[chan] for chan in ['E150', 'E300', 'E1300', 'E3000']]})], axis=1)
+                try:
+                    self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'SOHO/EPHIN e': [self.ephin_energies[chan] for chan in ['E150', 'E300', 'E1300', 'E3000']]})], axis=1)
+                except AttributeError:
+                    pass
             if 'Solar Orbiter/EPT e' in self.instruments:
-                self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'Solar Orbiter/EPT e': self.ept_energies['Electron_Bins_Text']})], axis=1)
+                try:
+                    self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'Solar Orbiter/EPT e': self.ept_energies['Electron_Bins_Text']})], axis=1)
+                except AttributeError:
+                    pass
             if 'Solar Orbiter/HET e' in self.instruments:
-                self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'Solar Orbiter/HET e': self.het_energies['Electron_Bins_Text']})], axis=1)
+                try:
+                    self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'Solar Orbiter/HET e': self.het_energies['Electron_Bins_Text']})], axis=1)
+                except TypeError:
+                    pass
             if 'STEREO-A/HET e' in self.instruments:
-                self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'STEREO-A/HET e': self.sta_het_e_labels})], axis=1)
+                if len(self.sta_het_df_org) > 0:
+                    self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'STEREO-A/HET e': self.sta_het_e_labels})], axis=1)
             # if 'STEREO-A/LET e' in self.instruments:
             #     print(self.let_chstring)
             if 'STEREO-A/SEPT e' in self.instruments:
-                self.energies_e = pd.concat([self.energies_e, self.sta_sept_dict_e['ch_strings'].rename('STEREO-A/SEPT e')], axis=1)
+                if len(self.sta_sept_df_e_org) > 0:
+                    self.energies_e = pd.concat([self.energies_e, self.sta_sept_dict_e['ch_strings'].rename('STEREO-A/SEPT e')], axis=1)
             if 'WIND/3DP e' in self.instruments:
-                self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'WIND/3DP e': np.array(self.wind3dp_e_meta['channels_dict_df']['Bins_Text'].values)})], axis=1)
+                try:
+                    self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'WIND/3DP e': np.array(self.wind3dp_e_meta['channels_dict_df']['Bins_Text'].values)})], axis=1)
+                except TypeError:
+                    pass
 
             self.energies_e.index.name = 'channel'
 
@@ -340,24 +363,39 @@ class Event:
             # if 'BepiColombo/SIXS p' in self.instruments:
             #     print(self.sixs_meta)  # TODO:
             if 'Parker Solar Probe/EPI-Hi HET p' in self.instruments:
-                self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'Parker Solar Probe/EPI-Hi HET p': self.psp_het_energies['H_ENERGY_LABL']})], axis=1)
+                try:
+                    self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'Parker Solar Probe/EPI-Hi HET p': self.psp_het_energies['H_ENERGY_LABL']})], axis=1)
+                except TypeError:
+                    pass
             # if 'SOHO/EPHIN p' in self.instruments:
             #     print(self.ephin_energies)
             if 'SOHO/ERNE-HED p' in self.instruments:
-                self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'SOHO/ERNE-HED p': self.erne_chstring})], axis=1)
+                if len(self.soho_erne_org) > 0:
+                    self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'SOHO/ERNE-HED p': self.erne_chstring})], axis=1)
             if 'Solar Orbiter/EPT p' in self.instruments:
-                self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'Solar Orbiter/EPT p': self.ept_energies['Ion_Bins_Text']})], axis=1)
+                try:
+                    self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'Solar Orbiter/EPT p': self.ept_energies['Ion_Bins_Text']})], axis=1)
+                except AttributeError:
+                    pass
             if 'Solar Orbiter/HET p' in self.instruments:
-                self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'Solar Orbiter/HET p': self.het_energies['H_Bins_Text']})], axis=1)
+                try:
+                    self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'Solar Orbiter/HET p': self.het_energies['H_Bins_Text']})], axis=1)
+                except TypeError:
+                    pass
             if 'STEREO-A/HET p' in self.instruments:
-                self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'STEREO-A/HET p': self.sta_het_p_labels})], axis=1)
+                if len(self.sta_het_df_org) > 0:
+                    self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'STEREO-A/HET p': self.sta_het_p_labels})], axis=1)
             # if 'STEREO-A/LET p' in self.instruments:
             #     print(self.let_chstring)
             if 'STEREO-A/SEPT p' in self.instruments:
-                self.energies_p = pd.concat([self.energies_p, self.sta_sept_dict_p['ch_strings'].rename('STEREO-A/SEPT p')], axis=1)
+                if len(self.sta_sept_df_p_org) > 0:
+                    self.energies_p = pd.concat([self.energies_p, self.sta_sept_dict_p['ch_strings'].rename('STEREO-A/SEPT p')], axis=1)
             if 'WIND/3DP p' in self.instruments:
-                # self.energies_p = pd.concat([self.energies_p, self.wind3dp_p_meta['channels_dict_df'].reset_index()['Bins_Text'].rename('WIND/3DP p')], axis=1)
-                self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'WIND/3DP p': np.array(self.wind3dp_p_meta['channels_dict_df']['Bins_Text'].values)})], axis=1)
+                try:
+                    # self.energies_p = pd.concat([self.energies_p, self.wind3dp_p_meta['channels_dict_df'].reset_index()['Bins_Text'].rename('WIND/3DP p')], axis=1)
+                    self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'WIND/3DP p': np.array(self.wind3dp_p_meta['channels_dict_df']['Bins_Text'].values)})], axis=1)
+                except TypeError:
+                    pass
 
             self.energies_p.index.name = 'channel'
 
@@ -478,23 +516,25 @@ class Event:
                     self.df_psp_epilo_e = resample_df(self.df_psp_epilo_e, psp_epilo_resample)
 
         if 'SOHO/EPHIN e' in plot_instruments or 'SOHO/EPHIN p' in plot_instruments:
-            if isinstance(soho_ephin_resample, str):
-                self.soho_ephin = resample_df(self.soho_ephin_org, soho_ephin_resample)
-            else:
-                self.soho_ephin = self.soho_ephin_org
+            if hasattr(self, 'soho_ephin_org'):
+                if isinstance(soho_ephin_resample, str):
+                    self.soho_ephin = resample_df(self.soho_ephin_org, soho_ephin_resample)
+                else:
+                    self.soho_ephin = self.soho_ephin_org
 
         if 'SOHO/ERNE-HED p' in plot_instruments:
-            if isinstance(soho_erne_resample, str):
-                self.soho_erne = resample_df(self.soho_erne_org, soho_erne_resample)
-            else:
-                self.soho_erne = self.soho_erne_org
-            #
-            if type(self.channels_p['SOHO/ERNE-HED p']) is list and len(self.soho_erne) > 0:
-                self.soho_erne_avg_p, self.soho_erne_chstring_p = calc_av_en_flux_ERNE(self.soho_erne.filter(like='PH_'),
-                                                                                       self.erne_energies['channels_dict_df_p'],
-                                                                                       self.channels_p['SOHO/ERNE-HED p'],
-                                                                                       species='p',
-                                                                                       sensor='HED')
+            if len(self.soho_erne_org) > 0:
+                if isinstance(soho_erne_resample, str):
+                    self.soho_erne = resample_df(self.soho_erne_org, soho_erne_resample)
+                else:
+                    self.soho_erne = self.soho_erne_org
+                #
+                if type(self.channels_p['SOHO/ERNE-HED p']) is list and len(self.soho_erne) > 0:
+                    self.soho_erne_avg_p, self.soho_erne_chstring_p = calc_av_en_flux_ERNE(self.soho_erne.filter(like='PH_'),
+                                                                                        self.erne_energies['channels_dict_df_p'],
+                                                                                        self.channels_p['SOHO/ERNE-HED p'],
+                                                                                        species='p',
+                                                                                        sensor='HED')
 
         if 'Solar Orbiter/EPT e' in plot_instruments:
             if self.ept_data_product == 'l2':
@@ -522,8 +562,9 @@ class Event:
                 if len(self.ept) > 0:
                     self.df_ept_e, self.ept_chstring_e = calc_av_en_flux_EPD(self.ept, self.ept_energies, self.channels_e['Solar Orbiter/EPT e'], 'ept', species='e', viewing=self.viewing['Solar Orbiter/EPT'])
 
-            if isinstance(solo_ept_resample, str) and len(self.df_ept_e) > 0:
-                self.df_ept_e = resample_df(self.df_ept_e, solo_ept_resample)
+            if hasattr(self, 'df_ept_e'):
+                if isinstance(solo_ept_resample, str) and len(self.df_ept_e) > 0:
+                    self.df_ept_e = resample_df(self.df_ept_e, solo_ept_resample)
 
         if 'Solar Orbiter/EPT p' in plot_instruments:
             if self.ept_data_product == 'l2':
@@ -535,8 +576,9 @@ class Event:
                 if len(self.ept) > 0:
                     self.df_ept_p, self.ept_chstring_p = calc_av_en_flux_EPD(self.ept, self.ept_energies, self.channels_p['Solar Orbiter/EPT p'], 'ept', species='p', viewing=self.viewing['Solar Orbiter/EPT'])
 
-            if isinstance(solo_ept_resample, str) and len(self.df_ept_p) > 0:
-                self.df_ept_p = resample_df(self.df_ept_p, solo_ept_resample)
+            if hasattr(self, 'df_ept_p'):
+                if isinstance(solo_ept_resample, str) and len(self.df_ept_p) > 0:
+                    self.df_ept_p = resample_df(self.df_ept_p, solo_ept_resample)
 
         if 'Solar Orbiter/HET e' in plot_instruments or 'Solar Orbiter/HET p' in plot_instruments:
             if len(self.het_e) > 0:
@@ -552,14 +594,15 @@ class Event:
                         self.df_het_p = resample_df(self.df_het_p, solo_het_resample)
 
         if 'STEREO-A/HET e' in plot_instruments or 'STEREO-A/HET p' in plot_instruments:
-            if isinstance(sta_het_resample, str):
-                self.sta_het_df = resample_df(self.sta_het_df_org, sta_het_resample)
-            else:
-                self.sta_het_df = self.sta_het_df_org
+            if len(self.sta_het_df_org) > 0:
+                if isinstance(sta_het_resample, str):
+                    self.sta_het_df = resample_df(self.sta_het_df_org, sta_het_resample)
+                else:
+                    self.sta_het_df = self.sta_het_df_org
             #
             if 'STEREO-A/HET e' in plot_instruments:
                 # if type(self.channels_e['STEREO-A/HET e']) is list and len(self.sta_het_df) > 0:
-                if len(self.sta_het_df) > 0:
+                if hasattr(self, 'sta_het_df') and len(self.sta_het_df) > 0:
                     self.sta_het_avg_e, self.st_het_chstring_e = calc_av_en_flux_ST_HET(self.sta_het_df.filter(like='Electron'),
                                                                                         self.sta_het_meta['channels_dict_df_e'],
                                                                                         self.channels_e['STEREO-A/HET e'], species='e')
@@ -569,7 +612,7 @@ class Event:
             #
             if 'STEREO-A/HET p' in plot_instruments:
                 # if type(self.channels_p['STEREO-A/HET p']) is list and len(self.sta_het_df) > 0:
-                if len(self.sta_het_df) > 0:
+                if hasattr(self, 'sta_het_df') and len(self.sta_het_df) > 0:
                     self.sta_het_avg_p, self.st_het_chstring_p = calc_av_en_flux_ST_HET(self.sta_het_df.filter(like='Proton'),
                                                                                         self.sta_het_meta['channels_dict_df_p'],
                                                                                         self.channels_p['STEREO-A/HET p'], species='p')
@@ -584,40 +627,44 @@ class Event:
                 self.sta_let_df = self.sta_let_df_org
 
         if 'STEREO-A/SEPT e' in plot_instruments:
-            if isinstance(sta_sept_resample, str):
-                self.sta_sept_df_e = resample_df(self.sta_sept_df_e_org, sta_sept_resample)
-            else:
-                self.sta_sept_df_e = self.sta_sept_df_e_org
+            if hasattr(self, 'sta_sept_df_e_org') and len(self.sta_sept_df_e_org) > 0:
+                if isinstance(sta_sept_resample, str):
+                    self.sta_sept_df_e = resample_df(self.sta_sept_df_e_org, sta_sept_resample)
+                else:
+                    self.sta_sept_df_e = self.sta_sept_df_e_org
             #
-            if type(self.channels_e['STEREO-A/SEPT e']) is list and len(self.sta_sept_df_e) > 0:
+            if type(self.channels_e['STEREO-A/SEPT e']) is list and hasattr(self, 'sta_sept_df_e') and len(self.sta_sept_df_e) > 0:
                 self.sta_sept_avg_e, self.sept_chstring_e = calc_av_en_flux_SEPT(self.sta_sept_df_e, self.sta_sept_dict_e, self.channels_e['STEREO-A/SEPT e'])
             else:
                 self.sta_sept_avg_e = []
                 self.sept_chstring_e = ''
 
         if 'STEREO-A/SEPT p' in plot_instruments:
-            if isinstance(sta_sept_resample, str):
-                self.sta_sept_df_p = resample_df(self.sta_sept_df_p_org, sta_sept_resample)
-            else:
-                self.sta_sept_df_p = self.sta_sept_df_p_org
+            if hasattr(self, 'sta_sept_df_p_org') and len(self.sta_sept_df_p_org) > 0:
+                if isinstance(sta_sept_resample, str):
+                    self.sta_sept_df_p = resample_df(self.sta_sept_df_p_org, sta_sept_resample)
+                else:
+                    self.sta_sept_df_p = self.sta_sept_df_p_org
             #
-            if type(self.channels_p['STEREO-A/SEPT p']) is list and len(self.sta_sept_df_p) > 0:
+            if type(self.channels_p['STEREO-A/SEPT p']) is list and hasattr(self, 'sta_sept_df_p') and len(self.sta_sept_df_p) > 0:
                 self.sta_sept_avg_p, self.sept_chstring_p = calc_av_en_flux_SEPT(self.sta_sept_df_p, self.sta_sept_dict_p, self.channels_p['STEREO-A/SEPT p'])
             else:
                 self.sta_sept_avg_p = []
                 self.sept_chstring_p = ''
 
         if 'WIND/3DP e' in plot_instruments:
-            if isinstance(wind_3dp_resample, str):
-                self.wind3dp_e_df = resample_df(self.wind3dp_e_df_org, wind_3dp_resample)
-            else:
-                self.wind3dp_e_df = self.wind3dp_e_df_org
+            if hasattr(self, 'wind3dp_e_df_org') and len(self.wind3dp_e_df_org) > 0:
+                if isinstance(wind_3dp_resample, str):
+                    self.wind3dp_e_df = resample_df(self.wind3dp_e_df_org, wind_3dp_resample)
+                else:
+                    self.wind3dp_e_df = self.wind3dp_e_df_org
 
         if 'WIND/3DP p' in plot_instruments:
-            if isinstance(wind_3dp_resample, str):
-                self.wind3dp_p_df = resample_df(self.wind3dp_p_df_org, wind_3dp_resample)
-            else:
-                self.wind3dp_p_df = self.wind3dp_p_df_org
+            if hasattr(self, 'wind3dp_p_df_org') and len(self.wind3dp_p_df_org) > 0:
+                if isinstance(wind_3dp_resample, str):
+                    self.wind3dp_p_df = resample_df(self.wind3dp_p_df_org, wind_3dp_resample)
+                else:
+                    self.wind3dp_p_df = self.wind3dp_p_df_org
         ##########################################################################################
 
         panels = 0
@@ -659,10 +706,10 @@ class Event:
                             drawstyle='steps-mid')
             if 'SOHO/EPHIN e' in plot_instruments:
                 # ax.plot(ephin['date'], ephin[ephin_ch_e][0]*ephin_e_intercal, color=self.plot_colors['SOHO/EPHIN'], linewidth=linewidth, label='SOHO/EPHIN '+ephin[ephin_ch_e][1]+f'/{ephin_e_intercal}', drawstyle='steps-mid')
-                if len(self.soho_ephin) > 0:
+                if hasattr(self, 'soho_ephin') and len(self.soho_ephin) > 0:
                     ax.plot(self.soho_ephin.index, self.soho_ephin[ephine_e_channel], color=self.plot_colors['SOHO/EPHIN'], linewidth=linewidth, label='SOHO/EPHIN '+self.ephin_energies[ephine_e_channel], drawstyle='steps-mid')
             if 'Solar Orbiter/EPT e' in plot_instruments:
-                if (len(self.df_ept_e) > 0):
+                if hasattr(self, 'df_ept_e') and len(self.df_ept_e) > 0:
                     flux_ept = self.df_ept_e.values
                     if ept_use_corr_e:
                         ax.plot(self.df_ept_e_corr.index.values, self.df_ept_e_corr.values, linewidth=linewidth, color=self.plot_colors['Solar Orbiter/EPT'], label=f'SOLO/EPT {self.viewing["Solar Orbiter/EPT"]} '+self.ept_chstring_e+'\n(corrected)', drawstyle='steps-mid')
@@ -673,10 +720,10 @@ class Event:
                         # elif type(self.channels_e['Solar Orbiter/EPT e']) is int:
                         ax.plot(self.df_ept_e.index.values, flux_ept, linewidth=linewidth, color=self.plot_colors['Solar Orbiter/EPT'], label=f'SOLO/EPT {self.viewing["Solar Orbiter/EPT"]} '+self.ept_chstring_e, drawstyle='steps-mid')
             if 'Solar Orbiter/HET e' in plot_instruments:
-                if (len(self.het_e) > 0):
+                if hasattr(self, 'het_e') and len(self.het_e) > 0:
                     ax.plot(self.df_het_e.index.values, self.df_het_e.flux, linewidth=linewidth, color=self.plot_colors['Solar Orbiter/HET'], label=f'SOLO/HET {self.viewing["Solar Orbiter/HET"]} '+het_chstring_e+'', drawstyle='steps-mid')
             if 'STEREO-A/HET e' in plot_instruments:
-                if len(self.sta_het_avg_e) > 0:
+                if hasattr(self, 'sta_het_avg_e') and len(self.sta_het_avg_e) > 0:
                     ax.plot(self.sta_het_avg_e.index, self.sta_het_avg_e, color=self.plot_colors['STEREO-A/HET'], linewidth=linewidth,
                             label='STEREO-A/HET '+self.st_het_chstring_e, drawstyle='steps-mid')
             if 'STEREO-A/SEPT e' in plot_instruments:
@@ -687,7 +734,7 @@ class Event:
                     ax.plot(self.sta_sept_df_e.index, self.sta_sept_df_e[f"ch_{self.channels_e['STEREO-A/SEPT e']}"], color=self.plot_colors['STEREO-A/SEPT'],
                             linewidth=linewidth, label=f'STEREO-A/SEPT {self.viewing["STEREO-A/SEPT"]} '+self.sta_sept_dict_e.loc[self.channels_e['STEREO-A/SEPT e']]['ch_strings'], drawstyle='steps-mid')
             if 'WIND/3DP e' in plot_instruments:
-                if len(self.wind3dp_e_df) > 0:
+                if hasattr(self, 'wind3dp_e_df') and len(self.wind3dp_e_df) > 0:
                     # multiply by 1e6 to get per MeV
                     ax.plot(self.wind3dp_e_df.index, self.wind3dp_e_df[f"FLUX_{self.channels_e['WIND/3DP e']}"]*1e6, color=self.plot_colors['WIND/3DP'], linewidth=linewidth, label='Wind/3DP omni '+self.wind3dp_e_meta['channels_dict_df']['Bins_Text'].iloc[self.channels_e['WIND/3DP e']], drawstyle='steps-mid')
 
@@ -718,7 +765,7 @@ class Event:
                             label=f"PSP/ISOIS EPI-Hi HET {self.viewing['Parker Solar Probe/EPI-Hi HET']} ({psp_het_viewing_dict[self.viewing['Parker Solar Probe/EPI-Hi HET']]})\n"+self.psp_het_chstring_p,
                             drawstyle='steps-mid')
             if 'SOHO/ERNE-HED p' in plot_instruments:
-                if type(self.channels_p['SOHO/ERNE-HED p']) is list and len(self.soho_erne) > 0:
+                if type(self.channels_p['SOHO/ERNE-HED p']) is list and hasattr(self, 'soho_erne') and len(self.soho_erne) > 0:
                     ax.plot(self.soho_erne_avg_p.index, self.soho_erne_avg_p, color=self.plot_colors['SOHO/ERNE-HED'], linewidth=linewidth, label='SOHO/ERNE/HED '+self.soho_erne_chstring_p, drawstyle='steps-mid')
                 elif type(self.channels_p['SOHO/ERNE-HED p']) is int:
                     if len(self.soho_erne) > 0:
@@ -726,13 +773,13 @@ class Event:
                 # if ephin_p:
                 #     ax.plot(ephin['date'], ephin[ephin_ch_p][0], color=self.plot_colors['SOHO/EPHIN'], linewidth=linewidth, label='SOHO/EPHIN '+ephin[ephin_ch_p][1], drawstyle='steps-mid')
             if 'Solar Orbiter/EPT p' in plot_instruments:
-                if (len(self.df_ept_p) > 0):
+                if hasattr(self, 'df_ept_p') and (len(self.df_ept_p) > 0):
                     ax.plot(self.df_ept_p.index.values, self.df_ept_p.values, linewidth=linewidth, color=self.plot_colors['Solar Orbiter/EPT'], label=f"SOLO/EPT {self.viewing['Solar Orbiter/EPT']} "+self.ept_chstring_p, drawstyle='steps-mid')
             if 'Solar Orbiter/HET p' in plot_instruments:
-                if (len(self.het_p) > 0):
+                if hasattr(self, 'het_p') and (len(self.het_p) > 0):
                     ax.plot(self.df_het_p.index, self.df_het_p, linewidth=linewidth, color=self.plot_colors['Solar Orbiter/HET'], label=f"SOLO/HET {self.viewing['Solar Orbiter/HET']} "+self.het_chstring_p, drawstyle='steps-mid')
             if 'STEREO-A/HET p' in plot_instruments:
-                if len(self.sta_het_avg_p) > 0:
+                if hasattr(self, 'sta_het_avg_p') and len(self.sta_het_avg_p) > 0:
                     ax.plot(self.sta_het_avg_p.index, self.sta_het_avg_p, color=self.plot_colors['STEREO-A/HET'],
                             linewidth=linewidth, label='STEREO-A/HET '+self.st_het_chstring_p, drawstyle='steps-mid')
             # if 'STEREO-A/LET p' in plot_instruments:
@@ -744,7 +791,7 @@ class Event:
                 elif type(self.channels_p['STEREO-A/SEPT p']) is int:
                     ax.plot(self.sta_sept_df_p.index, self.sta_sept_df_p[f"ch_{self.channels_p['STEREO-A/SEPT p']}"], color=self.plot_colors['STEREO-A/SEPT'], linewidth=linewidth, label=f"STEREO-A/SEPT {self.viewing['STEREO-A/SEPT']} {self.sta_sept_dict_p.loc[self.channels_p['STEREO-A/SEPT p']]['ch_strings']}", drawstyle='steps-mid')
             if 'WIND/3DP p' in plot_instruments:
-                if len(self.wind3dp_p_df) > 0:
+                if hasattr(self, 'wind3dp_p_df') and len(self.wind3dp_p_df) > 0:
                     # multiply by 1e6 to get per MeV
                     # ax.plot(self.wind3dp_p_df.index, self.wind3dp_p_df[f'FLUX_{self.channels_p['WIND/3DP p']}']*1e6, color=self.plot_colors['WIND/3DP'], linewidth=linewidth, label='Wind 3DP omni '+str(round(wind3dp_p_df[f'ENERGY_{self.channels_p['WIND/3DP p']}'].mean()/1000., 2)) + ' keV', drawstyle='steps-mid')
                     ax.plot(self.wind3dp_p_df.index, self.wind3dp_p_df[f"FLUX_{self.channels_p['WIND/3DP p']}"]*1e6, color=self.plot_colors['WIND/3DP'], linewidth=linewidth, label='Wind 3DP omni '+self.wind3dp_p_meta['channels_dict_df']['Bins_Text'].iloc[self.channels_p['WIND/3DP p']], drawstyle='steps-mid')
