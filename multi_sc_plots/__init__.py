@@ -703,7 +703,7 @@ class Event:
                 if len(self.sixs_df) > 0:
                     ax.plot(self.sixs_df_e.index, self.sixs_df_e[f"Side{self.viewing['BepiColombo/SIXS']}_E{self.channels_e['BepiColombo/SIXS e']}"],
                             color=self.plot_colors['BepiColombo/SIXS'], linewidth=linewidth,
-                            label=f'BepiColombo/SIXS side {self.viewing['BepiColombo/SIXS']} '+self.sixs_meta[f"Side{self.viewing['BepiColombo/SIXS']}_Energy_Bin_str"][f"E{self.channels_e['BepiColombo/SIXS e']}"], drawstyle='steps-mid')
+                            label=f"BepiColombo/SIXS side {self.viewing['BepiColombo/SIXS']} "+self.sixs_meta[f"Side{self.viewing['BepiColombo/SIXS']}_Energy_Bin_str"][f"E{self.channels_e['BepiColombo/SIXS e']}"], drawstyle='steps-mid')
             if 'Parker Solar Probe/EPI-Hi HET e' in plot_instruments:
                 if len(self.psp_het) > 0:
                     # ax.plot(psp_het.index, psp_het[f'A_Electrons_Rate_{self.channels_e['Parker Solar Probe/EPI-Hi HET e']}'], color=self.plot_colors['Parker Solar Probe/EPI-Hi HET'], linewidth=linewidth,
@@ -768,7 +768,7 @@ class Event:
                 if len(self.sixs_df) > 0:
                     ax.plot(self.sixs_df_p.index, self.sixs_df_p[f"Side{self.viewing['BepiColombo/SIXS']}_P{self.channels_p['BepiColombo/SIXS p']}"],
                             color=self.plot_colors['BepiColombo/SIXS'], linewidth=linewidth,
-                            label=f'BepiColombo/SIXS side {self.viewing['BepiColombo/SIXS']} '+self.sixs_meta[f"Side{self.viewing['BepiColombo/SIXS']}_Energy_Bin_str"][f"P{self.channels_p['BepiColombo/SIXS p']}"], drawstyle='steps-mid')
+                            label=f"BepiColombo/SIXS side {self.viewing['BepiColombo/SIXS']} "+self.sixs_meta[f"Side{self.viewing['BepiColombo/SIXS']}_Energy_Bin_str"][f"P{self.channels_p['BepiColombo/SIXS p']}"], drawstyle='steps-mid')
             if 'Parker Solar Probe/EPI-Hi HET p' in plot_instruments:
                 if len(self.psp_het) > 0:
                     # ax.plot(psp_het.index, psp_het[f'A_H_Flux_{self.channels_p['Parker Solar Probe/EPI-Hi HET p']}'], color=self.plot_colors['Parker Solar Probe/EPI-Hi HET'], linewidth=linewidth,
