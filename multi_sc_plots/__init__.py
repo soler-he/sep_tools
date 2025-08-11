@@ -317,7 +317,7 @@ class Event:
             if 'BepiColombo/SIXS e' in self.instruments:
                 if len(self.sixs_df) > 0:
                     try:
-                        t = {k: v for k, v in self.sixs_meta[f'Side{self.viewing['BepiColombo/SIXS']}_Energy_Bin_str'].items() if k.startswith('E')}
+                        t = {k: v for k, v in self.sixs_meta[f"Side{self.viewing['BepiColombo/SIXS']}_Energy_Bin_str"].items() if k.startswith('E')}
                         self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'BepiColombo/SIXS e': t.values()})], axis=1)
                     except NameError:
                         pass
@@ -376,7 +376,7 @@ class Event:
             if 'BepiColombo/SIXS p' in self.instruments:
                 if len(self.sixs_df) > 0:
                     try:
-                        t = {k: v for k, v in self.sixs_meta[f'Side{self.viewing['BepiColombo/SIXS']}_Energy_Bin_str'].items() if k.startswith('P') and not k.startswith('PE')}
+                        t = {k: v for k, v in self.sixs_meta[f"Side{self.viewing['BepiColombo/SIXS']}_Energy_Bin_str"].items() if k.startswith('P') and not k.startswith('PE')}
                         self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'BepiColombo/SIXS p': t.values()})], axis=1)
                     except NameError:
                         pass
