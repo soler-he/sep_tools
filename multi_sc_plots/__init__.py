@@ -700,12 +700,12 @@ class Event:
                 # species_string = 'Electrons'
 
             if 'BepiColombo/SIXS e' in plot_instruments:
-                if len(self.sixs_df) > 0:
+                if hasattr(self, 'sixs_df') and len(self.sixs_df) > 0:
                     ax.plot(self.sixs_df_e.index, self.sixs_df_e[f"Side{self.viewing['BepiColombo/SIXS']}_E{self.channels_e['BepiColombo/SIXS e']}"],
                             color=self.plot_colors['BepiColombo/SIXS'], linewidth=linewidth,
                             label=f"BepiColombo/SIXS side {self.viewing['BepiColombo/SIXS']} "+self.sixs_meta[f"Side{self.viewing['BepiColombo/SIXS']}_Energy_Bin_str"][f"E{self.channels_e['BepiColombo/SIXS e']}"], drawstyle='steps-mid')
             if 'Parker Solar Probe/EPI-Hi HET e' in plot_instruments:
-                if len(self.psp_het) > 0:
+                if hasattr(self, 'psp_het') and len(self.psp_het) > 0:
                     # ax.plot(psp_het.index, psp_het[f'A_Electrons_Rate_{self.channels_e['Parker Solar Probe/EPI-Hi HET e']}'], color=self.plot_colors['Parker Solar Probe/EPI-Hi HET'], linewidth=linewidth,
                     #         label='PSP '+r"$\bf{(count\ rates)}$"+'\nISOIS-EPI-Hi HET '+psp_het_energies['Electrons_ENERGY_LABL'][self.channels_e['Parker Solar Probe/EPI-Hi HET e']][0].replace(' ', '').replace('-', ' - ').replace('MeV', ' MeV')+'\nA (sun)',
                     #         drawstyle='steps-mid')
@@ -713,7 +713,7 @@ class Event:
                             label=f'PSP/ISOIS EPI-Hi HET {self.viewing["Parker Solar Probe/EPI-Hi HET"]} ({psp_het_viewing_dict[self.viewing["Parker Solar Probe/EPI-Hi HET"]]})\n'+self.psp_het_chstring_e+r" $\bf{(count\ rate)}$",  # +f' *{self.psp_epihi_e_scaling}',
                             drawstyle='steps-mid')
             if 'Parker Solar Probe/EPI-Lo PE e' in plot_instruments:
-                if len(self.psp_epilo) > 0:
+                if hasattr(self, 'psp_epilo') and len(self.psp_epilo) > 0:
                     ax.plot(self.df_psp_epilo_e.index, self.df_psp_epilo_e*self.psp_epilo_e_scaling, color=self.plot_colors['Parker Solar Probe/EPI-Lo PE'], linewidth=linewidth,
                             label=f'PSP/ISOIS EPI-Lo F (W{self.viewing["Parker Solar Probe/EPI-Lo PE"]})\n'+self.psp_epilo_chstring_e+r" $\bf{(count\ rate)}$",  # +f' *{self.psp_epilo_e_scaling}',
                             drawstyle='steps-mid')
@@ -740,10 +740,10 @@ class Event:
                     ax.plot(self.sta_het_avg_e.index, self.sta_het_avg_e, color=self.plot_colors['STEREO-A/HET'], linewidth=linewidth,
                             label='STEREO-A/HET '+self.st_het_chstring_e, drawstyle='steps-mid')
             if 'STEREO-A/SEPT e' in plot_instruments:
-                if type(self.channels_e['STEREO-A/SEPT e']) is list and len(self.sta_sept_avg_e) > 0:
+                if type(self.channels_e['STEREO-A/SEPT e']) is list and hasattr(self, 'sta_sept_avg_e') and len(self.sta_sept_avg_e) > 0:
                     ax.plot(self.sta_sept_avg_e.index, self.sta_sept_avg_e, color=self.plot_colors['STEREO-A/SEPT'], linewidth=linewidth,
                             label=f'STEREO-A/SEPT {self.viewing["STEREO-A/SEPT"]} '+self.sept_chstring_e, drawstyle='steps-mid')
-                elif type(self.channels_e['STEREO-A/SEPT e']) is int:
+                elif type(self.channels_e['STEREO-A/SEPT e']) is int and hasattr(self, 'sta_sept_df_e') and len(self.sta_sept_df_e) > 0:
                     ax.plot(self.sta_sept_df_e.index, self.sta_sept_df_e[f"ch_{self.channels_e['STEREO-A/SEPT e']}"], color=self.plot_colors['STEREO-A/SEPT'],
                             linewidth=linewidth, label=f'STEREO-A/SEPT {self.viewing["STEREO-A/SEPT"]} '+self.sta_sept_dict_e.loc[self.channels_e['STEREO-A/SEPT e']]['ch_strings'], drawstyle='steps-mid')
             if 'WIND/3DP e' in plot_instruments:
@@ -765,12 +765,12 @@ class Event:
             else:
                 ax = axes[axnum]
             if 'BepiColombo/SIXS p' in plot_instruments:
-                if len(self.sixs_df) > 0:
+                if hasattr(self, 'sixs_df') and len(self.sixs_df) > 0:
                     ax.plot(self.sixs_df_p.index, self.sixs_df_p[f"Side{self.viewing['BepiColombo/SIXS']}_P{self.channels_p['BepiColombo/SIXS p']}"],
                             color=self.plot_colors['BepiColombo/SIXS'], linewidth=linewidth,
                             label=f"BepiColombo/SIXS side {self.viewing['BepiColombo/SIXS']} "+self.sixs_meta[f"Side{self.viewing['BepiColombo/SIXS']}_Energy_Bin_str"][f"P{self.channels_p['BepiColombo/SIXS p']}"], drawstyle='steps-mid')
             if 'Parker Solar Probe/EPI-Hi HET p' in plot_instruments:
-                if len(self.psp_het) > 0:
+                if hasattr(self, 'psp_het') and len(self.psp_het) > 0:
                     # ax.plot(psp_het.index, psp_het[f'A_H_Flux_{self.channels_p['Parker Solar Probe/EPI-Hi HET p']}'], color=self.plot_colors['Parker Solar Probe/EPI-Hi HET'], linewidth=linewidth,
                     #         label='PSP '+r"$\bf{(count\ rates)}$"+'\nISOIS-EPI-Hi HET '+psp_het_energies['H_ENERGY_LABL'][self.channels_p['Parker Solar Probe/EPI-Hi HET p']][0].replace(' ', '').replace('-', ' - ').replace('MeV', ' MeV')+'\nA (sun)',
                     #         drawstyle='steps-mid')
@@ -782,7 +782,7 @@ class Event:
                 if type(self.channels_p['SOHO/ERNE-HED p']) is list and hasattr(self, 'soho_erne') and len(self.soho_erne) > 0:
                     ax.plot(self.soho_erne_avg_p.index, self.soho_erne_avg_p, color=self.plot_colors['SOHO/ERNE-HED'], linewidth=linewidth, label='SOHO/ERNE/HED '+self.soho_erne_chstring_p, drawstyle='steps-mid')
                 elif type(self.channels_p['SOHO/ERNE-HED p']) is int:
-                    if len(self.soho_erne) > 0:
+                    if hasattr(self, 'soho_erne') and len(self.soho_erne) > 0:
                         ax.plot(self.soho_erne.index, self.soho_erne[f"PH_{self.channels_p['SOHO/ERNE-HED p']}"], color=self.plot_colors['SOHO/ERNE-HED'], linewidth=linewidth, label='SOHO/ERNE/HED '+self.erne_chstring[self.channels_p['SOHO/ERNE-HED p']], drawstyle='steps-mid')
                 # if ephin_p:
                 #     ax.plot(ephin['date'], ephin[ephin_ch_p][0], color=self.plot_colors['SOHO/EPHIN'], linewidth=linewidth, label='SOHO/EPHIN '+ephin[ephin_ch_p][1], drawstyle='steps-mid')
@@ -800,9 +800,9 @@ class Event:
                 # str_ch = {0: 'P1', 1: 'P2', 2: 'P3', 3: 'P4'}
                 # ax.plot(self.sta_let_df.index, self.sta_let_df[f'H_unsec_flux_{let_ch}'], color=stereo_let_color, linewidth=linewidth, label='STEREO-A/LET '+self.let_chstring[let_ch], drawstyle='steps-mid')
             if 'STEREO-A/SEPT p' in plot_instruments:
-                if type(self.channels_p['STEREO-A/SEPT p']) is list and len(self.sta_sept_avg_p) > 0:
+                if type(self.channels_p['STEREO-A/SEPT p']) is list and hasattr(self, 'sta_sept_avg_p') and len(self.sta_sept_avg_p) > 0:
                     ax.plot(self.sta_sept_df_p.index, self.sta_sept_avg_p, color=self.plot_colors['STEREO-A/SEPT'], linewidth=linewidth, label=f"STEREO-A/SEPT {self.viewing['STEREO-A/SEPT']} "+self.sept_chstring_p, drawstyle='steps-mid')
-                elif type(self.channels_p['STEREO-A/SEPT p']) is int:
+                elif type(self.channels_p['STEREO-A/SEPT p']) is int and hasattr(self, 'sta_sept_df_p') and len(self.sta_sept_df_p) > 0:
                     ax.plot(self.sta_sept_df_p.index, self.sta_sept_df_p[f"ch_{self.channels_p['STEREO-A/SEPT p']}"], color=self.plot_colors['STEREO-A/SEPT'], linewidth=linewidth, label=f"STEREO-A/SEPT {self.viewing['STEREO-A/SEPT']} {self.sta_sept_dict_p.loc[self.channels_p['STEREO-A/SEPT p']]['ch_strings']}", drawstyle='steps-mid')
             if 'WIND/3DP p' in plot_instruments:
                 if hasattr(self, 'wind3dp_p_df') and len(self.wind3dp_p_df) > 0:
