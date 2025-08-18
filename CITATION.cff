@@ -1,0 +1,37 @@
+# YAML 1.2
+# Metadata for citation of this software according to the CFF format (https://citation-file-format.github.io/)
+cff-version: 1.0.3
+message: If you use this software, please cite it using these metadata.
+title: SOLER SEP Tools
+doi: 10.5281/zenodo.15827561
+authors:
+- given-names: Jan
+  family-names: Gieseler
+  affiliation: University of Turku
+  orcid: https://orcid.org/0000-0003-1848-7067
+- given-names: Nina
+  family-names: Dresing
+  affiliation: University of Turku
+  orcid: https://orcid.org/0000-0003-3903-4649
+- given-names: Immanuel C.
+  family-names: Jebaraj
+  affiliation: University of Turku
+  orcid: https://orcid.org/0000-0002-0606-7172
+- given-names: Silja
+  family-names: Kanto
+  affiliation: University of Turku
+- given-names: Christian
+  family-names: Palmroos
+  affiliation: University of Turku
+  orcid: https://orcid.org/0000-0002-7778-5454
+- given-names: Otso
+  family-names: Santala
+  affiliation: University of Turku
+- given-names: Laura
+  family-names: Vuorinen
+  affiliation: Queen Mary University of London
+  orcid: https://orcid.org/0000-0002-2238-109X
+version: 0.2.0
+date-released: 2025-07-07
+repository-code: https://github.com/soler-he/sep_tools
+license: BSD-3-Clause
