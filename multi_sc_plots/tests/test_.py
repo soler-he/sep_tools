@@ -16,7 +16,7 @@ To run the tests locally, go to the base directory of the repository and run:
 pytest -rP --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html
 """
 
-# TODO: add PSP/EPI-Lo IC p
+
 @pytest.mark.mpl_image_compare(remove_text=True, deterministic=True)
 @pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 @pytest.mark.filterwarnings("ignore::UserWarning:seppy")
