@@ -393,8 +393,8 @@ class Event:
                     pass
             if 'Parker Solar Probe/EPI-Lo IC p' in self.instruments:
                 try:
-                    epilo_low = self.psp_epilo_energies_p[f'H_Chan{self.psp_epilo_channel_p}_Energy'].filter(like=f'_P{self.viewing['Parker Solar Probe/EPI-Lo IC']}').values-self.psp_epilo_energies_p[f'H_Chan{self.psp_epilo_channel_p}_Energy_DELTAMINUS'].filter(like=f'_P{self.viewing['Parker Solar Probe/EPI-Lo IC']}').values
-                    epilo_high = self.psp_epilo_energies_p[f'H_Chan{self.psp_epilo_channel_p}_Energy'].filter(like=f'_P{self.viewing['Parker Solar Probe/EPI-Lo IC']}').values+self.psp_epilo_energies_p[f'H_Chan{self.psp_epilo_channel_p}_Energy_DELTAPLUS'].filter(like=f'_P{self.viewing['Parker Solar Probe/EPI-Lo IC']}').values
+                    epilo_low = self.psp_epilo_energies_p[f'H_Chan{self.psp_epilo_channel_p}_Energy'].filter(like=f"_P{self.viewing['Parker Solar Probe/EPI-Lo IC']}").values-self.psp_epilo_energies_p[f'H_Chan{self.psp_epilo_channel_p}_Energy_DELTAMINUS'].filter(like=f"_P{self.viewing['Parker Solar Probe/EPI-Lo IC']}").values
+                    epilo_high = self.psp_epilo_energies_p[f'H_Chan{self.psp_epilo_channel_p}_Energy'].filter(like=f"_P{self.viewing['Parker Solar Probe/EPI-Lo IC']}").values+self.psp_epilo_energies_p[f'H_Chan{self.psp_epilo_channel_p}_Energy_DELTAPLUS'].filter(like=f"_P{self.viewing['Parker Solar Probe/EPI-Lo IC']}").values
                     nan_mask = ~np.isnan(epilo_low) + ~np.isnan(epilo_high)
                     epilo_low = epilo_low[nan_mask]
                     epilo_high = epilo_high[nan_mask]
