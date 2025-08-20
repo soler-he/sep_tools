@@ -16,8 +16,12 @@ To run the tests locally, go to the base directory of the repository and run:
 pytest -rP --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html
 """
 
-
+# TODO: add PSP/EPI-Lo IC p
 @pytest.mark.mpl_image_compare(remove_text=True, deterministic=True)
+@pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
+@pytest.mark.filterwarnings("ignore::UserWarning:seppy")
+@pytest.mark.filterwarnings("ignore::UserWarning:solo_epd_loader")
+@pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
 def test_SEP_Multi_Spacecraft_Plot():
     E = Event()
     instruments = E.instrument_selection()
