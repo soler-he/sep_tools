@@ -40,7 +40,7 @@ def test_SEP_Multi_Spacecraft_Plot():
     #
     E.print_energies()
     #
-    E.channels_e['BepiColombo/SIXS e'] = [5, 6]  # 2 for 100 keV  # channel combination not supported!
+    E.channels_e['BepiColombo/SIXS e'] = 5  # 2 for 100 keV  # channel combination not supported!
     E.channels_e['Parker Solar Probe/EPI-Hi HET e'] = [3, 10]
     E.channels_e['Parker Solar Probe/EPI-Lo PE e'] = [4, 5]
     E.channels_e['SOHO/EPHIN e'] = 2  # channel combination not supported!
@@ -50,7 +50,7 @@ def test_SEP_Multi_Spacecraft_Plot():
     E.channels_e['STEREO-A/SEPT e'] = [6, 7]
     E.channels_e['WIND/3DP e'] = 3  # channel combination not supported!
     #
-    E.channels_p['BepiColombo/SIXS p'] = [8, 9]  # channel combination not supported!
+    E.channels_p['BepiColombo/SIXS p'] = 8  # channel combination not supported!
     E.channels_p['Parker Solar Probe/EPI-Hi HET p'] = [8, 9]
     E.channels_p['SOHO/ERNE-HED p'] = [3, 4]
     E.channels_p['Solar Orbiter/EPT p'] = [20, 21]  # L2: [50, 56]
