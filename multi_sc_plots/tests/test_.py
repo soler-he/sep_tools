@@ -33,6 +33,7 @@ def test_SEP_Multi_Spacecraft_Plot():
     #
     E.viewing['Parker Solar Probe/EPI-Hi HET'] = 'A'  # 'A'='sun', 'B'='asun'
     E.viewing['Parker Solar Probe/EPI-Lo PE'] = 3  # 3='sun', 7='asun'
+    E.viewing['Parker Solar Probe/EPI-Lo IC'] = 35  # 3x='sun', 7x='asun'
     E.viewing['Solar Orbiter/EPT'] = 'sun'  # 'asun', 'sun', 'north', 'south'
     E.viewing['Solar Orbiter/HET'] = 'sun'  # 'asun', 'sun', 'north', 'south'
     E.viewing['STEREO-A/SEPT'] = 'sun'  # 'asun', 'sun', 'north', 'south'
@@ -56,6 +57,7 @@ def test_SEP_Multi_Spacecraft_Plot():
     #
     E.channels_p['BepiColombo/SIXS p'] = 8  # channel combination not supported!
     E.channels_p['Parker Solar Probe/EPI-Hi HET p'] = [8, 9]
+    E.channels_p['Parker Solar Probe/EPI-Lo IC p'] = [10, 16]
     E.channels_p['SOHO/ERNE-HED p'] = [3, 4]
     E.channels_p['Solar Orbiter/EPT p'] = [20, 21]  # L2: [50, 56]
     E.channels_p['Solar Orbiter/HET p'] = [19, 24]
