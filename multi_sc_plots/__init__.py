@@ -851,7 +851,7 @@ class Event:
 
             ax.set_yscale('log')
             ax.set_ylabel(intensity_label)
-            ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), title='Protons/Ions '+str(linewidth))
+            ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), title='Protons/Ions')
 
             axnum = axnum+1
 
