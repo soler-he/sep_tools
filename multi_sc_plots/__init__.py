@@ -461,7 +461,7 @@ class Event:
         else:
             plot_p = False
 
-        ept_use_corr_e = False  # not included yet!
+        ept_use_corr_e = False  # not included yet! But so far here level 3 data is used, which is already corrected.
 
         intensity_label = 'Flux\n/(s cm² sr MeV)'
         linewidth = 1.5
