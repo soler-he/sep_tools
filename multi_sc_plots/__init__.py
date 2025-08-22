@@ -73,12 +73,12 @@ class Event:
         plt.rcParams['axes.linewidth'] = 2.0
         plt.rcParams['lines.linewidth'] = 1.5
 
-        self.e_instruments = ['BepiColombo/SIXS e', 'Parker Solar Probe/EPI-Hi HET e', 'Parker Solar Probe/EPI-Lo PE e', 'SOHO/EPHIN e', 'Solar Orbiter/EPT e', 'Solar Orbiter/HET e', 'STEREO-A/HET e', 'STEREO-A/SEPT e', 'WIND/3DP e']
-        self.p_instruments = ['BepiColombo/SIXS p', 'Parker Solar Probe/EPI-Hi HET p', 'Parker Solar Probe/EPI-Lo IC p', 'SOHO/ERNE-HED p', 'Solar Orbiter/EPT p', 'Solar Orbiter/HET p', 'STEREO-A/SEPT p', 'STEREO-A/HET p', 'WIND/3DP p']
+        self.e_instruments = ['BepiColombo/SIXS-P e', 'Parker Solar Probe/EPI-Hi HET e', 'Parker Solar Probe/EPI-Lo PE e', 'SOHO/EPHIN e', 'Solar Orbiter/EPT e', 'Solar Orbiter/HET e', 'STEREO-A/HET e', 'STEREO-A/SEPT e', 'WIND/3DP e']
+        self.p_instruments = ['BepiColombo/SIXS-P p', 'Parker Solar Probe/EPI-Hi HET p', 'Parker Solar Probe/EPI-Lo IC p', 'SOHO/ERNE-HED p', 'Solar Orbiter/EPT p', 'Solar Orbiter/HET p', 'STEREO-A/SEPT p', 'STEREO-A/HET p', 'WIND/3DP p']
 
         # define default energy channels (lowest at the moment)
         self.channels_e = {}
-        self.channels_e['BepiColombo/SIXS e'] = 1
+        self.channels_e['BepiColombo/SIXS-P e'] = 1
         self.channels_e['Parker Solar Probe/EPI-Hi HET e'] = 0
         self.channels_e['Parker Solar Probe/EPI-Lo PE e'] = 0
         self.channels_e['SOHO/EPHIN e'] = 0
@@ -89,7 +89,7 @@ class Event:
         self.channels_e['WIND/3DP e'] = 0
         #
         self.channels_p = {}
-        self.channels_p['BepiColombo/SIXS p'] = 1
+        self.channels_p['BepiColombo/SIXS-P p'] = 1
         self.channels_p['Parker Solar Probe/EPI-Hi HET p'] = 0
         self.channels_p['Parker Solar Probe/EPI-Lo IC p'] = 0
         self.channels_p['SOHO/ERNE-HED p'] = 0
@@ -101,7 +101,7 @@ class Event:
 
         # define default plot colors
         self.plot_colors = {}
-        self.plot_colors['BepiColombo/SIXS'] = 'orange'
+        self.plot_colors['BepiColombo/SIXS-P'] = 'orange'
         self.plot_colors['Parker Solar Probe/EPI-Hi HET'] = 'blueviolet'
         self.plot_colors['Parker Solar Probe/EPI-Lo PE'] = 'blueviolet'
         self.plot_colors['Parker Solar Probe/EPI-Lo IC'] = 'blueviolet'
@@ -122,7 +122,7 @@ class Event:
 
         # define default viewings and instrument channels
         self.viewing = {}
-        self.viewing['BepiColombo/SIXS'] = 0
+        self.viewing['BepiColombo/SIXS-P'] = 0
         self.viewing['Parker Solar Probe/EPI-Hi HET'] = 'A'
         self.viewing['Parker Solar Probe/EPI-Lo PE'] = 3
         self.viewing['Parker Solar Probe/EPI-Lo IC'] = 35  # 3x='sun', 7x='asun'
@@ -290,15 +290,15 @@ class Event:
                 self.het_e = []
                 self.het_p = []
 
-        if 'BepiColombo/SIXS e' in self.instruments or 'BepiColombo/SIXS p' in self.instruments:
+        if 'BepiColombo/SIXS-P e' in self.instruments or 'BepiColombo/SIXS-P p' in self.instruments:
             # print('loading Bepi/SIXS')
             try:
                 self.sixs_df, self.sixs_meta = bepi_sixsp_l3_loader(startdate=self.startdate, enddate=self.enddate, resample=None, path=sixs_path, pos_timestamp='center')
                 if len(self.sixs_df) > 0:
-                    self.sixs_df_p_org = self.sixs_df[[f"Side{self.viewing['BepiColombo/SIXS']}_P{i}" for i in range(1, 10)]]
-                    self.sixs_df_e_org = self.sixs_df[[f"Side{self.viewing['BepiColombo/SIXS']}_E{i}" for i in range(1, 8)]]
+                    self.sixs_df_p_org = self.sixs_df[[f"Side{self.viewing['BepiColombo/SIXS-P']}_P{i}" for i in range(1, 10)]]
+                    self.sixs_df_e_org = self.sixs_df[[f"Side{self.viewing['BepiColombo/SIXS-P']}_E{i}" for i in range(1, 8)]]
             except NameError:
-                custom_warning('BepiColombo/SIXS not yet supported.')
+                custom_warning('BepiColombo/SIXS-P not yet supported.')
                 self.sixs_df = []
                 self.sixs_df_e_org = []
                 self.sixs_df_p_org = []
@@ -320,12 +320,12 @@ class Event:
 
         if load_e:
             self.energies_e = pd.DataFrame()
-            if 'BepiColombo/SIXS e' in self.instruments:
+            if 'BepiColombo/SIXS-P e' in self.instruments:
                 if len(self.sixs_df) > 0:
                     try:
                         t = {'E0': 'NaN'}
-                        t.update(self.sixs_meta[f"Side{self.viewing['BepiColombo/SIXS']}_Electron_Bins_str"])
-                        self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'BepiColombo/SIXS e': t.values()})], axis=1)
+                        t.update(self.sixs_meta[f"Side{self.viewing['BepiColombo/SIXS-P']}_Electron_Bins_str"])
+                        self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'BepiColombo/SIXS-P e': t.values()})], axis=1)
                     except NameError:
                         pass
             if 'Parker Solar Probe/EPI-Hi HET e' in self.instruments:
@@ -380,12 +380,12 @@ class Event:
 
         if load_p:
             self.energies_p = pd.DataFrame()
-            if 'BepiColombo/SIXS p' in self.instruments:
+            if 'BepiColombo/SIXS-P p' in self.instruments:
                 if len(self.sixs_df) > 0:
                     try:
                         t = {'P0': 'NaN'}
-                        t.update(self.sixs_meta[f"Side{self.viewing['BepiColombo/SIXS']}_Proton_Bins_str"])
-                        self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'BepiColombo/SIXS p': t.values()})], axis=1)
+                        t.update(self.sixs_meta[f"Side{self.viewing['BepiColombo/SIXS-P']}_Proton_Bins_str"])
+                        self.energies_p = pd.concat([self.energies_p, pd.DataFrame({'BepiColombo/SIXS-P p': t.values()})], axis=1)
                     except NameError:
                         pass
             if 'Parker Solar Probe/EPI-Hi HET p' in self.instruments:
@@ -497,7 +497,7 @@ class Event:
         ########## AVERAGE ENERGY CHANNELS & RESAMPLING ##########
         #############################################
         """
-        if 'BepiColombo/SIXS e' in plot_instruments or 'BepiColombo/SIXS p' in plot_instruments:
+        if 'BepiColombo/SIXS-P e' in plot_instruments or 'BepiColombo/SIXS-P p' in plot_instruments:
             if len(self.sixs_df) > 0:
                 if isinstance(sixs_resample, str):
                     self.sixs_df_e = resample_df(self.sixs_df_e_org, sixs_resample)
@@ -730,11 +730,11 @@ class Event:
                 ax = axes[axnum]
                 # species_string = 'Electrons'
 
-            if 'BepiColombo/SIXS e' in plot_instruments:
+            if 'BepiColombo/SIXS-P e' in plot_instruments:
                 if hasattr(self, 'sixs_df') and len(self.sixs_df) > 0:
-                    ax.plot(self.sixs_df_e.index, self.sixs_df_e[f"Side{self.viewing['BepiColombo/SIXS']}_E{self.channels_e['BepiColombo/SIXS e']}"],
-                            color=self.plot_colors['BepiColombo/SIXS'], linewidth=linewidth,
-                            label=f"BepiColombo/SIXS (side{self.viewing['BepiColombo/SIXS']}) "+self.sixs_meta[f"Side{self.viewing['BepiColombo/SIXS']}_Electron_Bins_str"][f"E{self.channels_e['BepiColombo/SIXS e']}"], drawstyle='steps-mid')
+                    ax.plot(self.sixs_df_e.index, self.sixs_df_e[f"Side{self.viewing['BepiColombo/SIXS-P']}_E{self.channels_e['BepiColombo/SIXS-P e']}"],
+                            color=self.plot_colors['BepiColombo/SIXS-P'], linewidth=linewidth,
+                            label=f"BepiColombo/SIXS-P (side{self.viewing['BepiColombo/SIXS-P']}) "+self.sixs_meta[f"Side{self.viewing['BepiColombo/SIXS-P']}_Electron_Bins_str"][f"E{self.channels_e['BepiColombo/SIXS-P e']}"], drawstyle='steps-mid')
             if 'Parker Solar Probe/EPI-Hi HET e' in plot_instruments:
                 if hasattr(self, 'psp_het') and len(self.psp_het) > 0:
                     # ax.plot(psp_het.index, psp_het[f'A_Electrons_Rate_{self.channels_e['Parker Solar Probe/EPI-Hi HET e']}'], color=self.plot_colors['Parker Solar Probe/EPI-Hi HET'], linewidth=linewidth,
@@ -795,11 +795,11 @@ class Event:
                 ax = axes
             else:
                 ax = axes[axnum]
-            if 'BepiColombo/SIXS p' in plot_instruments:
+            if 'BepiColombo/SIXS-P p' in plot_instruments:
                 if hasattr(self, 'sixs_df') and len(self.sixs_df) > 0:
-                    ax.plot(self.sixs_df_p.index, self.sixs_df_p[f"Side{self.viewing['BepiColombo/SIXS']}_P{self.channels_p['BepiColombo/SIXS p']}"],
-                            color=self.plot_colors['BepiColombo/SIXS'], linewidth=linewidth,
-                            label=f"BepiColombo/SIXS (side{self.viewing['BepiColombo/SIXS']}) "+self.sixs_meta[f"Side{self.viewing['BepiColombo/SIXS']}_Proton_Bins_str"][f"P{self.channels_p['BepiColombo/SIXS p']}"], drawstyle='steps-mid')
+                    ax.plot(self.sixs_df_p.index, self.sixs_df_p[f"Side{self.viewing['BepiColombo/SIXS-P']}_P{self.channels_p['BepiColombo/SIXS-P p']}"],
+                            color=self.plot_colors['BepiColombo/SIXS-P'], linewidth=linewidth,
+                            label=f"BepiColombo/SIXS-P (side{self.viewing['BepiColombo/SIXS-P']}) "+self.sixs_meta[f"Side{self.viewing['BepiColombo/SIXS-P']}_Proton_Bins_str"][f"P{self.channels_p['BepiColombo/SIXS-P p']}"], drawstyle='steps-mid')
             if 'Parker Solar Probe/EPI-Hi HET p' in plot_instruments:
                 if hasattr(self, 'psp_het') and len(self.psp_het) > 0:
                     # ax.plot(psp_het.index, psp_het[f'A_H_Flux_{self.channels_p['Parker Solar Probe/EPI-Hi HET p']}'], color=self.plot_colors['Parker Solar Probe/EPI-Hi HET'], linewidth=linewidth,
