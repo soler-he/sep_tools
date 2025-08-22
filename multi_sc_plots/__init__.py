@@ -37,27 +37,6 @@ warnings.filterwarnings(action='ignore', message='The variable "HET_', category=
 warnings.filterwarnings(action='ignore', message="Note that for the Dataframes containing the flow direction and SC coordinates timestamp position will not be adjusted by 'pos_timestamp'!", module='solo_epd_loader')
 
 
-# manually define seaborn-colorblind colors
-seaborn_colorblind = ['#0072B2', '#009E73', '#D55E00', '#CC79A7', '#F0E442', '#56B4E9']  # blue, green, orange, magenta, yello, light blue
-# change some matplotlib plotting settings
-SIZE = 20
-plt.rc('font', size=SIZE)  # controls default text sizes
-plt.rc('axes', titlesize=SIZE)  # fontsize of the axes title
-plt.rc('axes', labelsize=SIZE)  # fontsize of the x any y labels
-plt.rc('xtick', labelsize=SIZE)  # fontsize of the tick labels
-plt.rc('ytick', labelsize=SIZE)  # fontsize of the tick labels
-plt.rc('legend', fontsize=SIZE)  # legend fontsize
-plt.rcParams['xtick.major.size'] = 10
-plt.rcParams['xtick.major.width'] = 2
-plt.rcParams['xtick.minor.size'] = 5
-plt.rcParams['xtick.minor.width'] = 1
-plt.rcParams['ytick.major.size'] = 10
-plt.rcParams['ytick.major.width'] = 2
-plt.rcParams['ytick.minor.size'] = 5
-plt.rcParams['ytick.minor.width'] = 1
-plt.rcParams['axes.linewidth'] = 2.0
-
-
 def add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=1.0, y=0.0):
     logo = Image.open(f'multi_sc_plots{os.sep}soler.png')
     new_size = (np.array(logo.size) * scaling).astype(int)
@@ -73,6 +52,27 @@ def add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=1.0, y=0.0):
 class Event:
 
     def __init__(self):
+        # manually define seaborn-colorblind colors
+        seaborn_colorblind = ['#0072B2', '#009E73', '#D55E00', '#CC79A7', '#F0E442', '#56B4E9']  # blue, green, orange, magenta, yello, light blue
+        # change some matplotlib plotting settings
+        SIZE = 20
+        plt.rc('font', size=SIZE)  # controls default text sizes
+        plt.rc('axes', titlesize=SIZE)  # fontsize of the axes title
+        plt.rc('axes', labelsize=SIZE)  # fontsize of the x any y labels
+        plt.rc('xtick', labelsize=SIZE)  # fontsize of the tick labels
+        plt.rc('ytick', labelsize=SIZE)  # fontsize of the tick labels
+        plt.rc('legend', fontsize=SIZE)  # legend fontsize
+        plt.rcParams['xtick.major.size'] = 10
+        plt.rcParams['xtick.major.width'] = 2
+        plt.rcParams['xtick.minor.size'] = 5
+        plt.rcParams['xtick.minor.width'] = 1
+        plt.rcParams['ytick.major.size'] = 10
+        plt.rcParams['ytick.major.width'] = 2
+        plt.rcParams['ytick.minor.size'] = 5
+        plt.rcParams['ytick.minor.width'] = 1
+        plt.rcParams['axes.linewidth'] = 2.0
+        plt.rcParams['lines.linewidth'] = 1.5
+
         self.e_instruments = ['BepiColombo/SIXS e', 'Parker Solar Probe/EPI-Hi HET e', 'Parker Solar Probe/EPI-Lo PE e', 'SOHO/EPHIN e', 'Solar Orbiter/EPT e', 'Solar Orbiter/HET e', 'STEREO-A/HET e', 'STEREO-A/SEPT e', 'WIND/3DP e']
         self.p_instruments = ['BepiColombo/SIXS p', 'Parker Solar Probe/EPI-Hi HET p', 'Parker Solar Probe/EPI-Lo IC p', 'SOHO/ERNE-HED p', 'Solar Orbiter/EPT p', 'Solar Orbiter/HET p', 'STEREO-A/SEPT p', 'STEREO-A/HET p', 'WIND/3DP p']
 
