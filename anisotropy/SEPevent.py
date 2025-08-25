@@ -275,7 +275,8 @@ class SEPevent:
         else:
             color = [f"C{i}" for i in range(len(sectors))]
                 
-        axnum = 0; ax = axes[axnum]
+        axnum = 0
+        ax = axes[axnum]
         ax.set_title(spacecraft,pad=20,fontsize=font_size+2)
         for i, direction in enumerate(sectors): 
             col = color[i]
@@ -296,7 +297,8 @@ class SEPevent:
         ax.tick_params(labelbottom=False, labeltop=False, labelleft=True, labelright=False, bottom=True, top=True, left=False, right=False)
         
         pol_ax = inset_axes(ax, height="10%", width="100%", loc=9, bbox_to_anchor=(0.,0.09,1,1.11), bbox_transform=ax.transAxes)
-        pol_ax.get_xaxis().set_visible(False); pol_ax.get_yaxis().set_visible(False)
+        pol_ax.get_xaxis().set_visible(False)
+        pol_ax.get_yaxis().set_visible(False)
         pol_ax.set_ylim(0,1)
         pol_arr = np.zeros(len(pol))+1
         timestamp = pol_times[2] - pol_times[1]
@@ -307,7 +309,8 @@ class SEPevent:
         pol_ax.text(1.01,0.1,"in",color="red",transform=pol_ax.transAxes,fontsize=legend_font-0.5)
         pol_ax.text(1.04,0.1,"out",color="blue",transform=pol_ax.transAxes,fontsize=legend_font-0.5)
         
-        axnum += 1; ax = axes[axnum]
+        axnum += 1
+        ax = axes[axnum]
         X, Y = np.meshgrid(coverage.index.values, np.arange(180)+1 )
         hist = np.zeros(np.shape(X))
         hist_counts = np.zeros(np.shape(X))
@@ -389,10 +392,13 @@ class SEPevent:
         cbar = fig.colorbar(pcm, cax=cax, orientation='vertical', aspect=40)#, ticks = LogLocator(subs=range(10)))
         cax.yaxis.set_ticks_position('right')
         cax.yaxis.set_label_position('right')
-        if pad_norm == None: cax.set_ylabel(intensity_label,fontsize=legend_font)#, labelpad=-75)
-        else: cax.set_ylabel(f'Flux normalized\n({pad_norm})',fontsize=legend_font)
+        if pad_norm is None:
+            cax.set_ylabel(intensity_label,fontsize=legend_font)#, labelpad=-75)
+        else: 
+            cax.set_ylabel(f'Flux normalized\n({pad_norm})', fontsize=legend_font)
         
-        axnum += 1; ax = axes[axnum]
+        axnum += 1
+        ax = axes[axnum]
         for i, direction in enumerate(sectors):
             av_flux = I_data[:,i]
             ax.plot(I_times, av_flux, linewidth=1.2, label=direction, color=color[i], drawstyle='steps-mid')
@@ -714,18 +720,21 @@ class SEPevent:
             
             if choose_all:
                 models = models_list[2]
-                for i, b in enumerate(redchi_vals): print("{:.3f} {}".format(b,desc[i]))
+                for i, b in enumerate(redchi_vals):
+                    print("{:.3f} {}".format(b,desc[i]))
             else:
                 if diff_slopes:
                     model_idx = np.nanargmin(redchi_vals)
                     models = models_list[model_idx]
-                    for i, b in enumerate(redchi_vals): print("{:.3f} {}".format(b,desc[i]))
+                    for i, b in enumerate(redchi_vals):
+                        print("{:.3f} {}".format(b,desc[i]))
                     print("Selected: {}".format(desc[model_idx]))
                     self.bg_method = desc[model_idx]
                 else:
                     model_idx = np.nanargmin(redchi_vals[:-1])
                     models = models_list[model_idx]
-                    for i, b in enumerate(redchi_vals[:-1]): print("{:.3f} {}".format(b,desc[i]))
+                    for i, b in enumerate(redchi_vals[:-1]):
+                        print("{:.3f} {}".format(b,desc[i]))
                     print("Selected: {}".format(desc[model_idx]))
                     self.bg_method = desc[model_idx]
         else:
@@ -820,7 +829,8 @@ class SEPevent:
         else:
             color = [f"C{i}" for i in range(len(sectors))]
                 
-        axnum = 0; ax = axes[axnum]
+        axnum = 0
+        ax = axes[axnum]
         ax.set_title(spacecraft,pad=20,fontsize=font_size+2)
         for i, direction in enumerate(sectors): 
             col = color[i]
@@ -841,7 +851,8 @@ class SEPevent:
         ax.tick_params(labelbottom=False, labeltop=False, labelleft=True, labelright=False, bottom=True, top=True, left=False, right=False)
         
         pol_ax = inset_axes(ax, height="10%", width="100%", loc=9, bbox_to_anchor=(0.,0.09,1,1.11), bbox_transform=ax.transAxes)
-        pol_ax.get_xaxis().set_visible(False); pol_ax.get_yaxis().set_visible(False)
+        pol_ax.get_xaxis().set_visible(False)
+        pol_ax.get_yaxis().set_visible(False)
         pol_ax.set_ylim(0,1)
         pol_arr = np.zeros(len(pol))+1
         timestamp = pol_times[2] - pol_times[1]
@@ -852,7 +863,8 @@ class SEPevent:
         pol_ax.text(1.01,0.1,"in",color="red",transform=pol_ax.transAxes,fontsize=legend_font-0.5)
         pol_ax.text(1.04,0.1,"out",color="blue",transform=pol_ax.transAxes,fontsize=legend_font-0.5)
         
-        axnum += 1; ax = axes[axnum]
+        axnum += 1
+        ax = axes[axnum]
         X, Y = np.meshgrid(coverage.index.values, np.arange(180)+1 )
         hist = np.zeros(np.shape(X))
         hist_counts = np.zeros(np.shape(X))
@@ -934,10 +946,13 @@ class SEPevent:
         cbar = fig.colorbar(pcm, cax=cax, orientation='vertical', aspect=40)  #, ticks = LogLocator(subs=range(10)))
         cax.yaxis.set_ticks_position('right')
         cax.yaxis.set_label_position('right')
-        if pad_norm == None: cax.set_ylabel(intensity_label,fontsize=legend_font)#, labelpad=-75)
-        else: cax.set_ylabel(f'Flux normalized\n({pad_norm})',fontsize=legend_font)
+        if pad_norm == None:
+            cax.set_ylabel(intensity_label, fontsize=legend_font)#, labelpad=-75)
+        else:
+            cax.set_ylabel(f'Flux normalized\n({pad_norm})', fontsize=legend_font)
         
-        axnum += 1; ax = axes[axnum]
+        axnum += 1
+        ax = axes[axnum]
         for i, direction in enumerate(sectors):
             av_flux = I_data[:,i]
             ax.plot(I_times, av_flux, linewidth=1.2, label=direction, color=color[i], drawstyle='steps-mid',alpha=0.7)
@@ -957,7 +972,8 @@ class SEPevent:
             leg = ax.legend(title=instrument+' '+ch_string,bbox_to_anchor=(1.003, 0.4), loc=2, ncol=2,borderaxespad=0.,labelspacing=0.3,handlelength=1,handletextpad=0.5,columnspacing=0.4,frameon=False,fontsize=legend_font,title_fontsize=legend_font)
         leg._legend_box.align = "left"
 
-        axnum += 1; ax = axes[axnum]
+        axnum += 1
+        ax = axes[axnum]
         for i, direction in enumerate(sectors):
             av_flux = I_data[:,i]-bg_I_fit[:,i]
             ax.plot(I_times, av_flux, linewidth=1.2, label=direction, color=color[i], drawstyle='steps-mid')
@@ -1191,7 +1207,8 @@ class SEPevent:
         
         flux_times = I_times
                 
-        axnum = 0; ax = axes[axnum]
+        axnum = 0
+        ax = axes[axnum]
         ax.set_title(spacecraft,pad=20,fontsize=font_size+2)
         for i,direction in enumerate(sectors):
             col = color[i]
@@ -1208,7 +1225,8 @@ class SEPevent:
         ax.tick_params(labelbottom=False, labeltop=False, labelleft=True, labelright=False, bottom=True, top=True, left=False, right=False)
         
         pol_ax = inset_axes(ax, height="10%", width="100%", loc=9, bbox_to_anchor=(0.,0.10,1,1.11), bbox_transform=ax.transAxes) # center, you can check the different codes in plt.legend?
-        pol_ax.get_xaxis().set_visible(False); pol_ax.get_yaxis().set_visible(False)
+        pol_ax.get_xaxis().set_visible(False)
+        pol_ax.get_yaxis().set_visible(False)
         pol_ax.set_ylim(0,1)
         pol_arr = np.zeros(len(pol))+1
         timestamp = pol_times[2] - pol_times[1]
@@ -1219,7 +1237,8 @@ class SEPevent:
         pol_ax.text(1.01,0.1,"in",color="red",transform=pol_ax.transAxes,fontsize=legend_font-0.5)
         pol_ax.text(1.04,0.1,"out",color="blue",transform=pol_ax.transAxes,fontsize=legend_font-0.5)
         
-        axnum += 1; ax = axes[axnum]
+        axnum += 1
+        ax = axes[axnum]
         X, Y = np.meshgrid(coverage.index.values, np.arange(180)+1 )
         hist = np.zeros(np.shape(X))
         hist_counts = np.zeros(np.shape(X))
@@ -1301,10 +1320,13 @@ class SEPevent:
         cbar = fig.colorbar(pcm, cax=cax, orientation='vertical', aspect=40)#, ticks = LogLocator(subs=range(10)))
         cax.yaxis.set_ticks_position('right')
         cax.yaxis.set_label_position('right')
-        if pad_norm == None: cax.set_ylabel(intensity_label,fontsize=legend_font)#, labelpad=-75)
-        else: cax.set_ylabel(f'Flux normalized\n({pad_norm})',fontsize=legend_font)
+        if pad_norm is None:
+            cax.set_ylabel(intensity_label, fontsize=legend_font)#, labelpad=-75)
+        else:
+            cax.set_ylabel(f'Flux normalized\n({pad_norm})', fontsize=legend_font)
         
-        axnum += 1; ax = axes[axnum]
+        axnum += 1
+        ax = axes[axnum]
         for i,direction in enumerate(sectors):
             av_flux = I_data[:,i]
             ax.plot(flux_times, av_flux, linewidth=1.2, label=direction, color=color[i], drawstyle='steps-mid',alpha=0.7)
@@ -1321,7 +1343,8 @@ class SEPevent:
         leg = ax.legend(title=instrument+' '+ch_string,bbox_to_anchor=(1.003, 0.4), loc=2, borderaxespad=0.,labelspacing=0.25,handlelength=1.2,handletextpad=0.5,columnspacing=1.5,frameon=False,fontsize=legend_font,title_fontsize=legend_font)
         leg._legend_box.align = "left"
         
-        axnum += 1; ax = axes[axnum]
+        axnum += 1
+        ax = axes[axnum]
         for i,direction in enumerate(sectors):
             av_flux = I_data[:,i]-bg_I_fit[:,i]
             ax.plot(flux_times, av_flux, linewidth=1.2, label=direction, color=color[i], drawstyle='steps-mid')
@@ -1331,7 +1354,8 @@ class SEPevent:
         ax.set_yscale('log')
         ax.set_ylim(axes[axnum-1].get_ylim())
         
-        axnum += 1; ax = axes[axnum]
+        axnum += 1
+        ax = axes[axnum]
         ax.fill_between(coverage.index,-3,max_ani,color="black",alpha=0.3,edgecolor=None)
         ax.fill_between(coverage.index,min_ani,3,color="black",alpha=0.3,edgecolor=None)
         ax.plot(I_times,Ani_bootres[:,0],label="w/o background substraction",color="black")
@@ -1447,7 +1471,8 @@ class SEPevent:
         
         flux_times = I_times
                 
-        axnum = 0; ax = axes[axnum]
+        axnum = 0
+        ax = axes[axnum]
         ax.set_title(spacecraft,pad=20,fontsize=font_size+2)
         for i,direction in enumerate(sectors):
             col = color[i]
@@ -1464,7 +1489,8 @@ class SEPevent:
         ax.tick_params(labelbottom=False, labeltop=False, labelleft=True, labelright=False, bottom=True, top=True, left=False, right=False)
         
         pol_ax = inset_axes(ax, height="10%", width="100%", loc=9, bbox_to_anchor=(0.,0.10,1,1.11), bbox_transform=ax.transAxes) # center, you can check the different codes in plt.legend?
-        pol_ax.get_xaxis().set_visible(False); pol_ax.get_yaxis().set_visible(False)
+        pol_ax.get_xaxis().set_visible(False)
+        pol_ax.get_yaxis().set_visible(False)
         pol_ax.set_ylim(0,1)
         pol_arr = np.zeros(len(pol))+1
         timestamp = pol_times[2] - pol_times[1]
@@ -1475,7 +1501,8 @@ class SEPevent:
         pol_ax.text(1.01,0.1,"in",color="red",transform=pol_ax.transAxes,fontsize=legend_font-0.5)
         pol_ax.text(1.04,0.1,"out",color="blue",transform=pol_ax.transAxes,fontsize=legend_font-0.5)
         
-        axnum += 1; ax = axes[axnum]
+        axnum += 1
+        ax = axes[axnum]
         X, Y = np.meshgrid(coverage.index.values, np.arange(180)+1 )
         hist = np.zeros(np.shape(X))
         hist_counts = np.zeros(np.shape(X))
@@ -1557,10 +1584,13 @@ class SEPevent:
         cbar = fig.colorbar(pcm, cax=cax, orientation='vertical', aspect=40)
         cax.yaxis.set_ticks_position('right')
         cax.yaxis.set_label_position('right')
-        if pad_norm == None: cax.set_ylabel(intensity_label,fontsize=legend_font)
-        else: cax.set_ylabel(f'Flux normalized\n({pad_norm})',fontsize=legend_font)
+        if pad_norm is None:
+            cax.set_ylabel(intensity_label, fontsize=legend_font)
+        else: 
+            cax.set_ylabel(f'Flux normalized\n({pad_norm})', fontsize=legend_font)
         
-        axnum += 1; ax = axes[axnum]
+        axnum += 1
+        ax = axes[axnum]
         for i,direction in enumerate(sectors):
             av_flux = I_data[:,i]
             ax.plot(flux_times, av_flux, linewidth=1.2, label=direction, color=color[i], drawstyle='steps-mid')
@@ -1577,7 +1607,8 @@ class SEPevent:
         leg = ax.legend(title=instrument+' '+ch_string,bbox_to_anchor=(1.003, 0.4), loc=2, borderaxespad=0.,labelspacing=0.25,handlelength=1.2,handletextpad=0.5,columnspacing=1.5,frameon=False,fontsize=legend_font,title_fontsize=legend_font)
         leg._legend_box.align = "left"
         
-        axnum += 1; ax = axes[axnum]
+        axnum += 1
+        ax = axes[axnum]
         for i,direction in enumerate(sectors):
             av_flux = I_data[:,i]-bg_I_fit[:,i]
             ax.plot(flux_times, av_flux, linewidth=1.2, label=direction, color=color[i], drawstyle='steps-mid')
@@ -1587,7 +1618,8 @@ class SEPevent:
         ax.yaxis.set_label_coords(-0.08,1.0)
         ax.set_ylim(axes[axnum-1].get_ylim())
         
-        axnum += 1; ax = axes[axnum]
+        axnum += 1
+        ax = axes[axnum]
         ax.fill_between(coverage.index,-3,max_ani,color="black",alpha=0.3,edgecolor=None)
         ax.fill_between(coverage.index,min_ani,3,color="black",alpha=0.3,edgecolor=None)
         if ani_method == 'weighted_sum_bootstrap':
