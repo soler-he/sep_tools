@@ -1,24 +1,46 @@
-import numpy as np
-from anisotropy.solo_methods import solo_download_and_prepare  # , solo_download_intensities
-from anisotropy.stereo_methods import stereo_download_and_prepare
-from anisotropy.wind_methods import wind_download_and_prepare
-import pandas as pd
-from matplotlib import pyplot as plt
+import datetime as dt
+import os
+import pickle
+
 # import sys
 import matplotlib as mpl
+import matplotlib.dates as mdates
+import numpy as np
+import pandas as pd
+import scipy
+
 # from matplotlib.ticker import (MultipleLocator)
 # import format_tick_labels
 from matplotlib import cm
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from PIL import Image
-import matplotlib.dates as mdates
-import os
-import datetime as dt
-from anisotropy.background_analysis_updated import run_background_analysis, run_background_analysis_equal_decay, run_background_analysis_all, evaluate_background, run_background_analysis_binwise, run_background_analysis_equal_decay_binwise, run_background_analysis_all_binwise, evaluate_background_binwise, run_background_analysis_all_nomag, evaluate_background_all
-from anisotropy.anisotropy_functions_updated import anisotropy_weighted_sum, bootstrap_anisotropy, anisotropy_prepare, anisotropy_legendre_fit
-import pickle
-import scipy
+from seppy.util import custom_warning
+
+from anisotropy.anisotropy_functions_updated import (
+    anisotropy_legendre_fit,
+    anisotropy_prepare,
+    anisotropy_weighted_sum,
+    bootstrap_anisotropy,
+)
+from anisotropy.background_analysis_updated import (
+    evaluate_background,
+    evaluate_background_all,
+    evaluate_background_binwise,
+    run_background_analysis,
+    run_background_analysis_all,
+    run_background_analysis_all_binwise,
+    run_background_analysis_all_nomag,
+    run_background_analysis_binwise,
+    run_background_analysis_equal_decay,
+    run_background_analysis_equal_decay_binwise,
+)
+from anisotropy.solo_methods import (
+    solo_download_and_prepare,  # , solo_download_intensities
+)
+from anisotropy.stereo_methods import stereo_download_and_prepare
+from anisotropy.wind_methods import wind_download_and_prepare
 
 plt.rcParams["font.size"] = 12
 # plt.rcParams["font.family"] = "Arial"
@@ -1031,8 +1053,7 @@ class SEPevent:
         """
         if (ani_method == 'weighted_sum_bootstrap') and (self.spacecraft == 'Wind'):
             ani_method = 'weighted_sum'
-            print('!!! No bootstrapping uncertainties available for Wind 3DP due to missing count data')
-            print('Applying ani_method="weighted_sum" instead')        
+            custom_warning('No bootstrapping uncertainties available for Wind 3DP due to missing count data! Applying ani_method="weighted_sum" instead')
         # if self.spacecraft == "Wind":
         #     print("Error treatment for Wind only based on background subtraction, not on counting statistics (count data not available).")
         if ani_method == 'weighted_sum':
