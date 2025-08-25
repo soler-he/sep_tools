@@ -326,7 +326,7 @@ class SEPevent:
         
         hist = hist / hist_counts
         pad_norm_str = ''
-        if pad_norm != None:
+        if pad_norm is not None:
             pad_norm_str = '_pad_normed-'+pad_norm
             if pad_norm == 'mean':
                 hist_mean = np.nanmean(hist, axis=0)
@@ -347,7 +347,7 @@ class SEPevent:
         hist_no_0[np.where(hist_no_0 == 0)[0]] = np.nan
         hist_no_0[hist_no_0 < 0] = np.nan
         
-        if pad_norm == None:
+        if pad_norm is None:
             if hmin == -1:
                 hmin = np.nanmin(hist_no_0)
             if hmax == -1:
@@ -370,7 +370,7 @@ class SEPevent:
                 hmax = colmax = np.nanmax(hist[np.isfinite(hist)==True])
         
         # plot the color-coded PAD
-        if pad_norm == None:
+        if pad_norm is None:
             pcm = ax.pcolormesh(X, Y, hist, cmap=cmap, norm=LogNorm(vmin=colmin, vmax=colmax))
         if pad_norm == 'mean':
             pcm = ax.pcolormesh(X, Y, hist, cmap=cmap) # without lognorm better
@@ -880,7 +880,7 @@ class SEPevent:
         
         hist = hist / hist_counts
         pad_norm_str = ''
-        if pad_norm != None:
+        if pad_norm is not None:
             pad_norm_str = '_pad_normed-'+pad_norm
             if pad_norm == 'mean':
                 hist_mean = np.nanmean(hist, axis=0)
@@ -901,7 +901,7 @@ class SEPevent:
         hist_no_0[np.where(hist_no_0 == 0)[0]] = np.nan
         hist_no_0[hist_no_0 < 0] = np.nan
         
-        if pad_norm == None:
+        if pad_norm is None:
             if hmin == -1:
                 hmin = np.nanmin(hist_no_0)
             if hmax == -1:
@@ -924,7 +924,7 @@ class SEPevent:
                 hmax = colmax = np.nanmax(hist[np.isfinite(hist)==True])
         
         # plot the color-coded PAD
-        if pad_norm == None:
+        if pad_norm is None:
             pcm = ax.pcolormesh(X, Y, hist, cmap=cmap, norm=LogNorm(vmin=colmin, vmax=colmax))
         if pad_norm == 'mean':
             pcm = ax.pcolormesh(X, Y, hist, cmap=cmap) # without lognorm better
@@ -946,7 +946,7 @@ class SEPevent:
         cbar = fig.colorbar(pcm, cax=cax, orientation='vertical', aspect=40)  #, ticks = LogLocator(subs=range(10)))
         cax.yaxis.set_ticks_position('right')
         cax.yaxis.set_label_position('right')
-        if pad_norm == None:
+        if pad_norm is None:
             cax.set_ylabel(intensity_label, fontsize=legend_font)#, labelpad=-75)
         else:
             cax.set_ylabel(f'Flux normalized\n({pad_norm})', fontsize=legend_font)
@@ -1254,7 +1254,7 @@ class SEPevent:
         
         hist = hist / hist_counts
         pad_norm_str = ''
-        if pad_norm != None:
+        if pad_norm is not None:
             pad_norm_str = '_pad_normed-'+pad_norm
             if pad_norm == 'mean':
                 hist_mean = np.nanmean(hist, axis=0)
@@ -1275,7 +1275,7 @@ class SEPevent:
         hist_no_0[np.where(hist_no_0 == 0)[0]] = np.nan
         hist_no_0[hist_no_0 < 0] = np.nan
         
-        if pad_norm == None:
+        if pad_norm is None:
             if hmin == -1:
                 hmin = np.nanmin(hist_no_0)
             if hmax == -1:
@@ -1298,7 +1298,7 @@ class SEPevent:
                 hmax = colmax = np.nanmax(hist[np.isfinite(hist)==True])
         
         # plot the color-coded PAD
-        if pad_norm == None:
+        if pad_norm is None:
             pcm = ax.pcolormesh(X, Y, hist, cmap=cmap, norm=LogNorm(vmin=colmin, vmax=colmax))
         if pad_norm == 'mean':
             pcm = ax.pcolormesh(X, Y, hist, cmap=cmap) # without lognorm better
@@ -1518,7 +1518,7 @@ class SEPevent:
         
         hist = hist / hist_counts
         pad_norm_str = ''
-        if pad_norm != None:
+        if pad_norm is not None:
             pad_norm_str = '_pad_normed-'+pad_norm
             if pad_norm == 'mean':
                 hist_mean = np.nanmean(hist, axis=0)
@@ -1539,7 +1539,7 @@ class SEPevent:
         hist_no_0[np.where(hist_no_0 == 0)[0]] = np.nan
         hist_no_0[hist_no_0 < 0] = np.nan
         
-        if pad_norm == None:
+        if pad_norm is None:
             if hmin == -1:
                 hmin = np.nanmin(hist_no_0)
             if hmax == -1:
@@ -1562,7 +1562,7 @@ class SEPevent:
                 hmax = colmax = np.nanmax(hist[np.isfinite(hist)==True])
         
         # plot the color-coded PAD
-        if pad_norm == None:
+        if pad_norm is None:
             pcm = ax.pcolormesh(X, Y, hist, cmap=cmap, norm=LogNorm(vmin=colmin, vmax=colmax))
         if pad_norm == 'mean':
             pcm = ax.pcolormesh(X, Y, hist, cmap=cmap) # without lognorm better
@@ -1623,21 +1623,21 @@ class SEPevent:
         ax.fill_between(coverage.index,-3,max_ani,color="black",alpha=0.3,edgecolor=None)
         ax.fill_between(coverage.index,min_ani,3,color="black",alpha=0.3,edgecolor=None)
         if ani_method == 'weighted_sum_bootstrap':
-            ax.plot(I_times,Ani[:,0],label="w/o background substraction",color="black", linewidth=1)
-            ax.fill_between(I_times,Ani[:,2],Ani[:,3],alpha=0.2,zorder=1,edgecolor=None,facecolor="black")
-            ind = (I_times>=bg_end)&(I_times<=corr_window_end)
-            ax.fill_between(I_times[ind],Ani_bgsub[ind,2],Ani_bgsub[ind,3],alpha=0.3,zorder=1,edgecolor=None,facecolor="magenta")
-            ax.plot(I_times[(I_times>=bg_end)&(I_times <= corr_window_end)],Ani_bgsub[(I_times>=bg_end)&(I_times<=corr_window_end), 0],label="with background substraction",color="magenta", linewidth=1)
+            ax.plot(I_times, Ani[:,0], label="w/o background substraction", color="black", linewidth=1)
+            ax.fill_between(I_times, Ani[:,2], Ani[:,3], alpha=0.2, zorder=1, edgecolor=None, facecolor="black")
+            ind = (I_times >= bg_end) & (I_times <= corr_window_end)
+            ax.fill_between(I_times[ind], Ani_bgsub[ind,2], Ani_bgsub[ind,3], alpha=0.3, zorder=1, edgecolor=None, facecolor="magenta")
+            ax.plot(I_times[(I_times >= bg_end) & (I_times <= corr_window_end)], Ani_bgsub[(I_times >= bg_end) & (I_times <= corr_window_end), 0], label="with background substraction", color="magenta", linewidth=1)
         else:
-            ax.plot(I_times,Ani,label="w/o background substraction",color="black", linewidth=1)
-            ax.plot(I_times[(I_times>=bg_end) & (I_times <= corr_window_end)],Ani_bgsub[(I_times>=bg_end) & (I_times <= corr_window_end)],label="with background substraction",color="magenta", linewidth=1)
+            ax.plot(I_times, Ani, label="w/o background substraction", color="black", linewidth=1)
+            ax.plot(I_times[(I_times >= bg_end) & (I_times <= corr_window_end)], Ani_bgsub[(I_times >= bg_end) & (I_times <= corr_window_end)], label="with background substraction", color="magenta", linewidth=1)
 
         ax.text(0.02, 0.92, "background subtracted", color="magenta",horizontalalignment='left', verticalalignment='top', transform = ax.transAxes,fontsize=font_size-1)
         ax.set_ylabel("$A_1$")
-        ax.axhline(0,ls=":",color="gray",zorder=1)
-        ax.set_ylim(-3,3)
+        ax.axhline(0,ls=":", color="gray", zorder=1)
+        ax.set_ylim(-3, 3)
 
-        ax.set_xlabel("Universal Time (UT)",fontsize=font_size,labelpad=15)
+        ax.set_xlabel("Universal Time (UT)", fontsize=font_size, labelpad=15)
         ax.tick_params(axis='x', which='major', pad=5, direction="in")
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))#\n%b %d, %Y'))
 
