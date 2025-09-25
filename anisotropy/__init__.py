@@ -24,7 +24,7 @@ log.setLevel('WARNING')
 
 def select_sc_inst():
     spacecraft_instrument = w.RadioButtons(options=['Solar Orbiter EPT', 'Solar Orbiter HET', 'STEREO-A SEPT', 'STEREO-B SEPT', 'Wind 3DP'],
-                                           value='Solar Orbiter EPT',
+                                           value='Wind 3DP',
                                            layout={'width': 'max-content'},  # If the items' names are long
                                            description='Spacecraft & instrument:',
                                            disabled=False)
