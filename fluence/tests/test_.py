@@ -157,7 +157,7 @@ def test_SEP_Fluence_Spectra_Solar_Orbiter_HET():
     #
     w.spacecraft_drop.value = 'Solar Orbiter'
     w.sensor_drop.value = 'HET'
-    w.view_drop.value = 'asun'
+    # w.view_drop.value = 'asun'
     w.species_drop.value = 'electrons'
     #
     # spectral integration interval:
