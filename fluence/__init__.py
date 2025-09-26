@@ -304,7 +304,7 @@ class Event:
             unc_spec = np.zeros(len(I_spec))*np.nan
         else:
             df_uncs = self.df[self.df.filter(like=unc_id).columns]
-            # For PSP, remove asymmetric uncertainties like A_H_Uncertainty_Minus_0 & A_H_Uncertainty_Plus_0 for now  # TODO: catch if not in columns!
+            # For PSP, remove asymmetric uncertainties like A_H_Uncertainty_Minus_0 & A_H_Uncertainty_Plus_0 for now
             if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
                 for col in ['Minus', 'Plus']:
                     try:
