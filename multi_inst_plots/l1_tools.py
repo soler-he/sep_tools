@@ -144,7 +144,7 @@ def load_waves_rad(dataset, startdate, enddate, file_path=None):
             cdf = cdflib.CDF(file)
 
             # PSD shape (nTime, nFreq)
-            psd_raw = cdf.varget("PSD_V2_SP")
+            psd_raw = cdf.varget("PSD_V2_SP")  # TODO: use "PSD_V2_Z" instead?
             # Time
             time_ns = cdf.varget("Epoch")  # shape (nTime,)
 
