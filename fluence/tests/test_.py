@@ -1,12 +1,14 @@
 import os
 import datetime as dt
-# import pandas as pd
+import numpy as np
 from fluence import Event
 import fluence.widgets as w
 from seppy.util import jupyterhub_data_path
 from IPython.display import display
 import pytest
 
+# ignore divide by zero warnings in numpy
+np.seterr(divide='ignore', invalid='ignore')
 
 """
 Install dependencies for tests:
