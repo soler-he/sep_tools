@@ -18,6 +18,7 @@ pytest -rP --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-gene
 
 
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
+@pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
 def test_SEP_Multi_Instrument_Plot_PSP():
     m.options.path = f"{os.getcwd()}{os.sep}data"
@@ -31,6 +32,7 @@ def test_SEP_Multi_Instrument_Plot_PSP():
 
 
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
+@pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
 def test_SEP_Multi_Instrument_Plot_SolO():
     m.options.path = f"{os.getcwd()}{os.sep}data"
@@ -43,6 +45,7 @@ def test_SEP_Multi_Instrument_Plot_SolO():
 
 
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
+@pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
 def test_SEP_Multi_Instrument_Plot_STEREO():
     m.options.path = f"{os.getcwd()}{os.sep}data"
@@ -54,6 +57,7 @@ def test_SEP_Multi_Instrument_Plot_STEREO():
 
 
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
+@pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
 @pytest.mark.filterwarnings("ignore::UserWarning:seppy")
 def test_SEP_Multi_Instrument_Plot_L1():
