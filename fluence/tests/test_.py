@@ -26,7 +26,7 @@ pytest -rP --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-gene
 @pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 @pytest.mark.filterwarnings("ignore::UserWarning:seppy")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning:numpy")
+@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
 def test_SEP_Fluence_Spectra_PSP_ISOIS_EPIHI():
     display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop)
     #
@@ -69,7 +69,7 @@ def test_SEP_Fluence_Spectra_PSP_ISOIS_EPIHI():
 @pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 @pytest.mark.filterwarnings("ignore::UserWarning:seppy")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning:numpy")
+@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
 def test_SEP_Fluence_Spectra_SOHO_ERNE_HED():
     display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop)
     #
@@ -113,7 +113,7 @@ def test_SEP_Fluence_Spectra_SOHO_ERNE_HED():
 @pytest.mark.filterwarnings("ignore::UserWarning:seppy")
 @pytest.mark.filterwarnings("ignore::UserWarning:solo_epd_loader")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning:numpy")
+@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
 def test_SEP_Fluence_Spectra_Solar_Orbiter_EPT():
     display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop)
     #
@@ -157,7 +157,7 @@ def test_SEP_Fluence_Spectra_Solar_Orbiter_EPT():
 @pytest.mark.filterwarnings("ignore::UserWarning:seppy")
 @pytest.mark.filterwarnings("ignore::UserWarning:solo_epd_loader")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning:numpy")
+@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
 def test_SEP_Fluence_Spectra_Solar_Orbiter_HET():
     display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop)
     #
@@ -200,7 +200,7 @@ def test_SEP_Fluence_Spectra_Solar_Orbiter_HET():
 @pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 @pytest.mark.filterwarnings("ignore::UserWarning:seppy")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning:numpy")
+@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
 def test_SEP_Fluence_Spectra_STEREO_A_SEPT():
     display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop)
     #
@@ -243,7 +243,7 @@ def test_SEP_Fluence_Spectra_STEREO_A_SEPT():
 @pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 @pytest.mark.filterwarnings("ignore::UserWarning:seppy")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning:numpy")
+@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
 def test_SEP_Fluence_Spectra_STEREO_A_HET():
     display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop)
     #
