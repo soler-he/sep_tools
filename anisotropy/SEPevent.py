@@ -266,7 +266,7 @@ class SEPevent:
     def overview_plot(self, end_str=None, plot_onset=False, savefig=False):
         font_size = plt.rcParams["font.size"]
         legend_font = plt.rcParams["font.size"] - 2
-        fig, axes = plt.subplots(3, figsize=(8,5), sharex=True,gridspec_kw={'height_ratios': [1.6,1.6,2.2]},num=1,clear=True)
+        fig, axes = plt.subplots(3, 1, figsize=(8, 5), sharex=True, gridspec_kw={'height_ratios': [1.6, 1.6, 2.2]})
         plt.subplots_adjust(hspace=0.08)
         pad_norm = None
 
@@ -816,7 +816,7 @@ class SEPevent:
     def overview_plot_bgsub(self,plot_onset=False, savefig=False):
         font_size = plt.rcParams["font.size"]
         legend_font = plt.rcParams["font.size"] - 2
-        fig, axes = plt.subplots(4, figsize=(8,8), sharex=True,gridspec_kw={'height_ratios': [1.6,1.6,2.2,2.2]},num=2,clear=True)
+        fig, axes = plt.subplots(4, 1, figsize=(8, 8), sharex=True, gridspec_kw={'height_ratios': [1.6, 1.6, 2.2, 2.2]})
         plt.subplots_adjust(hspace=0.08)
         pad_norm = None
 
@@ -1222,7 +1222,7 @@ class SEPevent:
         else:
             color = [f"C{i}" for i in range(len(sectors))]
             
-        fig, axes = plt.subplots(5, figsize=(7,9.5), sharex=True,gridspec_kw={'height_ratios': [1.6,1.6,2.2,2.2,2.2]},num=3,clear=True)
+        fig, axes = plt.subplots(5, figsize=(7, 9.5), sharex=True, gridspec_kw={'height_ratios': [1.6, 1.6, 2.2, 2.2, 2.2]})
         plt.subplots_adjust(hspace=0.08)
         pad_norm = None
         
@@ -1486,7 +1486,7 @@ class SEPevent:
         else:
             color = [f"C{i}" for i in range(len(sectors))]
             
-        fig, axes = plt.subplots(5, figsize=(7,9.5), sharex=True,gridspec_kw={'height_ratios': [1.6,1.6,2.2,2.2,2.2]},num=3,clear=True)
+        fig, axes = plt.subplots(5, figsize=(7, 9.5), sharex=True, gridspec_kw={'height_ratios': [1.6, 1.6, 2.2, 2.2, 2.2]})
         plt.subplots_adjust(hspace=0.08)
         pad_norm = None
         
