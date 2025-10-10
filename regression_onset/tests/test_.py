@@ -17,11 +17,12 @@ To create/update the baseline images, run the following command from the base pa
 pytest --mpl-generate-path=regression_onset/tests/baseline regression_onset/tests/test_.py
 
 To run the tests locally, go to the base directory of the repository and run:
-pytest -rP --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html
+pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html
 """
 
 
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
+@pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 def test_SEP_Regression_Analysis():
     display(select_data.data_file)
     #

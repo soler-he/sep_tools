@@ -13,11 +13,12 @@ To create/update the baseline images, run the following command from the base pa
 pytest --mpl-generate-path=anisotropy/tests/baseline anisotropy/tests/test_.py
 
 To run the tests locally, go to the base directory of the repository and run:
-pytest -rP --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html
+pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html
 """
 
 
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
+@pytest.mark.filterwarnings("ignore:All-NaN slice encountered:RuntimeWarning")
 def test_SEP_PADs_and_Anisotropy_Wind_3DP_full():
     data_path = f"{os.getcwd()}{os.sep}data"
     data_path = jupyterhub_data_path(data_path)
@@ -59,6 +60,7 @@ def test_SEP_PADs_and_Anisotropy_Wind_3DP_full():
 
 
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
+@pytest.mark.filterwarnings("ignore:All-NaN slice encountered:RuntimeWarning")
 def test_SEP_PADs_and_Anisotropy_Wind_3DP_full_fit():
     data_path = f"{os.getcwd()}{os.sep}data"
     data_path = jupyterhub_data_path(data_path)
@@ -100,6 +102,7 @@ def test_SEP_PADs_and_Anisotropy_Wind_3DP_full_fit():
 
 
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
+@pytest.mark.filterwarnings("ignore:All-NaN slice encountered:RuntimeWarning")
 def test_SEP_PADs_and_Anisotropy_Solar_Orbiter_EPT_loading_only():
     data_path = f"{os.getcwd()}{os.sep}data"
     data_path = jupyterhub_data_path(data_path)
@@ -141,6 +144,7 @@ def test_SEP_PADs_and_Anisotropy_Solar_Orbiter_EPT_loading_only():
 
 
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
+@pytest.mark.filterwarnings("ignore:All-NaN slice encountered:RuntimeWarning")
 def test_SEP_PADs_and_Anisotropy_Solar_Orbiter_HET_full_weighted_sum_bootstrap():
     data_path = f"{os.getcwd()}{os.sep}data"
     data_path = jupyterhub_data_path(data_path)
@@ -183,6 +187,7 @@ def test_SEP_PADs_and_Anisotropy_Solar_Orbiter_HET_full_weighted_sum_bootstrap()
 
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
+@pytest.mark.filterwarnings("ignore:All-NaN slice encountered:RuntimeWarning")
 def test_SEP_PADs_and_Anisotropy_STEREO_A_SEPT_loading_only():
     data_path = f"{os.getcwd()}{os.sep}data"
     data_path = jupyterhub_data_path(data_path)

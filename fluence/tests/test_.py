@@ -18,7 +18,7 @@ To create/update the baseline images, run the following command from the base pa
 pytest --mpl-generate-path=fluence/tests/baseline fluence/tests/test_.py
 
 To run the tests locally, go to the base directory of the repository and run:
-pytest -rP --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html
+pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html
 """
 
 
