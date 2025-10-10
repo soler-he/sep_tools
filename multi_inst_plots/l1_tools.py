@@ -154,9 +154,8 @@ def load_waves_rad(dataset, startdate, enddate, file_path=None):
         except ValueError:
             pass
 
-    
     # Some files use a fill value ~ -9.9999998e+30
-    fill_val = -9.999999848243207e+30
+    fill_val = cdf.varattsget("FREQUENCY")['FILLVAL']
     valid_mask = (freq_hz > 0) & (freq_hz != fill_val) 
     freq_hz = freq_hz[valid_mask]
     psd_v2hz = psd_v2hz[:, valid_mask]
