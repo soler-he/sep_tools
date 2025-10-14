@@ -5,14 +5,6 @@ import cdflib
 import sunpy
 
 from matplotlib import pyplot as plt
-plt.rcParams['axes.linewidth'] = 1.5
-plt.rcParams['font.size'] = 12
-plt.rcParams['xtick.labelsize'] = 15
-plt.rcParams['ytick.labelsize'] = 15
-plt.rc('axes', titlesize=20)     # fontsize of the axes title
-plt.rc('axes', labelsize=20)    # fontsize of the x and y labels
-plt.rcParams['agg.path.chunksize'] = 20000
-
 from matplotlib import cm
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.colors import LogNorm, Normalize
@@ -25,6 +17,16 @@ from sunpy.coordinates import frames
 
 
 from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs, cdaweb_download_fido
+
+
+# define some plot settings
+plt.rcParams['axes.linewidth'] = 1.5
+plt.rcParams['font.size'] = 12
+plt.rcParams['xtick.labelsize'] = 15
+plt.rcParams['ytick.labelsize'] = 15
+plt.rc('axes', titlesize=20)     # fontsize of the axes title
+plt.rc('axes', labelsize=20)    # fontsize of the x and y labels
+plt.rcParams['agg.path.chunksize'] = 20000
 
 
 # omit Pandas' PerformanceWarning
