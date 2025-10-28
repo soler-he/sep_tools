@@ -112,7 +112,7 @@ def initial_checks(spacecraft, specieschannel, instrument, species, channels, st
     else:
         instrument = check_instrument(sc, instrument)
         species = check_species(species)
-        channels = check_channels(channels)
+        channels = check_channels(channels, spacecraft)
     if starttime >= endtime:
         raise ValueError("Start datetime later than end datetime.")
 
@@ -148,7 +148,7 @@ def check_instrumentchannels(spacecraft, specieschannel):
     return instrument, species, channels
 
 
-def check_channels(channels):
+def check_channels(channels, spacecraft):
     # Check that the channels is a valid input assuming that channel
     # numbering starts from 0.
     # Does not check if these channels exist for the specific instrument.
@@ -160,6 +160,11 @@ def check_channels(channels):
             raise ValueError("Channel list has too many elements: {}. Must have two items at most (lowest and highest channels).".format(channels))
         elif len(channels) == 0:
             raise ValueError("Channel list is empty.")
+        elif len(channels) == 1:
+            channels = channels[0]
+        elif len(channels) == 2:
+            if spacecraft == "Wind":
+                raise ValueError("Wind 3DP only supports single channel input.")
     else:
         raise TypeError("Channels should be an integer or a list.")
     return channels
