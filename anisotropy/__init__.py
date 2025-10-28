@@ -160,6 +160,8 @@ def check_channels(channels):
             raise ValueError("Channel list has too many elements: {}. Must have two items at most (lowest and highest channels).".format(channels))
         elif len(channels) == 0:
             raise ValueError("Channel list is empty.")
+        elif len(channels) == 1:
+            channels = channels[0]
     else:
         raise TypeError("Channels should be an integer or a list.")
     return channels
