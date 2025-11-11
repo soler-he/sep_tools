@@ -294,13 +294,13 @@ class Event:
         else:
             df_fluxes = self.df[self.df.filter(like=flux_id).columns]
 
-        I_spec = np.nanmean(df_fluxes.iloc[ind], axis=0)
+        I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)
 
         if self.spacecraft.lower() == 'wind':
-            I_spec = np.nanmean(df_fluxes.iloc[ind], axis=0)*1e6
+            I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)*1e6
             unc_spec = np.zeros(len(I_spec))*np.nan
         elif self.spacecraft.lower() == 'soho':
-            I_spec = np.nanmean(df_fluxes.iloc[ind], axis=0)
+            I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)
             unc_spec = np.zeros(len(I_spec))*np.nan
         else:
             df_uncs = self.df[self.df.filter(like=unc_id).columns]
@@ -311,7 +311,7 @@ class Event:
                         df_uncs = df_uncs[df_uncs.columns.drop([i for i in df_uncs.columns if col in i])]
                     except KeyError:
                         pass
-            unc_spec = np.nanmean(df_uncs.iloc[ind], axis=0)
+            unc_spec = np.nansum(df_uncs.iloc[ind], axis=0)
 
         if subtract_background:
             print('subtracting background')
