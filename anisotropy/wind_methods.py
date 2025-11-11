@@ -100,7 +100,11 @@ def wind_mag_gse(startdate, enddate, path=None):
         os.environ['WIND_DATA_DIR'] = path
         # pyspedas.wind.config.CONFIG['local_data_dir'] = path
     import pyspedas
-    mfi_vars = pyspedas.wind.mfi(trange=[startdate.strftime('%Y-%m-%d %H:%M:%S.%f'), enddate.strftime('%Y-%m-%d %H:%M:%S.%f')], datatype="h0", notplot=True, time_clip=True)
+    # pyspedas changed structure with version 2
+    try:
+        mfi_vars = pyspedas.wind.mfi(trange=[startdate.strftime('%Y-%m-%d %H:%M:%S.%f'), enddate.strftime('%Y-%m-%d %H:%M:%S.%f')], datatype="h0", notplot=True, time_clip=True)
+    except AttributeError:
+        mfi_vars = pyspedas.projects.wind.mfi(trange=[startdate.strftime('%Y-%m-%d %H:%M:%S.%f'), enddate.strftime('%Y-%m-%d %H:%M:%S.%f')], datatype="h0", notplot=True, time_clip=True)
     mag_gse = pd.DataFrame(data=mfi_vars["BGSE"]["y"], index=mfi_vars["BGSE"]["x"], columns=["bx_gse", "by_gse", "bz_gse"])
     return mag_gse
 
