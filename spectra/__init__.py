@@ -407,7 +407,7 @@ class Event:
         fig.tight_layout()
 
         if savefig:
-            filename = f'Spectrum_{spec_type}_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}.png'
+            filename = f'Spectrum_{self.spec_type}_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}.png'
             plt.savefig(filename)
             print(f"Figure saved as {filename}")
         # fig.show()
