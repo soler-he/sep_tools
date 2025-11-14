@@ -129,9 +129,11 @@ class Event:
                 
                 if spec_type == 'peak':
                     ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
-                    peak_time = self.df[flux_id][f'{flux_id}_{channel}'].iloc[ind].idxmax()
-                    peak_val = self.df[flux_id][f'{flux_id}_{channel}'].iloc[ind].max()
-                    axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
+                    # only plot peak if there is at least one non-nan value in the interval
+                    if not self.df[flux_id][f'{flux_id}_{channel}'].iloc[ind].isnull().all():
+                        peak_time = self.df[flux_id][f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
+                        peak_val = self.df[flux_id][f'{flux_id}_{channel}'].iloc[ind].max()
+                        axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
 
         if self.spacecraft.lower() in ['stereo a', 'stereo-a', 'stereo b', 'stereo-b']:
             if self.instrument.lower() == 'het':
@@ -162,9 +164,11 @@ class Event:
                 
                 if spec_type == 'peak':
                     ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
-                    peak_time = self.df[f'{flux_id}_{channel}'].iloc[ind].idxmax()
-                    peak_val = self.df[f'{flux_id}_{channel}'].iloc[ind].max()
-                    axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
+                    # only plot peak if there is at least one non-nan value in the interval
+                    if not self.df[f'{flux_id}_{channel}'].iloc[ind].isnull().all():
+                        peak_time = self.df[f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
+                        peak_val = self.df[f'{flux_id}_{channel}'].iloc[ind].max()
+                        axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
 
         if self.spacecraft.lower() in ['wind']:
             cols = self.df.filter(like='FLUX').columns
@@ -178,9 +182,11 @@ class Event:
 
                 if spec_type == 'peak':
                     ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
-                    peak_time = self.df[f'{flux_id}_{channel}'].iloc[ind].idxmax()
-                    peak_val = self.df[f'{flux_id}_{channel}'].iloc[ind].max()*1e6
-                    axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
+                    # only plot peak if there is at least one non-nan value in the interval
+                    if not self.df[f'{flux_id}_{channel}'].iloc[ind].isnull().all():
+                        peak_time = self.df[f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
+                        peak_val = self.df[f'{flux_id}_{channel}'].iloc[ind].max()*1e6
+                        axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
                     
         if self.spacecraft.lower() in ['soho']:
             flux_id = 'PH'
@@ -193,9 +199,11 @@ class Event:
                 
                 if spec_type == 'peak':
                     ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
-                    peak_time = self.df[f'{flux_id}_{channel}'].iloc[ind].idxmax()
-                    peak_val = self.df[f'{flux_id}_{channel}'].iloc[ind].max()
-                    axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
+                    # only plot peak if there is at least one non-nan value in the interval
+                    if not self.df[f'{flux_id}_{channel}'].iloc[ind].isnull().all():
+                        peak_time = self.df[f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
+                        peak_val = self.df[f'{flux_id}_{channel}'].iloc[ind].max()
+                        axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
                 
        
         if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
@@ -215,10 +223,11 @@ class Event:
                 
                 if spec_type == 'peak':
                     ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
-                    peak_time = self.df[f'{self.viewing}_{flux_id}_{channel}'].iloc[ind].idxmax()
-                    peak_val = self.df[f'{self.viewing}_{flux_id}_{channel}'].iloc[ind].max()
-                    axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
-                
+                    # only plot peak if there is at least one non-nan value in the interval
+                    if not self.df[f'{self.viewing}_{flux_id}_{channel}'].iloc[ind].isnull().all():
+                        peak_time = self.df[f'{self.viewing}_{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
+                        peak_val = self.df[f'{self.viewing}_{flux_id}_{channel}'].iloc[ind].max()
+                        axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
 
         if subtract_background:
             axs.axvspan(background_start, background_end, color='pink', alpha=0.2, label='Background Period')
