@@ -96,7 +96,7 @@ class Event:
                                                     path=data_path, resample=resample)
         # return df, meta
 
-    def plot_flux(self, spec_start, spec_end, subtract_background=True, background_start=None, background_end=None, savefig=False, spec_type='integrate'):
+    def plot_flux(self, spec_start, spec_end, subtract_background=True, background_start=None, background_end=None, savefig=False, spec_type='integral'):
                
         fig, axs = plt.subplots(1, sharex=True, figsize=(9, 6), dpi=200)
 
@@ -251,7 +251,7 @@ class Event:
         plt.show()
         return fig, axs
 
-    def get_spec(self, spec_start, spec_end, spec_type='integrate', subtract_background=True, background_start=None, background_end=None):
+    def get_spec(self, spec_start, spec_end, spec_type='integral', subtract_background=True, background_start=None, background_end=None):
         I_spec = []
         unc_spec = []
         ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
@@ -326,7 +326,7 @@ class Event:
         else:
             df_fluxes = self.df[self.df.filter(like=flux_id).columns]
 
-        if spec_type == 'integrate':
+        if spec_type == 'integral':
             I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)
     
             if self.spacecraft.lower() == 'wind':
@@ -388,8 +388,8 @@ class Event:
         ax.errorbar(self.spec_E, self.final_spec, yerr=self.final_unc, fmt='o', markersize=8,
                     label=self.species, elinewidth=2, capsize=5, capthick=2)
         
-        if self.spec_type == 'integrate':
-            spec_type_str = 'integrated spectrum'
+        if self.spec_type == 'integral':
+            spec_type_str = 'integral spectrum'
             ylabel_str = "Intensity (cm² sr MeV)⁻¹"
         if self.spec_type == 'peak':
             spec_type_str = 'peak spectrum'
