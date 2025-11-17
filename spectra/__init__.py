@@ -96,8 +96,8 @@ class Event:
                                                     path=data_path, resample=resample)
         # return df, meta
 
-    def plot_flux(self, integration_start, integration_end, subtract_background=True, background_start=None, background_end=None, savefig=False):
-
+    def plot_flux(self, spec_start, spec_end, subtract_background=True, background_start=None, background_end=None, savefig=False, spec_type='integral'):
+               
         fig, axs = plt.subplots(1, sharex=True, figsize=(9, 6), dpi=200)
 
         if self.spacecraft.lower() == 'solo':
@@ -105,11 +105,11 @@ class Event:
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
                     flux_id = 'Electron_Flux'
                     energy_text = 'Electron_Bins_Text'
-                    show_channels = [0, 4, 8, 12, 16, 20, 24, 28, 32]
+                    show_channels = [1, 4, 8, 12, 16, 20, 24, 28, 32]
                 if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
                     flux_id = 'Ion_Flux'
                     energy_text = 'Ion_Bins_Text'
-                    show_channels = [0, 4, 8, 12, 16, 20, 24, 28, 32]
+                    show_channels = [1, 4, 8, 12, 16, 20, 24, 28, 32]
 
             if self.instrument.lower() == 'het':
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
@@ -121,10 +121,19 @@ class Event:
                     energy_text = "H_Bins_Text"
                     flux_id = "H_Flux"
 
+            
             # plotting
             for channel in show_channels:
                 label = self.meta[energy_text][channel]
                 axs.plot(self.df.index, self.df[flux_id][f'{flux_id}_{channel}'], label=label)
+                
+                if spec_type == 'peak':
+                    ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
+                    # only plot peak if there is at least one non-nan value in the interval
+                    if not self.df[flux_id][f'{flux_id}_{channel}'].iloc[ind].isnull().all():
+                        peak_time = self.df[flux_id][f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
+                        peak_val = self.df[flux_id][f'{flux_id}_{channel}'].iloc[ind].max()
+                        axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
 
         if self.spacecraft.lower() in ['stereo a', 'stereo-a', 'stereo b', 'stereo-b']:
             if self.instrument.lower() == 'het':
@@ -152,6 +161,14 @@ class Event:
             for channel in show_channels:
                 label = self.meta[energy_text][channel]
                 axs.plot(self.df.index, self.df[f'{flux_id}_{channel}'], label=label)
+                
+                if spec_type == 'peak':
+                    ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
+                    # only plot peak if there is at least one non-nan value in the interval
+                    if not self.df[f'{flux_id}_{channel}'].iloc[ind].isnull().all():
+                        peak_time = self.df[f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
+                        peak_val = self.df[f'{flux_id}_{channel}'].iloc[ind].max()
+                        axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
 
         if self.spacecraft.lower() in ['wind']:
             cols = self.df.filter(like='FLUX').columns
@@ -163,6 +180,14 @@ class Event:
                 label = self.meta['channels_dict_df']['Bins_Text'][f'ENERGY_{channel}']
                 axs.plot(self.df.index, self.df[f'{flux_id}_{channel}']*1e6, label=label)
 
+                if spec_type == 'peak':
+                    ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
+                    # only plot peak if there is at least one non-nan value in the interval
+                    if not self.df[f'{flux_id}_{channel}'].iloc[ind].isnull().all():
+                        peak_time = self.df[f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
+                        peak_val = self.df[f'{flux_id}_{channel}'].iloc[ind].max()*1e6
+                        axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
+                    
         if self.spacecraft.lower() in ['soho']:
             flux_id = 'PH'
             show_channels = np.arange(len(self.erne_chstring))
@@ -171,6 +196,14 @@ class Event:
             for channel in show_channels:
                 label = self.erne_chstring[channel]
                 axs.plot(self.df.index, self.df[f'{flux_id}_{channel}'], label=label)
+                
+                if spec_type == 'peak':
+                    ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
+                    # only plot peak if there is at least one non-nan value in the interval
+                    if not self.df[f'{flux_id}_{channel}'].iloc[ind].isnull().all():
+                        peak_time = self.df[f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
+                        peak_val = self.df[f'{flux_id}_{channel}'].iloc[ind].max()
+                        axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
                 
        
         if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
@@ -187,11 +220,19 @@ class Event:
             for channel in show_channels:
                 label = self.meta[energy_text][channel]
                 axs.plot(self.df.index, self.df[f'{self.viewing}_{flux_id}_{channel}'], label=label)
+                
+                if spec_type == 'peak':
+                    ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
+                    # only plot peak if there is at least one non-nan value in the interval
+                    if not self.df[f'{self.viewing}_{flux_id}_{channel}'].iloc[ind].isnull().all():
+                        peak_time = self.df[f'{self.viewing}_{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
+                        peak_val = self.df[f'{self.viewing}_{flux_id}_{channel}'].iloc[ind].max()
+                        axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
 
         if subtract_background:
             axs.axvspan(background_start, background_end, color='pink', alpha=0.2, label='Background Period')
-        axs.axvline(integration_start, color='red', label='Integration Start')
-        axs.axvline(integration_end, color='green', label='Integration End')
+        axs.axvline(spec_start, color='red', label='Integration Start')
+        axs.axvline(spec_end, color='green', label='Integration End')
 
         axs.set_yscale('log')
         axs.set_ylabel(r"Intensity [1/(cm$^2$ sr s MeV)]")
@@ -205,7 +246,7 @@ class Event:
                    title=f'{self.species} {self.viewing}', fontsize=9, ncol=3, frameon=True,
                    facecolor='white', edgecolor='black', title_fontsize='11')
 
-        fig.suptitle(f'{self.spacecraft.upper()} / {self.instrument.upper()} {self.viewing}', fontsize=14)
+        fig.suptitle(f'{self.spacecraft.upper()} / {self.instrument.upper()} {self.viewing} (spectral type = {spec_type})', fontsize=14)
 
         plt.subplots_adjust(hspace=0)
         plt.tight_layout()
@@ -219,10 +260,10 @@ class Event:
         plt.show()
         return fig, axs
 
-    def get_integrated_spec(self, integration_start, integration_end, subtract_background=True, background_start=None, background_end=None):
+    def get_spec(self, spec_start, spec_end, spec_type='integral', subtract_background=True, background_start=None, background_end=None):
         I_spec = []
         unc_spec = []
-        ind = np.where((self.df.index >= integration_start) & (self.df.index <= integration_end))[0]
+        ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
         if subtract_background:
             ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
 
@@ -239,10 +280,10 @@ class Event:
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
                     species_key = 'Electron'
 
-            cols = self.df.filter(like=species_key).columns
+            # cols = self.df.filter(like=species_key).columns
             flux_id = f'{species_key}_Flux_'
             unc_id = f'{species_key}_Uncertainty_'
-            fluxes = self.df[cols]
+            # fluxes = self.df[cols]
 
             low_E = np.array(self.meta[f'{species_key}_Bins_Low_Energy'])
             high_E = low_E + np.array(self.meta[f'{species_key}_Bins_Width'])
@@ -251,34 +292,34 @@ class Event:
         if self.spacecraft.lower() in ['stereo a', 'stereo-a', 'stereo b', 'stereo-b']:
             if self.instrument.lower() == 'het':
                 if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
-                    cols = self.df.filter(like='Proton').columns
+                    # cols = self.df.filter(like='Proton').columns
                     flux_id = 'Proton_Flux_'
                     unc_id = 'Proton_Sigma_'
-                    fluxes = self.df[cols]
+                    # fluxes = self.df[cols]
                     self.spec_E = np.array(self.meta['channels_dict_df_p'].mean_E)
-                    num_channels = len(self.df.filter(like='Proton_Flux').columns)
+                    # # num_channels = len(self.df.filter(like='Proton_Flux').columns)
 
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
-                    cols = self.df.filter(like='Electron').columns
+                    # cols = self.df.filter(like='Electron').columns
                     flux_id = 'Electron_Flux_'
                     unc_id = 'Electron_Sigma_'
-                    fluxes = self.df[cols]
+                    # fluxes = self.df[cols]
                     self.spec_E = np.array(self.meta['channels_dict_df_e'].mean_E)
-                    num_channels = len(self.df.filter(like='Electron_Flux').columns)
+                    # num_channels = len(self.df.filter(like='Electron_Flux').columns)
             if self.instrument.lower() == 'sept':
                 unc_id = 'err_ch_'
                 self.spec_E = self.meta['mean_E'].values
 
         if self.spacecraft.lower() in ['wind']:
-            cols = self.df.filter(like='FLUX').columns
+            # cols = self.df.filter(like='FLUX').columns
             flux_id = 'FLUX'
-            fluxes = self.df[cols]
+            # fluxes = self.df[cols]
             self.spec_E = self.meta['channels_dict_df']['mean_E'].values*1e-6
 
         if self.spacecraft.lower() in ['soho']:
-            cols = self.df.filter(like='PH').columns
+            # cols = self.df.filter(like='PH').columns
             flux_id = 'PH_'
-            #fluxes = self.df[cols]
+            # fluxes = self.df[cols]
             self.spec_E = self.meta['channels_dict_df_p']['mean_E']
 
         if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
@@ -294,55 +335,91 @@ class Event:
         else:
             df_fluxes = self.df[self.df.filter(like=flux_id).columns]
 
-        I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)
-
-        if self.spacecraft.lower() == 'wind':
-            I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)*1e6
-            unc_spec = np.zeros(len(I_spec))*np.nan
-        elif self.spacecraft.lower() == 'soho':
+        if spec_type == 'integral':
             I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)
-            unc_spec = np.zeros(len(I_spec))*np.nan
-        else:
-            df_uncs = self.df[self.df.filter(like=unc_id).columns]
-            # For PSP, remove asymmetric uncertainties like A_H_Uncertainty_Minus_0 & A_H_Uncertainty_Plus_0 for now
-            if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
-                for col in ['Minus', 'Plus']:
-                    try:
-                        df_uncs = df_uncs[df_uncs.columns.drop([i for i in df_uncs.columns if col in i])]
-                    except KeyError:
-                        pass
-            unc_spec = np.nansum(df_uncs.iloc[ind], axis=0)
+    
+            if self.spacecraft.lower() == 'wind':
+                I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)*1e6
+                unc_spec = np.zeros(len(I_spec))*np.nan
+            elif self.spacecraft.lower() == 'soho':
+                I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)
+                unc_spec = np.zeros(len(I_spec))*np.nan
+            else:
+                df_uncs = self.df[self.df.filter(like=unc_id).columns]
+                # For PSP, remove asymmetric uncertainties like A_H_Uncertainty_Minus_0 & A_H_Uncertainty_Plus_0 for now
+                if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
+                    for col in ['Minus', 'Plus']:
+                        try:
+                            df_uncs = df_uncs[df_uncs.columns.drop([i for i in df_uncs.columns if col in i])]
+                        except KeyError:
+                            pass
+                unc_spec = np.nansum(df_uncs.iloc[ind], axis=0)
 
+        
+        if spec_type == 'peak':
+            I_spec = np.nanmax(df_fluxes.iloc[ind], axis=0)
+            
+            if self.spacecraft.lower() == 'wind':
+                I_spec = np.nanmax(df_fluxes.iloc[ind], axis=0)*1e6
+                unc_spec = np.zeros(len(I_spec))*np.nan
+            elif self.spacecraft.lower() == 'soho':
+                I_spec = np.nanmax(df_fluxes.iloc[ind], axis=0)
+                unc_spec = np.zeros(len(I_spec))*np.nan
+            else:
+                df_uncs = self.df[self.df.filter(like=unc_id).columns]
+                # For PSP, remove asymmetric uncertainties like A_H_Uncertainty_Minus_0 & A_H_Uncertainty_Plus_0 for now
+                if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
+                    for col in ['Minus', 'Plus']:
+                        try:
+                            df_uncs = df_uncs[df_uncs.columns.drop([i for i in df_uncs.columns if col in i])]
+                        except KeyError:
+                            pass
+                unc_spec = np.nanmax(df_uncs.iloc[ind], axis=0)
+
+        
         if subtract_background:
             print('subtracting background')
             bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
-            self.integrated_spec = I_spec - bg_spec
+            self.final_spec = I_spec - bg_spec
             if self.spacecraft.lower() in ['wind', 'soho']:
-                self.integrated_unc = np.zeros(len(I_spec))*np.nan
+                self.final_unc = np.zeros(len(I_spec))*np.nan
             else:
                 bg_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)
-                self.integrated_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)
+                self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)
         else:
-            self.integrated_spec = I_spec
-            self.integrated_unc = unc_spec
-        # return self.spec_E, self.integrated_spec, self.integrated_unc
-
+            self.final_spec = I_spec
+            self.final_unc = unc_spec
+        self.subtract_background = subtract_background
+        self.spec_type = spec_type
+    
     def plot_spectrum(self, savefig=None):
         fig, ax = plt.subplots(1, sharex=True, figsize=(5, 4), dpi=150)
-        ax.errorbar(self.spec_E, self.integrated_spec, yerr=self.integrated_unc, fmt='o', markersize=8,
+        ax.errorbar(self.spec_E, self.final_spec, yerr=self.final_unc, fmt='o', markersize=8,
                     label=self.species, elinewidth=2, capsize=5, capthick=2)
+        
+        if self.spec_type == 'integral':
+            spec_type_str = 'integral spectrum'
+            ylabel_str = "Intensity (cm² sr MeV)⁻¹"
+        if self.spec_type == 'peak':
+            spec_type_str = 'peak spectrum'
+            ylabel_str = "Intensity (cm² s sr MeV)⁻¹"
+        if self.subtract_background:
+            backsub_str = ', background subtracted'
+        else:
+            backsub_str = ''
 
-        ax.set_title(f"{self.spacecraft.upper()} / {self.instrument.upper()} {self.viewing}")
+        
+        ax.set_title(f"{self.spacecraft.upper()} / {self.instrument.upper()} {self.viewing} ({spec_type_str}{backsub_str})")
         ax.set_xscale("log")
         ax.set_yscale("log")
 
         ax.set_xlabel("Energy (MeV)")
-        ax.set_ylabel("Integrated intensity (cm² s sr MeV)⁻¹")
+        ax.set_ylabel(ylabel_str)
         ax.legend()
         fig.tight_layout()
 
         if savefig:
-            filename = f'Spectrum_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}.png'
+            filename = f'Spectrum_{self.spec_type}_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}.png'
             plt.savefig(filename)
             print(f"Figure saved as {filename}")
         # fig.show()
