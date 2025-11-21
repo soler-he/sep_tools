@@ -364,7 +364,7 @@ class Event:
             #     print(self.let_chstring)
             if 'STEREO-A/SEPT e' in self.instruments:
                 if len(self.sta_sept_df_e_org) > 0:
-                    self.energies_e = pd.concat([self.energies_e, self.sta_sept_dict_e['ch_strings'].rename('STEREO-A/SEPT e')], axis=1)
+                    self.energies_e = pd.concat([self.energies_e, self.sta_sept_dict_e['channels_dict_df_e']['ch_strings'].rename('STEREO-A/SEPT e')], axis=1)
             if 'WIND/3DP e' in self.instruments:
                 try:
                     self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'WIND/3DP e': np.array(self.wind3dp_e_meta['channels_dict_df']['Bins_Text'].values)})], axis=1)
@@ -425,7 +425,7 @@ class Event:
             #     print(self.let_chstring)
             if 'STEREO-A/SEPT p' in self.instruments:
                 if len(self.sta_sept_df_p_org) > 0:
-                    self.energies_p = pd.concat([self.energies_p, self.sta_sept_dict_p['ch_strings'].rename('STEREO-A/SEPT p')], axis=1)
+                    self.energies_p = pd.concat([self.energies_p, self.sta_sept_dict_p['channels_dict_df_p']['ch_strings'].rename('STEREO-A/SEPT p')], axis=1)
             if 'WIND/3DP p' in self.instruments:
                 try:
                     # self.energies_p = pd.concat([self.energies_p, self.wind3dp_p_meta['channels_dict_df'].reset_index()['Bins_Text'].rename('WIND/3DP p')], axis=1)
@@ -677,7 +677,7 @@ class Event:
                     self.sta_sept_df_e = self.sta_sept_df_e_org
             #
             if type(self.channels_e['STEREO-A/SEPT e']) is list and hasattr(self, 'sta_sept_df_e') and len(self.sta_sept_df_e) > 0:
-                self.sta_sept_avg_e, self.sept_chstring_e = calc_av_en_flux_SEPT(self.sta_sept_df_e, self.sta_sept_dict_e, self.channels_e['STEREO-A/SEPT e'])
+                self.sta_sept_avg_e, self.sept_chstring_e = calc_av_en_flux_SEPT(self.sta_sept_df_e, self.sta_sept_dict_e['channels_dict_df_e'], self.channels_e['STEREO-A/SEPT e'])
             else:
                 self.sta_sept_avg_e = []
                 self.sept_chstring_e = ''
@@ -690,7 +690,7 @@ class Event:
                     self.sta_sept_df_p = self.sta_sept_df_p_org
             #
             if type(self.channels_p['STEREO-A/SEPT p']) is list and hasattr(self, 'sta_sept_df_p') and len(self.sta_sept_df_p) > 0:
-                self.sta_sept_avg_p, self.sept_chstring_p = calc_av_en_flux_SEPT(self.sta_sept_df_p, self.sta_sept_dict_p, self.channels_p['STEREO-A/SEPT p'])
+                self.sta_sept_avg_p, self.sept_chstring_p = calc_av_en_flux_SEPT(self.sta_sept_df_p, self.sta_sept_dict_p['channels_dict_df_p'], self.channels_p['STEREO-A/SEPT p'])
             else:
                 self.sta_sept_avg_p = []
                 self.sept_chstring_p = ''
@@ -776,7 +776,7 @@ class Event:
                             label=f'STEREO-A/SEPT {self.viewing["STEREO-A/SEPT"]} '+self.sept_chstring_e, drawstyle='steps-mid')
                 elif type(self.channels_e['STEREO-A/SEPT e']) is int and hasattr(self, 'sta_sept_df_e') and len(self.sta_sept_df_e) > 0:
                     ax.plot(self.sta_sept_df_e.index, self.sta_sept_df_e[f"ch_{self.channels_e['STEREO-A/SEPT e']}"], color=self.plot_colors['STEREO-A/SEPT'],
-                            linewidth=linewidth, label=f'STEREO-A/SEPT {self.viewing["STEREO-A/SEPT"]} '+self.sta_sept_dict_e.loc[self.channels_e['STEREO-A/SEPT e']]['ch_strings'], drawstyle='steps-mid')
+                            linewidth=linewidth, label=f'STEREO-A/SEPT {self.viewing["STEREO-A/SEPT"]} '+self.sta_sept_dict_e['channels_dict_df_e'].loc[self.channels_e['STEREO-A/SEPT e']]['ch_strings'], drawstyle='steps-mid')
             if 'WIND/3DP e' in plot_instruments:
                 if hasattr(self, 'wind3dp_e_df') and len(self.wind3dp_e_df) > 0:
                     # multiply by 1e6 to get per MeV
@@ -844,7 +844,7 @@ class Event:
                 if type(self.channels_p['STEREO-A/SEPT p']) is list and hasattr(self, 'sta_sept_avg_p') and len(self.sta_sept_avg_p) > 0:
                     ax.plot(self.sta_sept_df_p.index, self.sta_sept_avg_p, color=self.plot_colors['STEREO-A/SEPT'], linewidth=linewidth, label=f"STEREO-A/SEPT {self.viewing['STEREO-A/SEPT']} "+self.sept_chstring_p, drawstyle='steps-mid')
                 elif type(self.channels_p['STEREO-A/SEPT p']) is int and hasattr(self, 'sta_sept_df_p') and len(self.sta_sept_df_p) > 0:
-                    ax.plot(self.sta_sept_df_p.index, self.sta_sept_df_p[f"ch_{self.channels_p['STEREO-A/SEPT p']}"], color=self.plot_colors['STEREO-A/SEPT'], linewidth=linewidth, label=f"STEREO-A/SEPT {self.viewing['STEREO-A/SEPT']} {self.sta_sept_dict_p.loc[self.channels_p['STEREO-A/SEPT p']]['ch_strings']}", drawstyle='steps-mid')
+                    ax.plot(self.sta_sept_df_p.index, self.sta_sept_df_p[f"ch_{self.channels_p['STEREO-A/SEPT p']}"], color=self.plot_colors['STEREO-A/SEPT'], linewidth=linewidth, label=f"STEREO-A/SEPT {self.viewing['STEREO-A/SEPT']} {self.sta_sept_dict_p['channels_dict_df_e'].loc[self.channels_p['STEREO-A/SEPT p']]['ch_strings']}", drawstyle='steps-mid')
             if 'WIND/3DP p' in plot_instruments:
                 if hasattr(self, 'wind3dp_p_df') and len(self.wind3dp_p_df) > 0:
                     # multiply by 1e6 to get per MeV
