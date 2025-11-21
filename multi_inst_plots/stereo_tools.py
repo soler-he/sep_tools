@@ -262,15 +262,15 @@ def energy_channel_selection(options):
     df = pd.DataFrame()
     try:
         if options.ster_sept_e.value == True:
-            if isinstance(meta_se, pd.DataFrame):
+            if isinstance(meta_se['channels_dict_df_e'], pd.DataFrame):
                 cols.append("SEPT Electrons")
-                series_se = meta_se["ch_strings"].reset_index(drop=True)
+                series_se = meta_se['channels_dict_df_e']["ch_strings"].reset_index(drop=True)
                 df = pd.concat([df, series_se], axis=1)
         
         if options.ster_sept_p.value == True:
-            if isinstance(meta_sp, pd.DataFrame):
+            if isinstance(meta_sp['channels_dict_df_p'], pd.DataFrame):
                 cols.append("SEPT Protons")
-                series_sp = meta_sp["ch_strings"].reset_index(drop=True)
+                series_sp = meta_sp['channels_dict_df_p']["ch_strings"].reset_index(drop=True)
                 df = pd.concat([df, series_sp], axis=1)
 
         if options.ster_het_e.value == True:
@@ -438,7 +438,7 @@ def make_plot(options):
             if isinstance(df_sept_electrons, pd.DataFrame):
                 for channel in ch_sept_e:
                     axs[i].plot(df_sept_electrons.index, df_sept_electrons[f'ch_{channel+2}'],
-                                ds="steps-mid", label='SEPT '+meta_se.ch_strings[channel+2])
+                                ds="steps-mid", label='SEPT '+meta_se['channels_dict_df_e'].ch_strings[channel+2])
         if options.ster_het_e.value == True:
             # plot het electron channels
             axs[i].set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0,1,4+color_offset)))
@@ -470,7 +470,7 @@ def make_plot(options):
             if isinstance(df_sept_protons, pd.DataFrame):
                 for channel in ch_sept_p:
                     axs[i].plot(df_sept_protons.index, df_sept_protons[f'ch_{channel+2}'], 
-                            label='SEPT '+meta_sp.ch_strings[channel+2], ds="steps-mid")
+                            label='SEPT '+meta_sp['channels_dict_df_p'].ch_strings[channel+2], ds="steps-mid")
             
             
         color_offset = 3 

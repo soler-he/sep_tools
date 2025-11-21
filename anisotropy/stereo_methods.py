@@ -574,7 +574,7 @@ def sept_load_data(species, sc, data_product, startdate, enddate, downloadpath):
                                             all_columns=True,
                                             pos_timestamp="center")
     df_south = df_south.drop(columns=['julian_date', 'year', 'frac_doy', 'hour', 'min', 'sec'])
-    return df_sun, df_asun, df_north, df_south, energies
+    return df_sun, df_asun, df_north, df_south, energies[f'channels_dict_df_{species[:1]}']
 
 
 def sept_prepare_counts(df_sun, df_asun, df_north, df_south, species, averaging=None):
@@ -597,7 +597,7 @@ def sept_prepare_counts(df_sun, df_asun, df_north, df_south, species, averaging=
     df_asun = change_flux_df_format(df_asun, species)
     df_north = change_flux_df_format(df_north, species)
     df_south = change_flux_df_format(df_south, species)
-
+ 
     df_sun = pd.merge(df_sun, df_sun_new, left_index=True, right_index=True, how='outer')
     df_asun = pd.merge(df_asun, df_asun_new, left_index=True, right_index=True, how='outer')
     df_north = pd.merge(df_north, df_north_new, left_index=True, right_index=True, how='outer')

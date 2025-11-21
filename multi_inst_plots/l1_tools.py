@@ -409,11 +409,11 @@ def energy_channel_selection(options):
                 df = pd.concat([df, series_p], axis=1)
         
         if options.l1_ephin.value == True:
-            if isinstance(meta_ephin, dict):
+            if isinstance(meta_ephin['energy_labels'], dict):
                 cols.append("EPHIN Electrons")
                 energy_list = []
                 for ch in ["E150", "E300", "E1300", "E3000"]:
-                    energy_list.append(meta_ephin[ch])
+                    energy_list.append(meta_ephin['energy_labels'][ch])
                 series_ephin = pd.Series(energy_list)
                 df = pd.concat([df, series_ephin], axis=1)
 
@@ -586,7 +586,7 @@ def make_plot(options):
         if options.l1_ephin.value and isinstance(ephin, pd.DataFrame):
                 ax.set_prop_cycle('color', plt.cm.Blues_r(np.linspace(0, 1, 4+color_offset)))
                 for ch in ephin_ch:
-                    ax.plot(ephin.index, ephin[ch]*intercal, label='SOHO/EPHIN '+meta_ephin[ch], drawstyle='steps-mid')
+                    ax.plot(ephin.index, ephin[ch]*intercal, label='SOHO/EPHIN '+meta_ephin['energy_labels'][ch], drawstyle='steps-mid')
 
         # ax.set_ylim(1e0, 1e4)
         if legends_inside:

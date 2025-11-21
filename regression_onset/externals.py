@@ -236,13 +236,13 @@ def combine_energy_channels(event, channels:list) -> tuple:
 
                     df_flux, en_channel_string =\
                         calc_av_en_flux_SEPT(event.current_df_i,
-                                                event.current_i_energies,
+                                                event.current_i_energies['channels_dict_df_p'],
                                                 channels)
                 elif event.species == 'e':
 
                     df_flux, en_channel_string =\
                         calc_av_en_flux_SEPT(event.current_df_e,
-                                                event.current_e_energies,
+                                                event.current_e_energies['channels_dict_df_e'],
                                                 channels)
 
         except KeyError:
