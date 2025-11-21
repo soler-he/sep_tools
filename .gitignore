@@ -265,6 +265,7 @@ plots/
 
 # spec output
 output_spectra/*.csv
+output_spectra/*.gif
 output_spectra/*.png
 
 # Regression onset testing
