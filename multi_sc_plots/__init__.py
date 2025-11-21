@@ -344,7 +344,7 @@ class Event:
                     pass
             if 'SOHO/EPHIN e' in self.instruments:
                 try:
-                    self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'SOHO/EPHIN e': [self.ephin_energies[chan] for chan in ['E150', 'E300', 'E1300', 'E3000']]})], axis=1)
+                    self.energies_e = pd.concat([self.energies_e, pd.DataFrame({'SOHO/EPHIN e': [self.ephin_energies['energy_labels'][chan] for chan in ['E150', 'E300', 'E1300', 'E3000']]})], axis=1)
                 except AttributeError:
                     pass
             if 'Solar Orbiter/EPT e' in self.instruments:
