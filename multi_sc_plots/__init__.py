@@ -751,7 +751,7 @@ class Event:
             if 'SOHO/EPHIN e' in plot_instruments:
                 # ax.plot(ephin['date'], ephin[ephin_ch_e][0]*ephin_e_intercal, color=self.plot_colors['SOHO/EPHIN'], linewidth=linewidth, label='SOHO/EPHIN '+ephin[ephin_ch_e][1]+f'/{ephin_e_intercal}', drawstyle='steps-mid')
                 if hasattr(self, 'soho_ephin') and len(self.soho_ephin) > 0:
-                    ax.plot(self.soho_ephin.index, self.soho_ephin[ephine_e_channel], color=self.plot_colors['SOHO/EPHIN'], linewidth=linewidth, label='SOHO/EPHIN '+self.ephin_energies[ephine_e_channel], drawstyle='steps-mid')
+                    ax.plot(self.soho_ephin.index, self.soho_ephin[ephine_e_channel], color=self.plot_colors['SOHO/EPHIN'], linewidth=linewidth, label='SOHO/EPHIN '+self.ephin_energies['energy_labels'][ephine_e_channel], drawstyle='steps-mid')
             if 'Solar Orbiter/EPT e' in plot_instruments:
                 if hasattr(self, 'df_ept_e') and len(self.df_ept_e) > 0:
                     flux_ept = self.df_ept_e.values
