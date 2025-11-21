@@ -8,7 +8,6 @@ import pandas as pd
 import sunpy
 import warnings
 
-from matplotlib import pyplot as plt
 from solo_epd_loader import epd_load
 from seppy.loader.soho import soho_load
 from seppy.loader.psp import psp_isois_load
@@ -316,11 +315,12 @@ class Event:
             ax.errorbar(df['Energy'], df['Intensity'], yerr=df['I_err'], xerr=df['E_err'], fmt='o', markersize=8,
                         label=self.species, elinewidth=2, capsize=5, capthick=2, ecolor='lightgray')
             
-            spec_type_str = f'integral spectrum'
+            spec_type_str = 'integral spectrum'
             
             if self.subtract_background:
                 backsub_str = ', backgr. subtr.'
-            else: backsub_str = ''
+            else:
+                backsub_str = ''
     
             ax.set_title(f"{self.spacecraft.upper()} / {self.instrument.upper()} {self.viewing} ({spec_type_str}{backsub_str})")
             ax.set_xscale("log")
@@ -392,10 +392,10 @@ class Event:
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
                     species_key = 'Electron'
 
-            cols = self.df.filter(like=species_key).columns
+            # cols = self.df.filter(like=species_key).columns
             flux_id = f'{species_key}_Flux_'
             unc_id = f'{species_key}_Uncertainty_'
-            fluxes = self.df[cols]
+            # fluxes = self.df[cols]
 
             low_E = np.array(self.meta[f'{species_key}_Bins_Low_Energy'])
             high_E = low_E + np.array(self.meta[f'{species_key}_Bins_Width'])
@@ -404,32 +404,32 @@ class Event:
         if self.spacecraft.lower() in ['stereo a', 'stereo-a', 'stereo b', 'stereo-b']:
             if self.instrument.lower() == 'het':
                 if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
-                    cols = self.df.filter(like='Proton').columns
+                    # cols = self.df.filter(like='Proton').columns
                     flux_id = 'Proton_Flux_'
                     unc_id = 'Proton_Sigma_'
-                    fluxes = self.df[cols]
+                    # fluxes = self.df[cols]
                     self.spec_E = np.array(self.meta['channels_dict_df_p'].mean_E)
-                    num_channels = len(self.df.filter(like='Proton_Flux').columns)
+                    # num_channels = len(self.df.filter(like='Proton_Flux').columns)
 
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
-                    cols = self.df.filter(like='Electron').columns
+                    # cols = self.df.filter(like='Electron').columns
                     flux_id = 'Electron_Flux_'
                     unc_id = 'Electron_Sigma_'
-                    fluxes = self.df[cols]
+                    # fluxes = self.df[cols]
                     self.spec_E = np.array(self.meta['channels_dict_df_e'].mean_E)
-                    num_channels = len(self.df.filter(like='Electron_Flux').columns)
+                    # num_channels = len(self.df.filter(like='Electron_Flux').columns)
             if self.instrument.lower() == 'sept':
                 unc_id = 'err_ch_'
                 self.spec_E = self.meta['mean_E'].values
 
         if self.spacecraft.lower() in ['wind']:
-            cols = self.df.filter(like='FLUX').columns
+            # cols = self.df.filter(like='FLUX').columns
             flux_id = 'FLUX'
-            fluxes = self.df[cols]
+            # fluxes = self.df[cols]
             self.spec_E = self.meta['channels_dict_df']['mean_E'].values*1e-6
 
         if self.spacecraft.lower() in ['soho']:
-            cols = self.df.filter(like='PH').columns
+            # cols = self.df.filter(like='PH').columns
             flux_id = 'PH_'
             self.spec_E = self.meta['channels_dict_df_p']['mean_E']
             df_soho_counts = self.df[self.df.filter(like='PHC_').columns]
@@ -536,12 +536,13 @@ class Event:
                     label=self.species, elinewidth=2, capsize=5, capthick=2, ecolor='lightgray')
         
         if self.spec_type == 'integral':
-            spec_type_str = f'integral spec'
+            spec_type_str = 'integral spec'
         if self.spec_type == 'peak':
-            spec_type_str = f'peak spec'         
+            spec_type_str = 'peak spec'
         if self.subtract_background:
             backsub_str = ', backgr. subtr.'
-        else: backsub_str = ''
+        else:
+            backsub_str = ''
 
         
         ax.set_title(f"{self.spacecraft.upper()} / {self.instrument.upper()} {self.viewing} ({spec_type_str}{backsub_str})")
