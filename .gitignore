@@ -232,6 +232,7 @@ aia_map.fits
 # Misc Stuff
 .history
 *.orig
+*.org
 .tmp
 
 # PyInstaller Files
