@@ -263,5 +263,8 @@ data/
 # Plot output folder
 plots/
 
+# spec output  folder
+output_spectra/
+
 # Regression onset testing
 SEP_Regression-Onset-Testing.ipynb

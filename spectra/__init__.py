@@ -1,7 +1,9 @@
 # import datetime as dt
 import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
 import numpy as np
 import os
+import glob
 import pandas as pd
 import sunpy
 import warnings
@@ -13,7 +15,7 @@ from seppy.loader.psp import psp_isois_load
 from seppy.loader.stereo import stereo_load
 from seppy.loader.wind import wind3dp_load
 from seppy.util import resample_df
-
+import imageio
 
 # omit some warnings
 warnings.simplefilter(action='once', category=pd.errors.PerformanceWarning)
@@ -79,12 +81,13 @@ class Event:
             if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
                 dataset = 'WI_SOSP_3DP'
             self.df, self.meta = wind3dp_load(dataset=dataset, startdate=self.startdate, enddate=self.enddate, path=data_path, resample=resample)
+            print('Warning: No intensity uncertainties available for Wind/3DP. Assuming uncertainties to be 0.')
 
         if self.spacecraft.lower() in ['soho']:
             self.viewing = ''
             self.erne_chstring = ['13-16 MeV', '16-20 MeV', '20-25 MeV', '25-32 MeV', '32-40 MeV', '40-50 MeV', '50-64 MeV', '64-80 MeV', '80-100 MeV', '100-130 MeV']
             self.df, self.meta = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=self.startdate, enddate=self.enddate, path=data_path, resample=resample, max_conn=1)
-
+            print('Warning: No intensity uncertainties available for SOHO/ERNE. Calculating uncertainties as I/sqrt(counts).')
 
         if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
             if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
@@ -105,7 +108,7 @@ class Event:
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
                     flux_id = 'Electron_Flux'
                     energy_text = 'Electron_Bins_Text'
-                    show_channels = [1, 4, 8, 12, 16, 20, 24, 28, 32]
+                    show_channels = [1, 4, 8, 12, 16, 20, 24, 28, 32]            # remove or automatically select every nth channel. maybe create corresponding keywork (show_every_nth_channel = 2) ?
                 if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
                     flux_id = 'Ion_Flux'
                     energy_text = 'Ion_Bins_Text'
@@ -123,17 +126,16 @@ class Event:
 
             
             # plotting
-            for channel in show_channels:
+            #for channel in show_channels:
+            for channel in range(len(self.meta[energy_text])):
                 label = self.meta[energy_text][channel]
                 axs.plot(self.df.index, self.df[flux_id][f'{flux_id}_{channel}'], label=label)
                 
                 if spec_type == 'peak':
                     ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
-                    # only plot peak if there is at least one non-nan value in the interval
-                    if not self.df[flux_id][f'{flux_id}_{channel}'].iloc[ind].isnull().all():
-                        peak_time = self.df[flux_id][f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
-                        peak_val = self.df[flux_id][f'{flux_id}_{channel}'].iloc[ind].max()
-                        axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
+                    peak_time = self.df[flux_id][f'{flux_id}_{channel}'].iloc[ind].idxmax()
+                    peak_val = self.df[flux_id][f'{flux_id}_{channel}'].iloc[ind].max()
+                    axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
 
         if self.spacecraft.lower() in ['stereo a', 'stereo-a', 'stereo b', 'stereo-b']:
             if self.instrument.lower() == 'het':
@@ -164,11 +166,9 @@ class Event:
                 
                 if spec_type == 'peak':
                     ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
-                    # only plot peak if there is at least one non-nan value in the interval
-                    if not self.df[f'{flux_id}_{channel}'].iloc[ind].isnull().all():
-                        peak_time = self.df[f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
-                        peak_val = self.df[f'{flux_id}_{channel}'].iloc[ind].max()
-                        axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
+                    peak_time = self.df[f'{flux_id}_{channel}'].iloc[ind].idxmax()
+                    peak_val = self.df[f'{flux_id}_{channel}'].iloc[ind].max()
+                    axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
 
         if self.spacecraft.lower() in ['wind']:
             cols = self.df.filter(like='FLUX').columns
@@ -182,11 +182,9 @@ class Event:
 
                 if spec_type == 'peak':
                     ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
-                    # only plot peak if there is at least one non-nan value in the interval
-                    if not self.df[f'{flux_id}_{channel}'].iloc[ind].isnull().all():
-                        peak_time = self.df[f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
-                        peak_val = self.df[f'{flux_id}_{channel}'].iloc[ind].max()*1e6
-                        axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
+                    peak_time = self.df[f'{flux_id}_{channel}'].iloc[ind].idxmax()
+                    peak_val = self.df[f'{flux_id}_{channel}'].iloc[ind].max()*1e6
+                    axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
                     
         if self.spacecraft.lower() in ['soho']:
             flux_id = 'PH'
@@ -199,15 +197,13 @@ class Event:
                 
                 if spec_type == 'peak':
                     ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
-                    # only plot peak if there is at least one non-nan value in the interval
-                    if not self.df[f'{flux_id}_{channel}'].iloc[ind].isnull().all():
-                        peak_time = self.df[f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
-                        peak_val = self.df[f'{flux_id}_{channel}'].iloc[ind].max()
-                        axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
+                    peak_time = self.df[f'{flux_id}_{channel}'].iloc[ind].idxmax()
+                    peak_val = self.df[f'{flux_id}_{channel}'].iloc[ind].max()
+                    axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
                 
        
         if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
-            # if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:  # !!! no fluxes available for electrons
+            # if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:             # !!! no fluxes available for electrons
             #     print('!!! no intensity data available for PSP electrons!')
             #     energy_text = 'Electrons_ENERGY_LABL'
             #     flux_id = 'Electrons_Rate'
@@ -223,16 +219,15 @@ class Event:
                 
                 if spec_type == 'peak':
                     ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
-                    # only plot peak if there is at least one non-nan value in the interval
-                    if not self.df[f'{self.viewing}_{flux_id}_{channel}'].iloc[ind].isnull().all():
-                        peak_time = self.df[f'{self.viewing}_{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
-                        peak_val = self.df[f'{self.viewing}_{flux_id}_{channel}'].iloc[ind].max()
-                        axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
+                    peak_time = self.df[f'{self.viewing}_{flux_id}_{channel}'].iloc[ind].idxmax()
+                    peak_val = self.df[f'{self.viewing}_{flux_id}_{channel}'].iloc[ind].max()
+                    axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
+                
 
         if subtract_background:
             axs.axvspan(background_start, background_end, color='pink', alpha=0.2, label='Background Period')
-        axs.axvline(spec_start, color='red', label='Integration Start')
-        axs.axvline(spec_end, color='green', label='Integration End')
+        axs.axvline(spec_start, color='red', linestyle='--', label='Integration Start')
+        axs.axvline(spec_end, color='green', linestyle='--', label='Integration End')
 
         axs.set_yscale('log')
         axs.set_ylabel(r"Intensity [1/(cm$^2$ sr s MeV)]")
@@ -260,6 +255,123 @@ class Event:
         plt.show()
         return fig, axs
 
+    def make_spec_gif(self, base_filename):
+        # Get all PNG files (assuming they're named plot_0.png, plot_1.png, etc.)
+        png_files = sorted(glob.glob(f'{base_filename}*.png'))
+        
+        # write to animated gif; duration (in ms) defines how fast the animation is.
+        with imageio.get_writer(f'{base_filename}_animation.gif', mode='I', duration=100, loop=0) as writer:
+            for filename in png_files:
+                image = imageio.imread(filename)
+                writer.append_data(image)
+        self.gif_filename = f'{base_filename}_animation.gif'
+
+    
+    def plot_spec_slices(self, base_filename, spec_start, duration):
+        # makes a plot of each spectrum slice based on the already saved csv files
+        # taking all csv files, we determine a global y-range used in all plots
+        
+        csv_files = sorted(glob.glob(f'{base_filename}*.csv'))
+        global_min = None
+        global_max = None
+        data_frames = []
+
+        for file in csv_files:
+            df = pd.read_csv(file)
+            intensity = df['Intensity'].astype(float)
+            i_err = df['I_err'].astype(float)
+            lower = intensity - i_err
+            upper = intensity + i_err
+
+            # Only consider non-negative lower bounds
+            y_lower_nonneg = lower[lower > 0].dropna()
+            if not y_lower_nonneg.empty:
+                file_min = y_lower_nonneg.min()
+                if global_min is None:
+                    global_min = file_min
+                else:
+                    global_min = min(global_min, file_min)
+
+            # For max, drop NAs just in case
+            y_upper_nonneg = upper.dropna()
+            if not y_upper_nonneg.empty:
+                file_max = y_upper_nonneg.max()
+                if global_max is None:
+                    global_max = file_max
+                else:
+                    global_max = max(global_max, file_max)
+            
+            data_frames.append(df)
+    
+            
+        # Optional: Check found range
+        print(f'Global y-range: {global_min:.2f} to {global_max:.2f}')
+        # Plot each file with shared y-limits
+        for idx, (df, file) in enumerate(zip(data_frames, csv_files)):
+            t1 = spec_start + idx * duration
+            t2 = spec_start + (idx+1) * duration
+
+            
+            fig, ax = plt.subplots(1, sharex=True, figsize=(5, 4), dpi=150)
+            ax.errorbar(df['Energy'], df['Intensity'], yerr=df['I_err'], xerr=df['E_err'], fmt='o', markersize=8,
+                        label=self.species, elinewidth=2, capsize=5, capthick=2, ecolor='lightgray')
+            
+            spec_type_str = f'integral spectrum'
+            
+            if self.subtract_background:
+                backsub_str = ', backgr. subtr.'
+            else: backsub_str = ''
+    
+            ax.set_title(f"{self.spacecraft.upper()} / {self.instrument.upper()} {self.viewing} ({spec_type_str}{backsub_str})")
+            ax.set_xscale("log")
+            ax.set_yscale("log")
+           
+            ax.set_ylim(global_min, global_max)
+    
+            ax.set_xlabel("Energy (MeV)")
+            ax.set_ylabel("Intensity (cm² s sr MeV)⁻¹")
+
+            ax.text(0.95, 0.95, f'{t1}-{t2}', ha='right', transform=ax.transAxes)
+            ax.legend(loc=3)
+        
+            filename = f'{base_filename}_{idx}.png'
+            plt.savefig(filename)
+            
+    
+    def get_spec_slices(self, spec_start, spec_end, duration, subtract_background=True, background_start=None, background_end=None):
+        # Determines spectra for each time slice
+        # then makes plots for all spectra using a common y-range
+        # then makes an animated gif out of all spectra plots
+        
+        num_steps = int((spec_end-spec_start) / duration)
+        for i in np.arange(0, num_steps, 1): 
+            t1 = spec_start + i * duration
+            t2 = spec_start + (i+1) * duration
+            self.get_spec(t1, t2, spec_type='integral', subtract_background=subtract_background,
+                      background_start=background_start, background_end=background_end)
+
+            foldername = f'output_spectra{os.sep}'
+            start_time = str(spec_start).replace(" ", "_")
+            duration_min = (duration.total_seconds()/60)
+            filename = f'{foldername}spectrum_slices_start_{start_time}_step_{duration_min}min_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}_{i}'
+
+            # save csv files
+            ######## move these to spec file:   
+            self.E_unc = self.spec_E.copy()/2.   # !!!!!!!!!!!!!!! needs to be replaced with x-errors from data files (meta data)
+            ######## 
+            
+            self.I_unc = self.final_unc
+            
+            spec_df = pd.DataFrame(dict(Energy = self.spec_E, Intensity = self.final_spec, E_err = self.E_unc, I_err = self.I_unc))
+            spec_df.to_csv(filename+'.csv', index=False)
+        
+        # make  plots for each spec slice using common y-range:
+        base_filename = filename = f'{foldername}spectrum_slices_start_{start_time}_step_{duration_min}min_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}_'
+        self.plot_spec_slices(base_filename, spec_start, duration)
+        
+        self.make_spec_gif(base_filename)
+    
+    
     def get_spec(self, spec_start, spec_end, spec_type='integral', subtract_background=True, background_start=None, background_end=None):
         I_spec = []
         unc_spec = []
@@ -280,10 +392,10 @@ class Event:
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
                     species_key = 'Electron'
 
-            # cols = self.df.filter(like=species_key).columns
+            cols = self.df.filter(like=species_key).columns
             flux_id = f'{species_key}_Flux_'
             unc_id = f'{species_key}_Uncertainty_'
-            # fluxes = self.df[cols]
+            fluxes = self.df[cols]
 
             low_E = np.array(self.meta[f'{species_key}_Bins_Low_Energy'])
             high_E = low_E + np.array(self.meta[f'{species_key}_Bins_Width'])
@@ -292,35 +404,35 @@ class Event:
         if self.spacecraft.lower() in ['stereo a', 'stereo-a', 'stereo b', 'stereo-b']:
             if self.instrument.lower() == 'het':
                 if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
-                    # cols = self.df.filter(like='Proton').columns
+                    cols = self.df.filter(like='Proton').columns
                     flux_id = 'Proton_Flux_'
                     unc_id = 'Proton_Sigma_'
-                    # fluxes = self.df[cols]
+                    fluxes = self.df[cols]
                     self.spec_E = np.array(self.meta['channels_dict_df_p'].mean_E)
-                    # # num_channels = len(self.df.filter(like='Proton_Flux').columns)
+                    num_channels = len(self.df.filter(like='Proton_Flux').columns)
 
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
-                    # cols = self.df.filter(like='Electron').columns
+                    cols = self.df.filter(like='Electron').columns
                     flux_id = 'Electron_Flux_'
                     unc_id = 'Electron_Sigma_'
-                    # fluxes = self.df[cols]
+                    fluxes = self.df[cols]
                     self.spec_E = np.array(self.meta['channels_dict_df_e'].mean_E)
-                    # num_channels = len(self.df.filter(like='Electron_Flux').columns)
+                    num_channels = len(self.df.filter(like='Electron_Flux').columns)
             if self.instrument.lower() == 'sept':
                 unc_id = 'err_ch_'
                 self.spec_E = self.meta['mean_E'].values
 
         if self.spacecraft.lower() in ['wind']:
-            # cols = self.df.filter(like='FLUX').columns
+            cols = self.df.filter(like='FLUX').columns
             flux_id = 'FLUX'
-            # fluxes = self.df[cols]
+            fluxes = self.df[cols]
             self.spec_E = self.meta['channels_dict_df']['mean_E'].values*1e-6
 
         if self.spacecraft.lower() in ['soho']:
-            # cols = self.df.filter(like='PH').columns
+            cols = self.df.filter(like='PH').columns
             flux_id = 'PH_'
-            # fluxes = self.df[cols]
             self.spec_E = self.meta['channels_dict_df_p']['mean_E']
+            df_soho_counts = self.df[self.df.filter(like='PHC_').columns]
 
         if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
             if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:  # !!! no fluxes available for electrons
@@ -334,6 +446,8 @@ class Event:
             df_fluxes = self.df[self.df.columns.drop([i for i in self.df.columns if 'err' in i])]
         else:
             df_fluxes = self.df[self.df.filter(like=flux_id).columns]
+        
+            
 
         if spec_type == 'integral':
             I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)
@@ -343,7 +457,8 @@ class Event:
                 unc_spec = np.zeros(len(I_spec))*np.nan
             elif self.spacecraft.lower() == 'soho':
                 I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)
-                unc_spec = np.zeros(len(I_spec))*np.nan
+                c_spec = np.nansum(df_soho_counts.iloc[ind], axis=0)     
+                unc_spec = I_spec / np.sqrt(c_spec) 
             else:
                 df_uncs = self.df[self.df.filter(like=unc_id).columns]
                 # For PSP, remove asymmetric uncertainties like A_H_Uncertainty_Minus_0 & A_H_Uncertainty_Plus_0 for now
@@ -364,7 +479,9 @@ class Event:
                 unc_spec = np.zeros(len(I_spec))*np.nan
             elif self.spacecraft.lower() == 'soho':
                 I_spec = np.nanmax(df_fluxes.iloc[ind], axis=0)
-                unc_spec = np.zeros(len(I_spec))*np.nan
+                c_spec = np.nanmax(df_soho_counts.iloc[ind], axis=0)     
+                unc_spec = I_spec / np.sqrt(c_spec) 
+
             else:
                 df_uncs = self.df[self.df.filter(like=unc_id).columns]
                 # For PSP, remove asymmetric uncertainties like A_H_Uncertainty_Minus_0 & A_H_Uncertainty_Plus_0 for now
@@ -378,11 +495,20 @@ class Event:
 
         
         if subtract_background:
-            print('subtracting background')
+            #print('subtracting background')
             bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
             self.final_spec = I_spec - bg_spec
-            if self.spacecraft.lower() in ['wind', 'soho']:
-                self.final_unc = np.zeros(len(I_spec))*np.nan
+            if self.spacecraft.lower() in ['wind']:
+                self.final_unc = np.zeros(len(I_spec)) #*np.nan
+            
+            
+            elif self.spacecraft.lower() in ['soho']:                  ##### !! check for correct implementation of SOHO uncertainties
+                
+                bg_c_spec = np.nanmean(df_soho_counts.iloc[ind_bg], axis=0)     
+                bg_unc_spec = bg_spec / np.sqrt(bg_c_spec) 
+                self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)
+            
+            
             else:
                 bg_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)
                 self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)
@@ -391,35 +517,49 @@ class Event:
             self.final_unc = unc_spec
         self.subtract_background = subtract_background
         self.spec_type = spec_type
+        self.spec_fluxes = df_fluxes.iloc[ind]
+
+        # create spec df for saving 
+        
+        ######## move these to spec file:   
+        self.E_unc = self.spec_E.copy()/2.   # !!!!!!!!!!!!!!! needs to be replaced with x-errors from data files (meta data)
+        ######## 
+        self.I_unc = self.final_unc
+        
+        self.spec_df = pd.DataFrame(dict(Energy = self.spec_E, Intensity = self.final_spec, E_err = self.E_unc, I_err = self.I_unc))
+        
+
     
-    def plot_spectrum(self, savefig=None):
+    def plot_spectrum(self, savefig=None, filename='', ylim=None):                    ###!!! add x-error bars!
         fig, ax = plt.subplots(1, sharex=True, figsize=(5, 4), dpi=150)
-        ax.errorbar(self.spec_E, self.final_spec, yerr=self.final_unc, fmt='o', markersize=8,
-                    label=self.species, elinewidth=2, capsize=5, capthick=2)
+        ax.errorbar(self.spec_E, self.final_spec, xerr=self.E_unc, yerr=self.final_unc, fmt='o', markersize=8,
+                    label=self.species, elinewidth=2, capsize=5, capthick=2, ecolor='lightgray')
         
         if self.spec_type == 'integral':
-            spec_type_str = 'integral spectrum'
-            ylabel_str = "Intensity (cm² sr MeV)⁻¹"
+            spec_type_str = f'integral spec'
         if self.spec_type == 'peak':
-            spec_type_str = 'peak spectrum'
-            ylabel_str = "Intensity (cm² s sr MeV)⁻¹"
+            spec_type_str = f'peak spec'         
         if self.subtract_background:
-            backsub_str = ', background subtracted'
-        else:
-            backsub_str = ''
+            backsub_str = ', backgr. subtr.'
+        else: backsub_str = ''
 
         
         ax.set_title(f"{self.spacecraft.upper()} / {self.instrument.upper()} {self.viewing} ({spec_type_str}{backsub_str})")
         ax.set_xscale("log")
         ax.set_yscale("log")
+        if ylim is not None:
+            ax.set_ylim(ylim)
 
         ax.set_xlabel("Energy (MeV)")
-        ax.set_ylabel(ylabel_str)
+        ax.set_ylabel("Intensity (cm² s sr MeV)⁻¹")
         ax.legend()
         fig.tight_layout()
 
-        if savefig:
-            filename = f'Spectrum_{self.spec_type}_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}.png'
+        if savefig: 
+            if filename == '':
+                foldername = f'output_spectra{os.sep}'
+                filename = f'{foldername}spectrum_{spec_type_str}_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}.png'
+
             plt.savefig(filename)
             print(f"Figure saved as {filename}")
         # fig.show()
