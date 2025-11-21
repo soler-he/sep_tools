@@ -1,11 +1,14 @@
-import os
 import datetime as dt
+import os
+
 import numpy as np
-from spectra import Event
-import spectra.widgets as w
-from seppy.util import jupyterhub_data_path
-from IPython.display import display
+import pandas as pd
 import pytest
+from IPython.display import display
+from seppy.util import jupyterhub_data_path
+
+import spectra.widgets as w
+from spectra import Event
 
 # ignore divide by zero warnings in numpy
 np.seterr(divide='ignore', invalid='ignore')
@@ -47,8 +50,8 @@ def test_SEP_Spectra_PSP_ISOIS_EPIHI(spectral_type, species):
     background_start = dt.datetime(2021, 10, 28, 2, 0)
     background_end = dt.datetime(2021, 10, 28, 14, 0)
     #
-    integration_start = dt.datetime(2021, 10, 28, 16, 0)
-    integration_end = dt.datetime(2021, 11, 1)
+    spec_start = dt.datetime(2021, 10, 28, 16, 0)
+    spec_end = dt.datetime(2021, 11, 1)
     #
     resample = '30min'  # '60s'
     #
@@ -59,11 +62,11 @@ def test_SEP_Spectra_PSP_ISOIS_EPIHI(spectral_type, species):
     E = Event()
     E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)
     #
-    fig, ax = E.plot_flux(integration_start, integration_end, subtract_background=subtract_background,
+    fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
                           savefig=False, spec_type=spectral_type)
     #
-    E.get_spec(integration_start, integration_end, subtract_background=subtract_background,
+    E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
                           spec_type=spectral_type)
     #
@@ -93,8 +96,8 @@ def test_SEP_Spectra_SOHO_ERNE_HED(spectral_type, species):
     background_start = dt.datetime(2021, 10, 28, 2, 0)
     background_end = dt.datetime(2021, 10, 28, 14, 0)
     #
-    integration_start = dt.datetime(2021, 10, 28, 16, 0)
-    integration_end = dt.datetime(2021, 11, 1)
+    spec_start = dt.datetime(2021, 10, 28, 16, 0)
+    spec_end = dt.datetime(2021, 11, 1)
     #
     resample = '30min'  # '60s'
     #
@@ -105,11 +108,11 @@ def test_SEP_Spectra_SOHO_ERNE_HED(spectral_type, species):
     E = Event()
     E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)
     #
-    fig, ax = E.plot_flux(integration_start, integration_end, subtract_background=subtract_background,
+    fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
                           savefig=False, spec_type=spectral_type)
     #
-    E.get_spec(integration_start, integration_end, subtract_background=subtract_background,
+    E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
                           spec_type=spectral_type)
     #
@@ -138,8 +141,8 @@ def test_SEP_Spectra_SOHO_ERNE_HED_None():
     background_start = dt.datetime(2021, 10, 28, 2, 0)
     background_end = dt.datetime(2021, 10, 28, 14, 0)
     #
-    integration_start = dt.datetime(2021, 10, 28, 16, 0)
-    integration_end = dt.datetime(2021, 11, 1)
+    spec_start = dt.datetime(2021, 10, 28, 16, 0)
+    spec_end = dt.datetime(2021, 11, 1)
     #
     resample = '30min'  # '60s'
     #
@@ -150,11 +153,11 @@ def test_SEP_Spectra_SOHO_ERNE_HED_None():
     E = Event()
     E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)
     #
-    fig, ax = E.plot_flux(integration_start, integration_end, subtract_background=subtract_background,
+    fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
                           savefig=False)
     #
-    E.get_spec(integration_start, integration_end, subtract_background=subtract_background,
+    E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end)
     #
     fig, ax = E.plot_spectrum(savefig=False)
@@ -184,8 +187,8 @@ def test_SEP_Spectra_Solar_Orbiter_EPT(spectral_type, species):
     background_start = dt.datetime(2021, 10, 28, 2, 0)
     background_end = dt.datetime(2021, 10, 28, 14, 0)
     #
-    integration_start = dt.datetime(2021, 10, 28, 16, 0)
-    integration_end = dt.datetime(2021, 11, 1)
+    spec_start = dt.datetime(2021, 10, 28, 16, 0)
+    spec_end = dt.datetime(2021, 11, 1)
     #
     resample = '30min'  # '60s'
     #
@@ -196,11 +199,11 @@ def test_SEP_Spectra_Solar_Orbiter_EPT(spectral_type, species):
     E = Event()
     E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)
     #
-    fig, ax = E.plot_flux(integration_start, integration_end, subtract_background=subtract_background,
+    fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
                           savefig=False, spec_type=spectral_type)
     #
-    E.get_spec(integration_start, integration_end, subtract_background=subtract_background,
+    E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
                           spec_type=spectral_type)
     #
@@ -231,8 +234,8 @@ def test_SEP_Spectra_Solar_Orbiter_HET(spectral_type, species):
     background_start = dt.datetime(2021, 10, 28, 2, 0)
     background_end = dt.datetime(2021, 10, 28, 14, 0)
     #
-    integration_start = dt.datetime(2021, 10, 28, 16, 0)
-    integration_end = dt.datetime(2021, 11, 1)
+    spec_start = dt.datetime(2021, 10, 28, 16, 0)
+    spec_end = dt.datetime(2021, 11, 1)
     #
     resample = '30min'  # '60s'
     #
@@ -243,11 +246,11 @@ def test_SEP_Spectra_Solar_Orbiter_HET(spectral_type, species):
     E = Event()
     E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)
     #
-    fig, ax = E.plot_flux(integration_start, integration_end, subtract_background=subtract_background,
+    fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
                           savefig=False, spec_type=spectral_type)
     #
-    E.get_spec(integration_start, integration_end, subtract_background=subtract_background,
+    E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
                           spec_type=spectral_type)
     #
@@ -277,8 +280,8 @@ def test_SEP_Spectra_STEREO_A_SEPT(spectral_type, species):
     background_start = dt.datetime(2021, 10, 28, 2, 0)
     background_end = dt.datetime(2021, 10, 28, 14, 0)
     #
-    integration_start = dt.datetime(2021, 10, 28, 16, 0)
-    integration_end = dt.datetime(2021, 11, 1)
+    spec_start = dt.datetime(2021, 10, 28, 16, 0)
+    spec_end = dt.datetime(2021, 11, 1)
     #
     resample = '30min'  # '60s'
     #
@@ -289,15 +292,24 @@ def test_SEP_Spectra_STEREO_A_SEPT(spectral_type, species):
     E = Event()
     E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)
     #
-    fig, ax = E.plot_flux(integration_start, integration_end, subtract_background=subtract_background,
+    fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
                           savefig=False, spec_type=spectral_type)
     #
-    E.get_spec(integration_start, integration_end, subtract_background=subtract_background,
+    E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
                           spec_type=spectral_type)
     #
     fig, ax = E.plot_spectrum(savefig=False)
+    #
+    # Temporal evolution of the spectra
+    interval_start = spec_start
+    interval_end = spec_end
+    duration = pd.Timedelta(hours=1)
+    #
+    E.get_spec_slices(interval_start, interval_end, duration, subtract_background=subtract_background, background_start=background_start, background_end=background_end)
+
+    E.gif_filename
     return fig
 
 
@@ -323,8 +335,8 @@ def test_SEP_Spectra_STEREO_A_HET(spectral_type, species):
     background_start = dt.datetime(2021, 10, 28, 2, 0)
     background_end = dt.datetime(2021, 10, 28, 14, 0)
     #
-    integration_start = dt.datetime(2021, 10, 28, 16, 0)
-    integration_end = dt.datetime(2021, 11, 1)
+    spec_start = dt.datetime(2021, 10, 28, 16, 0)
+    spec_end = dt.datetime(2021, 11, 1)
     #
     resample = '30min'  # '60s'
     #
@@ -335,11 +347,11 @@ def test_SEP_Spectra_STEREO_A_HET(spectral_type, species):
     E = Event()
     E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)
     #
-    fig, ax = E.plot_flux(integration_start, integration_end, subtract_background=subtract_background,
+    fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
                           savefig=False, spec_type=spectral_type)
     #
-    E.get_spec(integration_start, integration_end, subtract_background=subtract_background,
+    E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
                           spec_type=spectral_type)
     #
@@ -369,8 +381,8 @@ def test_SEP_Spectra_Wind_3DP(spectral_type, species):
     background_start = dt.datetime(2021, 10, 28, 2, 0)
     background_end = dt.datetime(2021, 10, 28, 14, 0)
     #
-    integration_start = dt.datetime(2021, 10, 28, 16, 0)
-    integration_end = dt.datetime(2021, 11, 1)
+    spectral_type_start = dt.datetime(2021, 10, 28, 16, 0)
+    spectral_type_end = dt.datetime(2021, 11, 1)
     #
     resample = '30min'  # '60s'
     #
@@ -381,11 +393,11 @@ def test_SEP_Spectra_Wind_3DP(spectral_type, species):
     E = Event()
     E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)
     #
-    fig, ax = E.plot_flux(integration_start, integration_end, subtract_background=subtract_background,
+    fig, ax = E.plot_flux(spectral_type_start, spectral_type_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
                           savefig=False, spec_type=spectral_type)
     #
-    E.get_spec(integration_start, integration_end, subtract_background=subtract_background,
+    E.get_spec(spectral_type_start, spectral_type_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
                           spec_type=spectral_type)
     #
