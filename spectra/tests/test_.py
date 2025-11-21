@@ -308,8 +308,7 @@ def test_SEP_Spectra_STEREO_A_SEPT(spectral_type, species):
     duration = pd.Timedelta(hours=1)
     #
     E.get_spec_slices(interval_start, interval_end, duration, subtract_background=subtract_background, background_start=background_start, background_end=background_end)
-
-    E.gif_filename
+    assert os.path.isfile(E.gif_filename)
     return fig
 
 
