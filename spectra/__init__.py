@@ -107,11 +107,11 @@ class Event:
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
                     flux_id = 'Electron_Flux'
                     energy_text = 'Electron_Bins_Text'
-                    show_channels = [1, 4, 8, 12, 16, 20, 24, 28, 32]            # remove or automatically select every nth channel. maybe create corresponding keywork (show_every_nth_channel = 2) ?
+                    show_channels = np.arange(1, len(self.meta[energy_text]), 5) 
                 if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
                     flux_id = 'Ion_Flux'
                     energy_text = 'Ion_Bins_Text'
-                    show_channels = [1, 4, 8, 12, 16, 20, 24, 28, 32]
+                    show_channels = np.arange(1, len(self.meta[energy_text]), 6) 
 
             if self.instrument.lower() == 'het':
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
@@ -122,11 +122,10 @@ class Event:
                     show_channels = [0, 4, 8, 12, 16, 20, 24, 28, 32]
                     energy_text = "H_Bins_Text"
                     flux_id = "H_Flux"
-
+                    show_channels = np.arange(0, len(self.meta[energy_text]), 4) 
             
             # plotting
-            #for channel in show_channels:
-            for channel in range(len(self.meta[energy_text])):
+            for channel in show_channels:
                 label = self.meta[energy_text][channel]
                 axs.plot(self.df.index, self.df[flux_id][f'{flux_id}_{channel}'], label=label)
                 
@@ -247,7 +246,7 @@ class Event:
         axs.set_xlabel('Date / Time')
 
         axs.legend(bbox_to_anchor=(0.5, -0.25), loc='upper center', borderaxespad=0.0,
-                   title=f'{self.species} {self.viewing}', fontsize=9, ncol=3, frameon=True,
+                   title=f'{self.species} {self.viewing}', fontsize=9, ncol=4, frameon=True,
                    facecolor='white', edgecolor='black', title_fontsize='11')
 
         fig.suptitle(f'{self.spacecraft.upper()} / {self.instrument.upper()} {self.viewing} (spectral type = {spec_type})', fontsize=14)
@@ -365,12 +364,7 @@ class Event:
             duration_min = (duration.total_seconds()/60)
             filename = f'{foldername}spectrum_slices_start_{start_time}_step_{duration_min}min_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}_{i}'
 
-            # save csv files
-            ######## move these to spec file:   
-            # self.E_unc = self.spec_E.copy()/2.   # !!!!!!!!!!!!!!! needs to be replaced with x-errors from data files (meta data)
             self.E_unc = self.DE/2.
-            ######## 
-            
             self.I_unc = self.final_unc
             
             spec_df = pd.DataFrame(dict(Energy = self.spec_E, Intensity = self.final_spec, E_err = self.E_unc, I_err = self.I_unc))
@@ -412,6 +406,7 @@ class Event:
             high_E = low_E + np.array(self.meta[f'{species_key}_Bins_Width'])
             self.spec_E = np.sqrt(low_E*high_E)
             self.DE = self.meta[f'{species_key}_Bins_Width']
+            
 
         if self.spacecraft.lower() in ['stereo a', 'stereo-a', 'stereo b', 'stereo-b']:
             if self.instrument.lower() == 'het':
@@ -539,14 +534,10 @@ class Event:
         self.spec_type = spec_type
         self.spec_fluxes = df_fluxes.iloc[ind]
 
-        # create spec df for saving 
-        
-        ######## move these to spec file:   
-        # self.E_unc = self.spec_E.copy()/2.   # !!!!!!!!!!!!!!! needs to be replaced with x-errors from data files (meta data)
-        self.E_unc = self.DE/2.
-        ######## 
         self.I_unc = self.final_unc
-        
+        self.E_unc = self.DE/2.
+
+
         self.spec_df = pd.DataFrame(dict(Energy = self.spec_E, Intensity = self.final_spec, E_err = self.E_unc, I_err = self.I_unc))
         
 
