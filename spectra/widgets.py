@@ -4,7 +4,7 @@ import ipywidgets as widgets
 list_of_sc = ["PSP", "SOHO", "Solar Orbiter", "STEREO-A", "STEREO-B", "Wind"]
 
 stereo_instr = ["HET", "SEPT"]
-solo_instr = ["EPT", "HET"]
+solo_instr = ["HET", "EPT"]
 soho_instr = ["ERNE-HED"]
 psp_instr = ["isois-epihi"]
 wind_instr = ["3DP"]
