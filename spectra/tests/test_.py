@@ -358,18 +358,18 @@ def test_SEP_Spectra_STEREO_A_HET(spectral_type, species):
     return fig
 
 
-@pytest.mark.parametrize("spectral_type, species", [('integral', 'electrons'), ('peak', 'protons')])
+@pytest.mark.parametrize("spectral_type, species, viewing", [('integral', 'electrons', 'omnidirectional'), ('peak', 'protons', 'sector 7')])
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
 @pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 @pytest.mark.filterwarnings("ignore::UserWarning:seppy")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
 @pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
-def test_SEP_Spectra_Wind_3DP(spectral_type, species):
+def test_SEP_Spectra_Wind_3DP(spectral_type, species, viewing):
     display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop)
     #
     w.spacecraft_drop.value = 'Wind'
     w.sensor_drop.value = '3DP'
-    w.view_drop.value = 'omnidirectional'
+    w.view_drop.value = viewing  # 'omnidirectional'
     w.species_drop.value = species
     #
     # spectral integration interval:
