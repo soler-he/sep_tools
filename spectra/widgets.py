@@ -27,7 +27,7 @@ view_dict = {
     ("Solar Orbiter", "HET"): ("sun", "asun", "north", "south"),
     ("PSP", "isois-epihi"): ("A", "B"),
     # ("PSP", "isois-epilo"): ('3', '7'),  # ('0', '1', '2', '3', '4', '5', '6', '7')
-    ("Wind", "3DP"): ('omnidirectional', )  # 'sector 0', 'sector 1', 'sector 2', 'sector 3', 'sector 4', 'sector 5', 'sector 6', 'sector 7')
+    ("Wind", "3DP"): ('omnidirectional', 'sector 0', 'sector 1', 'sector 2', 'sector 3', 'sector 4', 'sector 5', 'sector 6', 'sector 7')
 }
 
 species_dict = {

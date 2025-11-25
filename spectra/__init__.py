@@ -39,7 +39,6 @@ class Event:
         self.viewing = viewing
 
         if self.spacecraft.lower() in ['wind']:
-            self.viewing = 'omni'
             self.instrument = '3DP SST'
         if self.spacecraft.lower() in ['stereo a', 'stereo-a', 'stereo b', 'stereo-b']:
             if self.instrument.lower() == 'het':
@@ -73,13 +72,19 @@ class Event:
             self.df, self.meta = stereo_load(instrument=self.instrument, startdate=self.startdate, enddate=self.enddate, spacecraft=sc,
                                              sept_species=self.species[0], sept_viewing=self.viewing, path=data_path, resample=resample)
 
-        if self.spacecraft.lower() in ['wind']:  # !! only omni data implemented for now
-            # !!! remove lowest energy channels (noisy)?
+        if self.spacecraft.lower() in ['wind']:
+            # TODO: !!! remove lowest energy channels (noisy)?
             if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
-                dataset = 'WI_SFSP_3DP'
+                if self.viewing == "omnidirectional":
+                    dataset = 'WI_SFSP_3DP'
+                elif self.viewing[:6].lower() == 'sector':
+                    dataset = 'WI_SFPD_3DP'
             if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
-                dataset = 'WI_SOSP_3DP'
-            self.df, self.meta = wind3dp_load(dataset=dataset, startdate=self.startdate, enddate=self.enddate, path=data_path, resample=resample)
+                if self.viewing == "omnidirectional":
+                    dataset = 'WI_SOSP_3DP'
+                elif self.viewing[:6].lower() == 'sector':
+                    dataset = 'WI_SOPD_3DP'
+            self.df, self.meta = wind3dp_load(dataset=dataset, startdate=self.startdate, enddate=self.enddate, path=data_path, resample=resample, multi_index=False)
             custom_warning('No intensity uncertainties available for Wind/3DP. Assuming uncertainties to be 0.')
 
         if self.spacecraft.lower() in ['soho']:
@@ -99,7 +104,7 @@ class Event:
         # return df, meta
 
     def plot_flux(self, spec_start, spec_end, subtract_background=True, background_start=None, background_end=None, savefig=False, spec_type='integral'):
-               
+        # TODO: add option to only plot selected channels here
         fig, axs = plt.subplots(1, sharex=True, figsize=(9, 6), dpi=200)
 
         if self.spacecraft.lower() == 'solo':
@@ -174,21 +179,28 @@ class Event:
                         axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
 
         if self.spacecraft.lower() in ['wind']:
-            cols = self.df.filter(like='FLUX').columns
-            flux_id = 'FLUX'
+            if self.viewing == "omnidirectional":
+                cols = self.df.filter(like='FLUX').columns
+                flux_id = 'FLUX_'
+                view_id = ''
+            elif self.viewing[:6].lower() == 'sector':
+                cols = self.df.filter(like=f'_P{self.viewing[-1]}').columns
+                flux_id = 'FLUX_E'
+                view_id = f'_P{self.viewing[-1]}'
             show_channels = np.arange(len(cols))
 
             # plotting
             for channel in show_channels:
+                print(f'Plotting Wind/3DP {flux_id}{channel}{view_id}')
                 label = self.meta['channels_dict_df']['Bins_Text'][f'ENERGY_{channel}']
-                axs.plot(self.df.index, self.df[f'{flux_id}_{channel}']*1e6, label=label)
+                axs.plot(self.df.index, self.df[f'{flux_id}{channel}{view_id}']*1e6, label=label)
 
                 if spec_type == 'peak':
                     ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
                     # only plot peak if there is at least one non-nan value in the interval
-                    if not self.df[f'{flux_id}_{channel}'].iloc[ind].isnull().all():
-                        peak_time = self.df[f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
-                        peak_val = self.df[f'{flux_id}_{channel}'].iloc[ind].max()*1e6
+                    if not self.df[f'{flux_id}{channel}{view_id}'].iloc[ind].isnull().all():
+                        peak_time = self.df[f'{flux_id}{channel}{view_id}'].iloc[ind].idxmax(skipna=True)
+                        peak_val = self.df[f'{flux_id}{channel}{view_id}'].iloc[ind].max()*1e6
                         axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
                     
         if self.spacecraft.lower() in ['soho']:
@@ -437,9 +449,11 @@ class Event:
                     self.DE = self.meta['channels_dict_df_e']['DE'].values
 
         if self.spacecraft.lower() in ['wind']:
-            # cols = self.df.filter(like='FLUX').columns
-            flux_id = 'FLUX'
-            # fluxes = self.df[cols]
+            if self.viewing == "omnidirectional":
+                flux_id = 'FLUX'
+                # fluxes = self.df[cols]
+            elif self.viewing[:6].lower() == 'sector':
+                flux_id = f'_P{self.viewing[-1]}'
             self.spec_E = self.meta['channels_dict_df']['mean_E'].values
             self.DE = self.meta['channels_dict_df']['DE'].values
 
@@ -485,7 +499,6 @@ class Event:
                             pass
                 unc_spec = np.nansum(df_uncs.iloc[ind], axis=0)
 
-        
         if spec_type == 'peak':
             I_spec = np.nanmax(df_fluxes.iloc[ind], axis=0)
             
@@ -508,22 +521,16 @@ class Event:
                             pass
                 unc_spec = np.nanmax(df_uncs.iloc[ind], axis=0)
 
-        
         if subtract_background:
             #print('subtracting background')
             bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
             self.final_spec = I_spec - bg_spec
             if self.spacecraft.lower() in ['wind']:
-                self.final_unc = np.zeros(len(I_spec)) #*np.nan
-            
-            
-            elif self.spacecraft.lower() in ['soho']:                  ##### !! check for correct implementation of SOHO uncertainties
-                
+                self.final_unc = np.zeros(len(I_spec)) #*np.nan  # TODO: implement correct uncerstainties for Wind/3DP
+            elif self.spacecraft.lower() in ['soho']: # TODO: !! check for correct implementation of SOHO uncertainties
                 bg_c_spec = np.nanmean(df_soho_counts.iloc[ind_bg], axis=0)     
                 bg_unc_spec = bg_spec / np.sqrt(bg_c_spec) 
                 self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)
-            
-            
             else:
                 bg_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)
                 self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)
@@ -537,16 +544,15 @@ class Event:
         self.I_unc = self.final_unc
         self.E_unc = self.DE/2.
 
-
         self.spec_df = pd.DataFrame(dict(Energy = self.spec_E, Intensity = self.final_spec, E_err = self.E_unc, I_err = self.I_unc))
-        
+
 
     
-    def plot_spectrum(self, savefig=None, filename='', ylim=None):                    ###!!! add x-error bars!
+    def plot_spectrum(self, savefig=None, filename='', ylim=None):
         fig, ax = plt.subplots(1, sharex=True, figsize=(5, 4), dpi=150)
         ax.errorbar(self.spec_E, self.final_spec, xerr=self.E_unc, yerr=self.final_unc, fmt='o', markersize=8,
                     label=self.species, elinewidth=2, capsize=5, capthick=2, ecolor='lightgray')
-        
+
         if self.spec_type == 'integral':
             spec_type_str = 'integral spec'
             ylabel_str = "Intensity (cm² sr MeV)⁻¹"
@@ -558,7 +564,6 @@ class Event:
         else:
             backsub_str = ''
 
-        
         ax.set_title(f"{self.spacecraft.upper()} / {self.instrument.upper()} {self.viewing} ({spec_type_str}{backsub_str})")
         ax.set_xscale("log")
         ax.set_yscale("log")
