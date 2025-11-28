@@ -32,7 +32,9 @@ This repository contains multiple Python tools for the analysis of Solar Energet
 
 ### Update
 
-To update the tools to the latest version, [download this file](https://github.com/soler-he/sep_tools/archive/refs/heads/main.zip) and extract it. Note that changes that you made to the Notebooks will be overwritten if you extract into the same directory as used in the initial installation; in this case we recommend you make a copy of your edited version. Afterwards, upgrade the required Python packages by first activating the virtual environment that you have created for these tools (i.e., execute step 5 of Installation) and then running `pip install --upgrade --upgrade-strategy eager -r requirements.txt` within the extracted folder.
+To update the tools to the latest version, [download this file](https://github.com/soler-he/sep_tools/archive/refs/heads/main.zip) and extract it. Note that changes that you made to the Notebooks will be overwritten if you extract into the same directory as used in the initial installation; in this case we recommend you make a copy of your edited version. 
+
+Afterwards, upgrade the required Python packages by first activating the virtual environment that you have created for these tools (i.e., execute step 5 of Installation) and then running `pip install --upgrade --upgrade-strategy eager -r requirements.txt` within the extracted folder.
 
 The tools are continuously updated with small changes. After bigger updates, release versions are tagged and indexed at [Zenodo](https://doi.org/10.5281/zenodo.15058293). You can see the latest release version in the right sidebar of the repository (above Contributors) or get a full list at [soler-he/sep_tools/releases](https://github.com/soler-he/sep_tools/releases).
 
