@@ -55,12 +55,13 @@ If you are new to Jupyter Notebooks, the official documentation will give you mo
 
 All tools can be accessed online without installation on [SOLER's JupyterHub](https://soler-horizon.eu/hub/). You only need a (free) [GitHub account](https://github.com/signup) for verification. Click on the Notebook file below to open the specific tool:
 
-- [`SEP_Fluence-Spectra.ipynb`](https://hub-route-serpentine-soler.2.rahtiapp.fi/hub/user-redirect/lab/workspaces/auto-8/tree/soler/sep_tools/SEP_Fluence-Spectra.ipynb)<br>Determines and visualizes SEP energy spectra accumulated over a whole event duration
+- `SEP_Fluence-Spectra.ipynb`<br>Has been merged with [`SEP_Spectra.ipynb`](https://hub-route-serpentine-soler.2.rahtiapp.fi/hub/user-redirect/lab/workspaces/auto-8/tree/soler/sep_tools/SEP_Spectra.ipynb), please use that one instead.
 - [`SEP_Multi-Instrument-Plot.ipynb`](https://hub-route-serpentine-soler.2.rahtiapp.fi/hub/user-redirect/lab/workspaces/auto-8/tree/soler/sep_tools/SEP_Multi-Instrument-Plot.ipynb)<br>Makes multi-panel time-series plots of various different in-situ measurements, including also selected remote-sensing observations
 - [`SEP_Multi-Spacecraft-Plot.ipynb`](https://hub-route-serpentine-soler.2.rahtiapp.fi/hub/user-redirect/lab/workspaces/auto-8/tree/soler/sep_tools/SEP_Multi-Spacecraft-Plot.ipynb)<br>Makes a plot of SEP intensity-time profiles combining observations by different spacecraft
 - [`SEP_PADs-and-Anisotropy.ipynb`](https://hub-route-serpentine-soler.2.rahtiapp.fi/hub/user-redirect/lab/workspaces/auto-8/tree/soler/sep_tools/SEP_PADs-and-Anisotropy.ipynb)<br>Determines and visualizes SEP Pitch-Angle Distributions (PADs) and first-order anisotropies, including methods for background subtraction
 - [`SEP_PyOnset.ipynb`](https://hub-route-serpentine-soler.2.rahtiapp.fi/hub/user-redirect/lab/workspaces/auto-8/tree/soler/sep_tools/SEP_PyOnset.ipynb)<br>Determines SEP onset times and their uncertainties from in-situ intensity measurements using a hybrid Poisson-CUSUM-bootstrapping approach (see [PyOnset](https://github.com/Christian-Palmroos/PyOnset) for more details)
 - [`SEP_Regression-Onset.ipynb`](https://hub-route-serpentine-soler.2.rahtiapp.fi/hub/user-redirect/lab/workspaces/auto-8/tree/soler/sep_tools/SEP_Regression-Onset.ipynb)<br>Determines SEP onset times based on a regression method
+- [`SEP_Spectra.ipynb`](https://hub-route-serpentine-soler.2.rahtiapp.fi/hub/user-redirect/lab/workspaces/auto-8/tree/soler/sep_tools/SEP_Spectra.ipynb)<br>Determines and visualizes SEP energy spectra for peak values or accumulated over whole event duration
 
 ## Contributing
 
