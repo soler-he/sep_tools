@@ -158,9 +158,9 @@ def test_SEP_Spectra_SOHO_ERNE_HED_None():
                           savefig=False, resample=resample)
     #
     E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end)
+                          background_start=background_start, background_end=background_end, resample=resample)
     #
-    fig, ax = E.plot_spectrum(savefig=False, resample=resample)
+    fig, ax = E.plot_spectrum(savefig=False)
     return fig
 
 
