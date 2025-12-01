@@ -38,7 +38,7 @@ def test_SEP_Spectra_PSP_ISOIS_EPIHI(spectral_type, species):
     display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop)
     #
     w.spacecraft_drop.value = 'PSP'
-    w.sensor_drop.value = 'isois-epihi'
+    w.sensor_drop.value = 'EPIHI-HET'
     w.view_drop.value = 'A'
     w.species_drop.value = species
     #
@@ -60,15 +60,15 @@ def test_SEP_Spectra_PSP_ISOIS_EPIHI(spectral_type, species):
     data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
-    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)
+    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, data_path)
     #
     fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
-                          savefig=False, spec_type=spectral_type)
+                          savefig=False, spec_type=spectral_type, resample=resample)
     #
     E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
-                          spec_type=spectral_type)
+                          spec_type=spectral_type, resample=resample)
     #
     fig, ax = E.plot_spectrum(savefig=False)
     return fig
@@ -106,15 +106,15 @@ def test_SEP_Spectra_SOHO_ERNE_HED(spectral_type, species):
     data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
-    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)
+    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, data_path)
     #
     fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
-                          savefig=False, spec_type=spectral_type)
+                          savefig=False, spec_type=spectral_type, resample=resample)
     #
     E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
-                          spec_type=spectral_type)
+                          spec_type=spectral_type, resample=resample)
     #
     fig, ax = E.plot_spectrum(savefig=False)
     return fig
@@ -151,16 +151,16 @@ def test_SEP_Spectra_SOHO_ERNE_HED_None():
     data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
-    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)
+    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, data_path)
     #
     fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
-                          savefig=False)
+                          savefig=False, resample=resample)
     #
     E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end)
     #
-    fig, ax = E.plot_spectrum(savefig=False)
+    fig, ax = E.plot_spectrum(savefig=False, resample=resample)
     return fig
 
 
@@ -197,15 +197,15 @@ def test_SEP_Spectra_Solar_Orbiter_EPT(spectral_type, species):
     data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
-    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)
+    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, data_path)
     #
     fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
-                          savefig=False, spec_type=spectral_type)
+                          savefig=False, spec_type=spectral_type, resample=resample)
     #
     E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
-                          spec_type=spectral_type)
+                          spec_type=spectral_type, resample=resample)
     #
     fig, ax = E.plot_spectrum(savefig=False)
     return fig
@@ -244,15 +244,15 @@ def test_SEP_Spectra_Solar_Orbiter_HET(spectral_type, species):
     data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
-    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)
+    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, data_path)
     #
     fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
-                          savefig=False, spec_type=spectral_type)
+                          savefig=False, spec_type=spectral_type, resample=resample)
     #
     E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
-                          spec_type=spectral_type)
+                          spec_type=spectral_type, resample=resample)
     #
     fig, ax = E.plot_spectrum(savefig=False)
     return fig
@@ -290,15 +290,15 @@ def test_SEP_Spectra_STEREO_A_SEPT(spectral_type, species):
     data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
-    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)
+    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, data_path)
     #
     fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
-                          savefig=False, spec_type=spectral_type)
+                          savefig=False, spec_type=spectral_type, resample=resample)
     #
     E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
-                          spec_type=spectral_type)
+                          spec_type=spectral_type, resample=resample)
     #
     fig, ax = E.plot_spectrum(savefig=False)
     #
@@ -344,15 +344,15 @@ def test_SEP_Spectra_STEREO_A_HET(spectral_type, species):
     data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
-    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)
+    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, data_path)
     #
     fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
-                          savefig=False, spec_type=spectral_type)
+                          savefig=False, spec_type=spectral_type, resample=resample)
     #
     E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
-                          spec_type=spectral_type)
+                          spec_type=spectral_type, resample=resample)
     #
     fig, ax = E.plot_spectrum(savefig=False)
     return fig
@@ -390,15 +390,15 @@ def test_SEP_Spectra_Wind_3DP(spectral_type, species, viewing):
     data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
-    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, resample, data_path)
+    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, data_path)
     #
     fig, ax = E.plot_flux(spectral_type_start, spectral_type_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
-                          savefig=False, spec_type=spectral_type)
+                          savefig=False, spec_type=spectral_type, resample=resample)
     #
     E.get_spec(spectral_type_start, spectral_type_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
-                          spec_type=spectral_type)
+                          spec_type=spectral_type, resample=resample)
     #
     fig, ax = E.plot_spectrum(savefig=False)
     return fig
