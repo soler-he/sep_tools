@@ -297,7 +297,6 @@ class Event:
                 writer.append_data(image)
         self.gif_filename = f'{base_filename}_animation.gif'
 
-    
     def plot_spec_slices(self, base_filename, spec_start, duration):
         # makes a plot of each spectrum slice based on the already saved csv files
         # taking all csv files, we determine a global y-range used in all plots
@@ -369,8 +368,7 @@ class Event:
         
             filename = f'{base_filename}_{idx}.png'
             plt.savefig(filename)
-            
-    
+
     def get_spec_slices(self, spec_start, spec_end, duration, subtract_background=True, background_start=None, background_end=None):
         # Determines spectra for each time slice
         # then makes plots for all spectra using a common y-range
@@ -400,8 +398,7 @@ class Event:
         self.plot_spec_slices(base_filename, spec_start, duration)
         
         self.make_spec_gif(base_filename)
-    
-    
+
     def get_spec(self, spec_start, spec_end, spec_type='integral', subtract_background=True, background_start=None, background_end=None, resample=None):
         I_spec = []
         unc_spec = []
@@ -427,7 +424,7 @@ class Event:
             high_E = low_E + np.array(self.meta[f'{species_key}_Bins_Width'])
             self.spec_E = np.sqrt(low_E*high_E)
             self.DE = self.meta[f'{species_key}_Bins_Width']
-            
+
 
         if self.spacecraft.lower() in ['stereo a', 'stereo-a', 'stereo b', 'stereo-b']:
             if self.instrument.lower() == 'het':
@@ -511,9 +508,9 @@ class Event:
                 nan_percent = np.nanmax(number_of_nan_entries/nonan_points) * 100
                 if np.nanmax(number_of_nan_entries) > 0:   
                     custom_warning(f'Data gaps in integration time interval! {np.nanmax(number_of_nan_entries)} points ({nan_percent:.2f}%) of the intensity data points contributing to the integral spectrum are NaN. This may affect the resulting spectrum.')
-                    if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']: # TODO: Jan: check note regarding PSP: is this understandable?
-                        custom_warning(f'Note that for PSP there can be large datagaps which do not contain time-stamp data points. These can therefore not be considered in the NaN percentage above.')
-                
+                    if self.spacecraft.lower() in ['parker', 'parker solar probe','psp']: # TODO: Jan: check note regarding PSP: is this understandable?
+                        custom_warning('Note that for PSP there can be large datagaps which do not contain time-stamp data points. These can therefore not be considered in the NaN percentage above.')
+
                 dt = df_fluxes_ind.index.to_series().diff()
                 most_common_dt = dt.mode().iloc[0]
                 integration_sec = most_common_dt.total_seconds()
@@ -536,7 +533,7 @@ class Event:
             else: # if dataframe is empty (can happen for slices when bigger datagaps are present)
                     I_spec = np.zeros(len(self.spec_E))*np.nan
                     unc_spec = np.zeros(len(self.spec_E))*np.nan
-            
+
             if (subtract_background) and (not np.all(np.isnan(I_spec))):    # here we use the original (non-resampled) data
                 ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
                 bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
@@ -553,7 +550,7 @@ class Event:
             else:
                 self.final_spec = I_spec
                 self.final_unc = unc_spec            
-        
+
         if spec_type == 'peak': # here we use the resamled data
             if resample is not None:
                 cols_unc = self.df.filter(like=unc_id).columns
@@ -608,7 +605,6 @@ class Event:
     def sqrt_sum_squares(self, series):
         return np.sqrt(np.nansum(series**2, axis=0)) / len(series)
 
-    
     def plot_spectrum(self, savefig=None, filename='', ylim=None):
         fig, ax = plt.subplots(1, sharex=True, figsize=(5, 4), dpi=150)
         ax.errorbar(self.spec_E, self.final_spec, xerr=self.E_unc, yerr=self.final_unc, fmt='o', markersize=8,
