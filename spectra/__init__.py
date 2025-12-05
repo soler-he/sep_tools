@@ -310,7 +310,11 @@ class Event:
         for file in csv_files:
             df = pd.read_csv(file)
             intensity = df['Intensity'].astype(float)
-            i_err = df['I_err'].astype(float)
+            if self.spacecraft == 'Wind':
+                #i_err = np.zeros(len(intensity))
+                i_err = intensity*0.1
+            else:
+                i_err = df['I_err'].astype(float)
             lower = intensity - i_err
             upper = intensity + i_err
 
@@ -354,8 +358,11 @@ class Event:
                 backsub_str = ', backgr. subtr.'
             else:
                 backsub_str = ''
-    
-            ax.set_title(f"{self.spacecraft.upper()} / {self.instrument.upper()} {self.viewing} ({spec_type_str}{backsub_str})")
+
+            viewing = self.viewing
+            if viewing == 'omnidirectional':
+                viewing = 'omni'
+            ax.set_title(f"{self.spacecraft.upper()} / {self.instrument.upper()} {viewing} ({spec_type_str}{backsub_str})")
             ax.set_xscale("log")
             ax.set_yscale("log")
            
@@ -369,6 +376,7 @@ class Event:
         
             filename = f'{base_filename}_{idx}.png'
             plt.savefig(filename)
+            plt.close('all')
             
     
     def get_spec_slices(self, spec_start, spec_end, duration, subtract_background=True, background_start=None, background_end=None):
@@ -501,19 +509,16 @@ class Event:
         if spec_type == 'integral': # here we use the original (non-resamled) data
             df_fluxes_ind = df_fluxes.iloc[ind]
             if not df_fluxes_ind.empty:
-                # total_datapoints = len(df_fluxes_ind)
-                # print('total_datapoints', total_datapoints)
-                df_nan_test = df_fluxes_ind.dropna(axis=1, how="all")
-                nonan_points = df_nan_test.count() # TODO: this is still not really working.. 
-                # print('nonan_points',nonan_points)
-                number_of_nan_entries = df_fluxes_ind.isna().sum() #total_datapoints - nonan_points.       TODO: check this first!
+                df_nan_test = df_fluxes_ind.dropna(axis=1, how="all") # drop columns if they contain only NaNs
+                nonan_points = df_nan_test.count() 
+                number_of_nan_entries = df_nan_test.isna().sum() 
 
                 nan_percent = np.nanmax(number_of_nan_entries/nonan_points) * 100
                 if np.nanmax(number_of_nan_entries) > 0:   
-                    custom_warning(f'Data gaps in integration time interval! {np.nanmax(number_of_nan_entries)} points ({nan_percent:.2f}%) of the intensity data points contributing to the integral spectrum are NaN. This may affect the resulting spectrum.')
+                    custom_warning(f'Data gaps in integration time interval! {np.nanmax(number_of_nan_entries)} out of {len(df_nan_test)} points ({nan_percent:.2f}%) of the intensity data points contributing to the integral spectrum are NaN. This may affect the resulting spectrum.')
                     if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']: # TODO: Jan: check note regarding PSP: is this understandable?
                         custom_warning(f'Note that for PSP there can be large datagaps which do not contain time-stamp data points. These can therefore not be considered in the NaN percentage above.')
-                
+
                 dt = df_fluxes_ind.index.to_series().diff()
                 most_common_dt = dt.mode().iloc[0]
                 integration_sec = most_common_dt.total_seconds()
@@ -556,7 +561,10 @@ class Event:
         
         if spec_type == 'peak': # here we use the resamled data
             if resample is not None:
-                cols_unc = self.df.filter(like=unc_id).columns
+                if self.spacecraft.lower() == 'wind':
+                    cols_unc = []
+                else:                
+                    cols_unc = self.df.filter(like=unc_id).columns
                 df_resampled = resample_df(self.df, resample, cols_unc=cols_unc)
                 print(f'Resampling used to determine this peak spectrum was {resample}')
             else: 
@@ -624,8 +632,10 @@ class Event:
             backsub_str = ', backgr. subtr.'
         else:
             backsub_str = ''
-
-        ax.set_title(f"{self.spacecraft.upper()} / {self.instrument.upper()} {self.viewing} ({spec_type_str}{backsub_str})")
+        viewing = self.viewing
+        if viewing == 'omnidirectional':
+            viewing = 'omni'
+        ax.set_title(f"{self.spacecraft.upper()} / {self.instrument.upper()} {viewing} ({spec_type_str}{backsub_str})")
         ax.set_xscale("log")
         ax.set_yscale("log")
         if ylim is not None:
