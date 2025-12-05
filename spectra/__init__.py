@@ -310,7 +310,11 @@ class Event:
         for file in csv_files:
             df = pd.read_csv(file)
             intensity = df['Intensity'].astype(float)
-            i_err = df['I_err'].astype(float)
+            if self.spacecraft == 'Wind':
+                #i_err = np.zeros(len(intensity))
+                i_err = intensity*0.1
+            else:
+                i_err = df['I_err'].astype(float)
             lower = intensity - i_err
             upper = intensity + i_err
 
@@ -354,8 +358,11 @@ class Event:
                 backsub_str = ', backgr. subtr.'
             else:
                 backsub_str = ''
-    
-            ax.set_title(f"{self.spacecraft.upper()} / {self.instrument.upper()} {self.viewing} ({spec_type_str}{backsub_str})")
+
+            viewing = self.viewing
+            if viewing == 'omnidirectional':
+                viewing = 'omni'
+            ax.set_title(f"{self.spacecraft.upper()} / {self.instrument.upper()} {viewing} ({spec_type_str}{backsub_str})")
             ax.set_xscale("log")
             ax.set_yscale("log")
            
@@ -369,6 +376,7 @@ class Event:
         
             filename = f'{base_filename}_{idx}.png'
             plt.savefig(filename)
+            plt.close('all')
             
     
     def get_spec_slices(self, spec_start, spec_end, duration, subtract_background=True, background_start=None, background_end=None):
@@ -556,7 +564,10 @@ class Event:
         
         if spec_type == 'peak': # here we use the resamled data
             if resample is not None:
-                cols_unc = self.df.filter(like=unc_id).columns
+                if self.spacecraft.lower() == 'wind':
+                    cols_unc = []
+                else:                
+                    cols_unc = self.df.filter(like=unc_id).columns
                 df_resampled = resample_df(self.df, resample, cols_unc=cols_unc)
                 print(f'Resampling used to determine this peak spectrum was {resample}')
             else: 
@@ -624,8 +635,10 @@ class Event:
             backsub_str = ', backgr. subtr.'
         else:
             backsub_str = ''
-
-        ax.set_title(f"{self.spacecraft.upper()} / {self.instrument.upper()} {self.viewing} ({spec_type_str}{backsub_str})")
+        viewing = self.viewing
+        if viewing == 'omnidirectional':
+            viewing = 'omni'
+        ax.set_title(f"{self.spacecraft.upper()} / {self.instrument.upper()} {viewing} ({spec_type_str}{backsub_str})")
         ax.set_xscale("log")
         ax.set_yscale("log")
         if ylim is not None:
