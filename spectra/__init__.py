@@ -30,13 +30,14 @@ class Event:
     def __init__(self):
         pass
 
-    def load_data(self, spacecraft, instrument, species, startdate, enddate, viewing='', data_path=None):
+    def load_data(self, spacecraft, instrument, species, startdate, enddate, viewing='', data_level='l2', data_path=None):
         self.spacecraft = spacecraft
         self.instrument = instrument
         self.species = species
         self.startdate = startdate
         self.enddate = enddate
         self.viewing = viewing
+        self.data_level = data_level
 
         if self.spacecraft.lower() in ['wind']:
             self.instrument = '3DP SST'
@@ -54,9 +55,12 @@ class Event:
         if self.spacecraft.lower() == 'solo':
             if self.viewing == '':
                 raise Exception("Solar Orbiter instruments require a defined 'viewing'!")
-            df_protons, df_electrons, self.meta = epd_load(sensor=self.instrument, level='l2', startdate=self.startdate,
+            df_protons, df_electrons, self.meta = epd_load(sensor=self.instrument, level=self.data_level, startdate=self.startdate,
                                                            enddate=self.enddate, viewing=self.viewing, path=data_path,
                                                            autodownload=True)
+            # flatten multi-index columns
+            df_electrons.columns = df_electrons.columns.droplevel(0)
+            df_protons.columns = df_protons.columns.droplevel(0)
             if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
                 self.df = df_electrons
             if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
@@ -114,8 +118,7 @@ class Event:
 
         fig, axs = plt.subplots(1, sharex=True, figsize=(9, 6), dpi=200)
         if resample is not None:
-            df_resampled = resample_df(self.df, resample)
-            # df_resampled = resample_df(self.df, resample)
+            df_resampled = resample_df(self.df, resample, cols_unc='auto')
         else: 
             df_resampled = self.df.copy()
         if self.spacecraft.lower() == 'solo':
@@ -143,14 +146,14 @@ class Event:
             # plotting
             for channel in show_channels:
                 label = self.meta[energy_text][channel]
-                axs.plot(df_resampled.index, df_resampled[flux_id][f'{flux_id}_{channel}'], label=label)
+                axs.plot(df_resampled.index, df_resampled[f'{flux_id}_{channel}'], label=label)
                 
                 if spec_type == 'peak':
                     ind = np.where((df_resampled.index >= spec_start) & (df_resampled.index <= spec_end))[0]
                     # only plot peak if there is at least one non-nan value in the interval
-                    if not df_resampled[flux_id][f'{flux_id}_{channel}'].iloc[ind].isnull().all():
-                        peak_time = df_resampled[flux_id][f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
-                        peak_val = df_resampled[flux_id][f'{flux_id}_{channel}'].iloc[ind].max()
+                    if not df_resampled[f'{flux_id}_{channel}'].iloc[ind].isnull().all():
+                        peak_time = df_resampled[f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
+                        peak_val = df_resampled[f'{flux_id}_{channel}'].iloc[ind].max()
                         axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
 
         if self.spacecraft.lower() in ['stereo a', 'stereo-a', 'stereo b', 'stereo-b']:
@@ -517,7 +520,7 @@ class Event:
                 if np.nanmax(number_of_nan_entries) > 0:   
                     custom_warning(f'Data gaps in integration time interval! {np.nanmax(number_of_nan_entries)} out of {len(df_nan_test)} points ({nan_percent:.2f}%) of the intensity data points contributing to the integral spectrum are NaN. This may affect the resulting spectrum.')
                     if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']: # TODO: Jan: check note regarding PSP: is this understandable?
-                        custom_warning(f'Note that for PSP there can be large datagaps which do not contain time-stamp data points. These can therefore not be considered in the NaN percentage above.')
+                        custom_warning('Note that for PSP there can be large datagaps which do not contain time-stamp data points. These can therefore not be considered in the NaN percentage above.')
 
                 dt = df_fluxes_ind.index.to_series().diff()
                 most_common_dt = dt.mode().iloc[0]
@@ -561,11 +564,11 @@ class Event:
         
         if spec_type == 'peak': # here we use the resamled data
             if resample is not None:
-                if self.spacecraft.lower() == 'wind':
-                    cols_unc = []
-                else:                
-                    cols_unc = self.df.filter(like=unc_id).columns
-                df_resampled = resample_df(self.df, resample, cols_unc=cols_unc)
+                # if self.spacecraft.lower() == 'wind':
+                #     cols_unc = []
+                # else:                
+                #     cols_unc = self.df.filter(like=unc_id).columns
+                df_resampled = resample_df(self.df, resample, cols_unc='auto')
                 print(f'Resampling used to determine this peak spectrum was {resample}')
             else: 
                 df_resampled = self.df.copy()
