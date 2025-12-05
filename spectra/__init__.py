@@ -57,6 +57,9 @@ class Event:
             df_protons, df_electrons, self.meta = epd_load(sensor=self.instrument, level='l2', startdate=self.startdate,
                                                            enddate=self.enddate, viewing=self.viewing, path=data_path,
                                                            autodownload=True)
+            # flatten multi-index columns
+            df_electrons.columns = df_electrons.columns.droplevel(0)
+            df_protons.columns = df_protons.columns.droplevel(0)
             if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
                 self.df = df_electrons
             if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
@@ -114,8 +117,7 @@ class Event:
 
         fig, axs = plt.subplots(1, sharex=True, figsize=(9, 6), dpi=200)
         if resample is not None:
-            df_resampled = resample_df(self.df, resample)
-            # df_resampled = resample_df(self.df, resample)
+            df_resampled = resample_df(self.df, resample, cols_unc='auto')
         else: 
             df_resampled = self.df.copy()
         if self.spacecraft.lower() == 'solo':
@@ -143,14 +145,14 @@ class Event:
             # plotting
             for channel in show_channels:
                 label = self.meta[energy_text][channel]
-                axs.plot(df_resampled.index, df_resampled[flux_id][f'{flux_id}_{channel}'], label=label)
+                axs.plot(df_resampled.index, df_resampled[f'{flux_id}_{channel}'], label=label)
                 
                 if spec_type == 'peak':
                     ind = np.where((df_resampled.index >= spec_start) & (df_resampled.index <= spec_end))[0]
                     # only plot peak if there is at least one non-nan value in the interval
-                    if not df_resampled[flux_id][f'{flux_id}_{channel}'].iloc[ind].isnull().all():
-                        peak_time = df_resampled[flux_id][f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
-                        peak_val = df_resampled[flux_id][f'{flux_id}_{channel}'].iloc[ind].max()
+                    if not df_resampled[f'{flux_id}_{channel}'].iloc[ind].isnull().all():
+                        peak_time = df_resampled[f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
+                        peak_val = df_resampled[f'{flux_id}_{channel}'].iloc[ind].max()
                         axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
 
         if self.spacecraft.lower() in ['stereo a', 'stereo-a', 'stereo b', 'stereo-b']:
@@ -561,11 +563,11 @@ class Event:
         
         if spec_type == 'peak': # here we use the resamled data
             if resample is not None:
-                if self.spacecraft.lower() == 'wind':
-                    cols_unc = []
-                else:                
-                    cols_unc = self.df.filter(like=unc_id).columns
-                df_resampled = resample_df(self.df, resample, cols_unc=cols_unc)
+                # if self.spacecraft.lower() == 'wind':
+                #     cols_unc = []
+                # else:                
+                #     cols_unc = self.df.filter(like=unc_id).columns
+                df_resampled = resample_df(self.df, resample, cols_unc='auto')
                 print(f'Resampling used to determine this peak spectrum was {resample}')
             else: 
                 df_resampled = self.df.copy()
