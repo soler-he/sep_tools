@@ -519,7 +519,7 @@ class Event:
                 if np.nanmax(number_of_nan_entries) > 0:   
                     custom_warning(f'Data gaps in integration time interval! {np.nanmax(number_of_nan_entries)} out of {len(df_nan_test)} points ({nan_percent:.2f}%) of the intensity data points contributing to the integral spectrum are NaN. This may affect the resulting spectrum.')
                     if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']: # TODO: Jan: check note regarding PSP: is this understandable?
-                        custom_warning(f'Note that for PSP there can be large datagaps which do not contain time-stamp data points. These can therefore not be considered in the NaN percentage above.')
+                        custom_warning('Note that for PSP there can be large datagaps which do not contain time-stamp data points. These can therefore not be considered in the NaN percentage above.')
 
                 dt = df_fluxes_ind.index.to_series().diff()
                 most_common_dt = dt.mode().iloc[0]
