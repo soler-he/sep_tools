@@ -509,19 +509,16 @@ class Event:
         if spec_type == 'integral': # here we use the original (non-resamled) data
             df_fluxes_ind = df_fluxes.iloc[ind]
             if not df_fluxes_ind.empty:
-                # total_datapoints = len(df_fluxes_ind)
-                # print('total_datapoints', total_datapoints)
-                df_nan_test = df_fluxes_ind.dropna(axis=1, how="all")
-                nonan_points = df_nan_test.count() # TODO: this is still not really working.. 
-                # print('nonan_points',nonan_points)
-                number_of_nan_entries = df_fluxes_ind.isna().sum() #total_datapoints - nonan_points.       TODO: check this first!
+                df_nan_test = df_fluxes_ind.dropna(axis=1, how="all") # drop columns if they contain only NaNs
+                nonan_points = df_nan_test.count() 
+                number_of_nan_entries = df_nan_test.isna().sum() 
 
                 nan_percent = np.nanmax(number_of_nan_entries/nonan_points) * 100
                 if np.nanmax(number_of_nan_entries) > 0:   
-                    custom_warning(f'Data gaps in integration time interval! {np.nanmax(number_of_nan_entries)} points ({nan_percent:.2f}%) of the intensity data points contributing to the integral spectrum are NaN. This may affect the resulting spectrum.')
+                    custom_warning(f'Data gaps in integration time interval! {np.nanmax(number_of_nan_entries)} out of {len(df_nan_test)} points ({nan_percent:.2f}%) of the intensity data points contributing to the integral spectrum are NaN. This may affect the resulting spectrum.')
                     if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']: # TODO: Jan: check note regarding PSP: is this understandable?
                         custom_warning(f'Note that for PSP there can be large datagaps which do not contain time-stamp data points. These can therefore not be considered in the NaN percentage above.')
-                
+
                 dt = df_fluxes_ind.index.to_series().diff()
                 most_common_dt = dt.mode().iloc[0]
                 integration_sec = most_common_dt.total_seconds()
