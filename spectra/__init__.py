@@ -30,13 +30,14 @@ class Event:
     def __init__(self):
         pass
 
-    def load_data(self, spacecraft, instrument, species, startdate, enddate, viewing='', data_path=None):
+    def load_data(self, spacecraft, instrument, species, startdate, enddate, viewing='', data_level='l2', data_path=None):
         self.spacecraft = spacecraft
         self.instrument = instrument
         self.species = species
         self.startdate = startdate
         self.enddate = enddate
         self.viewing = viewing
+        self.data_level = data_level
 
         if self.spacecraft.lower() in ['wind']:
             self.instrument = '3DP SST'
@@ -54,7 +55,7 @@ class Event:
         if self.spacecraft.lower() == 'solo':
             if self.viewing == '':
                 raise Exception("Solar Orbiter instruments require a defined 'viewing'!")
-            df_protons, df_electrons, self.meta = epd_load(sensor=self.instrument, level='l2', startdate=self.startdate,
+            df_protons, df_electrons, self.meta = epd_load(sensor=self.instrument, level=self.data_level, startdate=self.startdate,
                                                            enddate=self.enddate, viewing=self.viewing, path=data_path,
                                                            autodownload=True)
             # flatten multi-index columns
