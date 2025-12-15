@@ -110,14 +110,15 @@ class SpatialEvent:
             self.reference = np.nan
 
         out_path = f"{filepaths[0]}{os.sep}SEP_{dates[0].strftime('%d%b%Y')}"
-        raw_path = filepaths[1]+{os.sep}
+        raw_path = filepaths[1]
+
         try:
             os.makedirs(out_path)
             os.makedirs(raw_path)
         except FileExistsError:
             pass
-        self.out_path = out_path
-        self.raw_path = raw_path
+        self.out_path = out_path+os.sep
+        self.raw_path = raw_path+os.sep
 
         # List and load the data
         self.spacecraft_list = []
