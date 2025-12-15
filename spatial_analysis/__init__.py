@@ -10,9 +10,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnchoredText
 
-import glob
 import imageio
-from IPython.display import Image
+from IPython.display import display, Image
 
 #from sunpy.time import parse_time
 import astropy.constants as aconst
@@ -29,8 +28,6 @@ import sunpy
 import warnings
 from tqdm.auto import tqdm
 
-import sunpy
-import warnings
 # warnings.simplefilter(action='once', category=pd.errors.PerformanceWarning)
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.filterwarnings(action='ignore', message='No units provided for variable', category=sunpy.util.SunpyUserWarning, module='sunpy.io._cdf')
@@ -414,7 +411,7 @@ class SpatialEvent:
             self.calc_Gaussian_fit()
 
         try:
-            plot_gauss_fits_timeseries(self.sc_data_rs, self.out_path, self.start, self.reference, self.channel_labels, self.flare_loc);
+            plot_gauss_fits_timeseries(self.sc_data_rs, self.out_path, self.start, self.reference, self.channel_labels, self.flare_loc)
         except Exception as e:
             print(f"Warning: Could not plot figure: {e}")
 
@@ -607,7 +604,7 @@ def weighted_bin_merge(df0, spacecraft, species, channel_list, header_label, bin
         row_flux = 0
         row_div = 0
         for n in range(len(full_channel_list)):
-            if type(header_label)==list: #If its a double-layered header
+            if type(header_label) is list: #If its a double-layered header
                 row_flux = row_flux + ( df0.loc[i, (header_label[0], f"{header_label[1]}{full_channel_list[n]}")] ) * binwidths[n]
             else:
                 row_flux = row_flux + ( df0.loc[i, f"{header_label}{full_channel_list[n]}"] ) * binwidths[n]
@@ -1306,7 +1303,7 @@ def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, background
     ax[n-1].xaxis.set_major_formatter(mpl.dates.ConciseDateFormatter(locator, show_offset=False))
 
     label=''
-    plt.savefig(data_path+f'SEP_Intensities.png')
+    plt.savefig(data_path+'SEP_Intensities.png')
     plt.show()
 
 
