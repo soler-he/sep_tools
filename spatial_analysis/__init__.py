@@ -329,13 +329,12 @@ class SpatialEvent:
         bg_zone = []
         if 'background_window' in kwargs:
             bg_zone = kwargs['background_window']
-            if not isinstance(bg_zone, list) or len(bg_zone) not in [0,2] or \
-                not isinstance(bg_zone[0], dt.datetime) or \
-                    not isinstance(bg_zone[1], dt.datetime):
-                        print("Incorrect value type given to 'background_window'.")
-                        bg_zone = []
-
-
+            if not isinstance(bg_zone, list) or \
+               len(bg_zone) not in [0, 2] or \
+               not isinstance(bg_zone[0], dt.datetime) or \
+               not isinstance(bg_zone[1], dt.datetime):
+                print("Incorrect value type given to 'background_window'.")
+                bg_zone = []
 
         scdata = {}
         if len(self.sc_data_rs) != 0:
@@ -476,12 +475,10 @@ def solarmach_loop(observers, dates, data_path, resampling, source_loc, vsw_list
             r_dist.append( tmp_df['Heliocentric distance (AU)'][obs] )
             vsw.append( tmp_df['Vsw'][obs] )
 
-            
-
             foot_calc = move_along_parker_spiral(
                 r_dist=tmp_df['Heliocentric distance (AU)'][obs], 
-                loc=[float(tmp_df['Stonyhurst longitude (°)'][obs]), # JAX: what if carrington?
-                          float(tmp_df['Stonyhurst latitude (°)'][obs])],
+                loc=[float(tmp_df['Stonyhurst longitude (°)'][obs]),  # JAX: what if carrington?
+                     float(tmp_df['Stonyhurst latitude (°)'][obs])],
                 vsw=tmp_df['Vsw'][obs], towards=True, err_calc=True)
 
             foot_long.append( tmp_df['Magnetic footpoint longitude (Stonyhurst)'][obs] )
@@ -1314,7 +1311,6 @@ def find_peak_intensity(sc_dict, data_path, date, window_length=10):
     # Select a reasonable window for the peak to be in
     peak_window_end = date + dt.timedelta(hours=window_length)
 
-
     # Iterate through each spacecraft df and save the intensity and datetime of the peak
     peak_y, peak_yerr, peak_x, peak_xerr, peak_time, peak_sc = ([] for i in range(6))
     for sc, sc_df in sc_dict.items():
@@ -1419,7 +1415,6 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results):
                                        show_offset=False))
     tseries_ax.tick_params(left=False, labelleft=False)
 
-
     plt.savefig(data_path+'PeakFits.png', bbox_inches='tight')
     plt.show()
 
@@ -1446,15 +1441,11 @@ def log_gauss_error_range_calc(x_arr, y_arr, peak_fit):
     return y_err
 
 
-
-
-
 def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep, reference, flare_loc):
     """Plotting two subplots, left the fitted gaussian curve, right the time series."""
 
-
     ylimits = [1e5, 1e-5]
-    xlimits= [0, 0]
+    xlimits = [0, 0]
     for sc, sdf in full_df.items():
         if sc == 'Gauss':
             continue
@@ -1560,10 +1551,10 @@ def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, fl
 
         ax[0].semilogy(s_df['Flux'], color=mrkr['color'],
                        label=f"{mrkr['label']} ({channel_labels[sc]})")
-        ax[0].fill_between(x = s_df.index,
-                           y1= s_df['Flux'] - s_df['Uncertainty'],
-                           y2= s_df['Flux'] + s_df['Uncertainty'],
-                          alpha=0.3, color=mrkr['color'])
+        ax[0].fill_between(x=s_df.index,
+                           y1=s_df['Flux'] - s_df['Uncertainty'],
+                           y2=s_df['Flux'] + s_df['Uncertainty'],
+                           alpha=0.3, color=mrkr['color'])
 
         ylimits['intensity'][0] = np.nanmin([ylimits['intensity'][0], np.nanmin(s_df['Flux'])] )
         ylimits['intensity'][1] = np.nanmax([ylimits['intensity'][1], np.nanmax(s_df['Flux'])] )
@@ -1581,11 +1572,10 @@ def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, fl
     # Plot the Gaussian results
     for i, row in sc_dict['Gauss'].iterrows():
         ax[1].errorbar(i, row['X0']+ref, yerr=row['X0 err'],
-                      color='k', ecolor='grey', marker='o', markersize=3)
+                       color='k', ecolor='grey', marker='o', markersize=3)
 
         ax[2].errorbar(i, row['sigma'], yerr=row['sigma err'],
-                      color='k', ecolor='grey', marker='o', markersize=3)
-
+                       color='k', ecolor='grey', marker='o', markersize=3)
 
     for n in range(3):
         # Mark the event start time
@@ -1601,11 +1591,5 @@ def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, fl
         mpl.dates.ConciseDateFormatter(ax[1].xaxis.get_major_locator(),
                                        show_offset=False))
 
-
     plt.savefig(f"{data_path}Intensity_Gauss_TimeProfiles.png", bbox_inches='tight')
     plt.show()
-
-
-
-
-
