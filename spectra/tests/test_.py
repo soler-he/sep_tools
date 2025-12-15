@@ -60,7 +60,14 @@ def test_SEP_Spectra_PSP_ISOIS_EPIHI(spectral_type, species):
     data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
-    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, data_path)
+    E.load_data(spacecraft=w.spacecraft_drop.value,
+                instrument=w.sensor_drop.value,
+                species=w.species_drop.value,
+                startdate=startdate,
+                enddate=enddate,
+                viewing=w.view_drop.value,
+                data_level=w.level_drop.value,
+                data_path=data_path)
     #
     fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
@@ -106,7 +113,14 @@ def test_SEP_Spectra_SOHO_ERNE_HED(spectral_type, species):
     data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
-    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, data_path)
+    E.load_data(spacecraft=w.spacecraft_drop.value,
+                instrument=w.sensor_drop.value,
+                species=w.species_drop.value,
+                startdate=startdate,
+                enddate=enddate,
+                viewing=w.view_drop.value,
+                data_level=w.level_drop.value,
+                data_path=data_path)
     #
     fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
@@ -151,7 +165,14 @@ def test_SEP_Spectra_SOHO_ERNE_HED_None():
     data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
-    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, data_path)
+    E.load_data(spacecraft=w.spacecraft_drop.value,
+                instrument=w.sensor_drop.value,
+                species=w.species_drop.value,
+                startdate=startdate,
+                enddate=enddate,
+                viewing=w.view_drop.value,
+                data_level=w.level_drop.value,
+                data_path=data_path)
     #
     fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
@@ -197,7 +218,14 @@ def test_SEP_Spectra_Solar_Orbiter_EPT(spectral_type, species):
     data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
-    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, data_path)
+    E.load_data(spacecraft=w.spacecraft_drop.value,
+                instrument=w.sensor_drop.value,
+                species=w.species_drop.value,
+                startdate=startdate,
+                enddate=enddate,
+                viewing=w.view_drop.value,
+                data_level=w.level_drop.value,
+                data_path=data_path)
     #
     fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
@@ -244,7 +272,14 @@ def test_SEP_Spectra_Solar_Orbiter_HET(spectral_type, species):
     data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
-    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, data_path)
+    E.load_data(spacecraft=w.spacecraft_drop.value,
+                instrument=w.sensor_drop.value,
+                species=w.species_drop.value,
+                startdate=startdate,
+                enddate=enddate,
+                viewing=w.view_drop.value,
+                data_level=w.level_drop.value,
+                data_path=data_path)
     #
     fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
@@ -290,7 +325,14 @@ def test_SEP_Spectra_STEREO_A_SEPT(spectral_type, species):
     data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
-    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, data_path)
+    E.load_data(spacecraft=w.spacecraft_drop.value,
+                instrument=w.sensor_drop.value,
+                species=w.species_drop.value,
+                startdate=startdate,
+                enddate=enddate,
+                viewing=w.view_drop.value,
+                data_level=w.level_drop.value,
+                data_path=data_path)
     #
     fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
@@ -344,7 +386,14 @@ def test_SEP_Spectra_STEREO_A_HET(spectral_type, species):
     data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
-    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, data_path)
+    E.load_data(spacecraft=w.spacecraft_drop.value,
+                instrument=w.sensor_drop.value,
+                species=w.species_drop.value,
+                startdate=startdate,
+                enddate=enddate,
+                viewing=w.view_drop.value,
+                data_level=w.level_drop.value,
+                data_path=data_path)
     #
     fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
@@ -390,7 +439,14 @@ def test_SEP_Spectra_Wind_3DP(spectral_type, species, viewing):
     data_path = jupyterhub_data_path(data_path)
     #
     E = Event()
-    E.load_data(w.spacecraft_drop.value, w.sensor_drop.value, w.species_drop.value, startdate, enddate, w.view_drop.value, data_path)
+    E.load_data(spacecraft=w.spacecraft_drop.value,
+                instrument=w.sensor_drop.value,
+                species=w.species_drop.value,
+                startdate=startdate,
+                enddate=enddate,
+                viewing=w.view_drop.value,
+                data_level=w.level_drop.value,
+                data_path=data_path)
     #
     fig, ax = E.plot_flux(spectral_type_start, spectral_type_end, subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end,
