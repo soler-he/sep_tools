@@ -1,5 +1,5 @@
-[flake8]
-extend-ignore = E501
+[tool.flake8]
+extend-ignore = ["E501"]
 
 [tool.nbsphinx]
 nbsphinx_timeout = 600  # Set the timeout value in seconds
