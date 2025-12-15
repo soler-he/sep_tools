@@ -111,15 +111,15 @@ class SpatialEvent:
             self.reference = np.nan
 
 
-        out_path = f"{filepaths[0]}SEPEvent_{dates[0].strftime("%d%b%Y")}/"
+        out_path = f"{filepaths[0]}SEPEvent_{dates[0].strftime('%d%b%Y')}"
         raw_path = filepaths[1]
         try:
             os.makedirs(out_path)
             os.makedirs(raw_path)
         except FileExistsError:
             pass
-        self.out_path = out_path
-        self.raw_path = raw_path
+        self.out_path = out_path+{os.sep}
+        self.raw_path = raw_path+{os.sep}
 
 
         # List and load the data
@@ -1158,7 +1158,7 @@ def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data
     """Read in the full df, calculate the curve at each timestep, save the results to new columns."""
     # Create a folder to save the gaussian timestep figures in
     try:
-        os.makedirs(data_path+'Gauss_fits/')
+        os.makedirs(data_path+f'Gauss_fits{os.sep}')
     except FileExistsError:
         pass
 
@@ -1202,7 +1202,7 @@ def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data
 
         # Plot the fit for this timestep
         if not np.isnan(x).any() and not np.isnan(gauss_results['X0']):
-            plot_curve_and_timeseries(gauss_results, timestep_dict, sc_dict, data_path+'Gauss_fits/', i, reference, flare_loc)
+            plot_curve_and_timeseries(gauss_results, timestep_dict, sc_dict, data_path+f'Gauss_fits{os.sep}', i, reference, flare_loc)
 
         prev_gauss = gauss_results
 
@@ -1227,7 +1227,7 @@ def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data
 
 
     # Combine all figures into a gif to display
-    png_dir = data_path + 'Gauss_fits/'
+    png_dir = data_path + f'Gauss_fits{os.sep}'
     images = []
     for filename in sorted(os.listdir(png_dir)):
         if filename.endswith('.png'):
