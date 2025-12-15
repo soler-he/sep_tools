@@ -631,7 +631,7 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
 
 
     # Check if the file is already made and just load that one
-    filename = f"SEP_intensities_{dates[0].strftime("%d%m%Y")}.csv"
+    filename = f"SEP_intensities_{dates[0].strftime('%d%m%Y')}.csv"
 
 
     
