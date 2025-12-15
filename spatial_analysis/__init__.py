@@ -102,7 +102,6 @@ class SpatialEvent:
         self.channel_labels = {}
         self.resampling = ""
 
-
         if 'flare_loc' in kwargs.keys():
             self.flare_loc = kwargs['flare_loc']
             self.reference = kwargs['flare_loc'][0] # Using the longitude as the ref point
@@ -110,17 +109,15 @@ class SpatialEvent:
             self.flare_loc = [None, None]
             self.reference = np.nan
 
-
-        out_path = f"{filepaths[0]}SEPEvent_{dates[0].strftime('%d%b%Y')}"
-        raw_path = filepaths[1]
+        out_path = f"{filepaths[0]}{os.sep}SEP_{dates[0].strftime('%d%b%Y')}"
+        raw_path = filepaths[1]+{os.sep}
         try:
             os.makedirs(out_path)
             os.makedirs(raw_path)
         except FileExistsError:
             pass
-        self.out_path = out_path+{os.sep}
-        self.raw_path = raw_path+{os.sep}
-
+        self.out_path = out_path
+        self.raw_path = raw_path
 
         # List and load the data
         self.spacecraft_list = []
