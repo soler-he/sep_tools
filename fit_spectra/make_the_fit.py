@@ -1,11 +1,11 @@
 # solo_functions.py
 import numpy as np
 import pandas as pd
-import my_power_law_fits_odr as pl_fit
+import fit_spectra.my_power_law_fits_odr as pl_fit
 from scipy.stats import t as studentt
-#from lmfit.models import GaussianModel
+# from lmfit.models import GaussianModel
 import pickle
-#from scipy.odr import *
+# from scipy.odr import *
 
 
 def closest_values(array, value):

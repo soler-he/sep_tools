@@ -1,7 +1,3 @@
-import numpy as np
-import pandas as pd
-
-
 def exclude_channels(data, channels_to_exclude):
 	"""This function excludes chosen channels from a dataframe and outputs two dataframes: one with the channels that should not be excluded from the fit and one with the excluded channles.
 	One will be the input to mske the fit, the other one is just for plotting the excluded channels in gray.
