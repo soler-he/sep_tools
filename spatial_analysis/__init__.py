@@ -1377,7 +1377,7 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results):
 
         tseries_ax.plot(peak_data_results['times'][n], 10**(peak_data_results['y'][n]),
                         color=mrkr['color'], marker=mrkr['marker'],
-                        label=f"{mrkr['label']} ({peak_data_results['times'][n].strftime("%H:%M %d %b. %y")})")
+                        label=f"{mrkr['label']} ({peak_data_results['times'][n].strftime('%H:%M %d %b. %y')})")
 
         # Plot the full time series
         tseries_ax.semilogy(sc_dict[sc]['Flux'], color=mrkr['color'])
