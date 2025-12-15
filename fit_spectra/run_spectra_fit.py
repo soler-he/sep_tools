@@ -55,7 +55,7 @@ def run_the_fit(path, data, save, use_filename_as_title=False, channels_to_exclu
         iterations (int, optional): The number of times the function will choose random values to use in the fit to the data. Defaults to 20.
 
     """
-    
+
     #file_name = os.path.basename(path) this gives you the filename with the extention e.g. .csv
     file_name = Path(path).stem # this gives you the filename without extension
 
@@ -64,7 +64,7 @@ def run_the_fit(path, data, save, use_filename_as_title=False, channels_to_exclu
         plot_title = file_name.replace("_", " ")
 
     # in make the fit we have two paths. one for pickle files (deleted from here) and path2 to save the fit variables. Needs to be updated in the future
-    
+
     name_string = ''
     if use_filename_as_title == False:
         name_string = plot_title.replace(" ", "_")
@@ -80,50 +80,50 @@ def run_the_fit(path, data, save, use_filename_as_title=False, channels_to_exclu
         args = sf.exclude_channels(data, channels_to_exclude) #returns two dataframes #1 has the good data (to fit) #2 has the excluded channels
         dataframe_to_fit = args[0]
         dataframe_to_exclude = args[1]
-       
+
 
     x_data = dataframe_to_fit['Energy'] # energy for spectra
     y_data   = dataframe_to_fit['Intensity']
-      
+
     x_err = None
     y_err = None
 
     if 'E_err' in dataframe_to_fit:
         x_err  = dataframe_to_fit['E_err']
-    
+
     if 'I_err' in dataframe_to_fit:
         y_err    = dataframe_to_fit['I_err'] 
 
     #checking if uncertainties for energy and intensity are NaNs
     if x_err.isnull().all():
         x_err = None
-        
+
     if y_err.isnull().all():
         y_err = None
-       
-    
+
+
 
     f, ax = plt.subplots(1, figsize=(6, 5), dpi=300)
-    
+
     fitting.MAKE_THE_FIT(x_data, y_data, x_err, y_err, ax, direction='sun', e_min=e_min, e_max=e_max, which_fit=which_fit, g1_guess=g1_guess, g2_guess=g2_guess, g3_guess=g3_guess, alpha_guess=alpha_guess, beta_guess=beta_guess, break_low_guess=break_guess_low, break_high_guess=break_guess_high, cut_guess=cut_guess, c1_guess=c1_guess, exponent_guess=exponent_guess, use_random=use_random, iterations=iterations, path=None, path2=fit_var_path, detailed_legend=legend_details)
 
     ax.errorbar(x_data, y_data, xerr=x_err, yerr=y_err, marker='o', markersize=3 , linestyle='', color='red', alpha=0.5, label=data_label_for_legend, zorder=-1)
     if channels_to_exclude != None:
         ax.errorbar(dataframe_to_exclude['Energy'], dataframe_to_exclude['Intensity'], xerr=dataframe_to_exclude['E_err'], yerr=dataframe_to_exclude['I_err'], marker='o', markersize=3 , linestyle='', color='gray', alpha=0.5, label='excluded channels', zorder=-1)
-   
+
  # REMEMBER: when choosing the ranges don't use uncertainties because they can be None
     x_range_min = min(all_data['Energy'])
     x_range_max = max(all_data['Energy'])
-    
+
 
     ax.set_xscale('log')
     ax.set_yscale('log')
-        
+
     ax.set_xlim(x_range_min-(x_range_min/2), x_range_max+(x_range_max/2))
         #ax.set_ylim(y_range_min-(y_range_min/2), y_range_max+(y_range_max/2))
-    
+
     locmin = pltt.LogLocator(base=10.0,subs=(0.2,0.4,0.6,0.8),numticks=12)
-        
+
     ax.yaxis.set_minor_locator(locmin)
     ax.yaxis.set_minor_formatter(pltt.NullFormatter())
 
@@ -131,10 +131,10 @@ def run_the_fit(path, data, save, use_filename_as_title=False, channels_to_exclu
     plt.ylabel(y_label)
     plt.xlabel(x_label)
     plt.title(plot_title)
-    
+
     if save:
         plt.savefig(folder_path+'/'+file_name+'_'+name_string+'_fit-plot_'+which_fit+'.png', dpi=300)
-        
+
 
     plt.show()
 
@@ -142,12 +142,12 @@ def run_the_fit(path, data, save, use_filename_as_title=False, channels_to_exclu
 
     #print(results.columns)
     sf.print_results(results)
-    
-   
 
 
-    
-        
+
+
+
+
 
 
 
