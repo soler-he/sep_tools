@@ -34,7 +34,7 @@ def power_law_fit(x,y,xerr = None,yerr = None, gamma1=-1.8, c1=None, print_repor
 		
 	return result
 
-def broken_pl_func(p, x):#, c1, gamma1, gamma2, alpha, E_break):
+def double_pl_func(p, x):#, c1, gamma1, gamma2, alpha, E_break):
     '''
     Mar 2020: functin 25 of prinsloo 2019 paper but withoug exponential roll-over
     '''
@@ -46,13 +46,13 @@ def broken_pl_func(p, x):#, c1, gamma1, gamma2, alpha, E_break):
     return y
 
 
-def broken_pl_fit(x,y, xerr = None, yerr = None, gamma1=-1.8, gamma2=-2, c1=None, alpha=None, E_break=0.1, print_report=False, maxit=20):
+def double_pl_fit(x,y, xerr = None, yerr = None, gamma1=-1.8, gamma2=-2, c1=None, alpha=None, E_break=0.1, print_report=False, maxit=20):
 	#covMatrix = np.cov(xerr,bias=False)
 
 	c1 = y[3] if c1==None else c1
 	alpha = 0.1 if alpha==None else alpha
 
-	plmodel = Model(broken_pl_func)
+	plmodel = Model(double_pl_func)
 	#print(broken_pl_func)
 	
 	# Create a RealData object using our initiated data from above.
