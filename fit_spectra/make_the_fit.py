@@ -610,7 +610,7 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 		#flux_err  = flux_err[fit_ind]
 	
 	elif flux_err is not None:
-		print('HERE')
+		#print('HERE')
 		fit_ind   = np.where((spec_e >= e_min) & (spec_e <= e_max) & (np.isfinite(spec_flux) == True) & (np.isfinite(flux_err) == True))[0]
 		spec_e    = spec_e[fit_ind]
 		spec_flux = spec_flux[fit_ind]
