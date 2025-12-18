@@ -265,7 +265,7 @@ plots/
 
 # spec output
 output_spectra/*.csv
-!output_spectra/spectrum_integral_SOLO_EPT_sun_ions.csv  # allow specific example file
+!output_spectra/spectrum_integral_SOLO_EPT_sun_electrons.csv  # allow specific example file
 output_spectra/*.gif
 output_spectra/*.png
 
