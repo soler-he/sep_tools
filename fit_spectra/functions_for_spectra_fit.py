@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+import matplotlib.ticker as pltt
 def exclude_channels(data, channels_to_exclude):
 	"""This function excludes chosen channels from a dataframe and outputs two dataframes: one with the channels that should not be excluded from the fit and one with the excluded channles.
 	One will be the input to mske the fit, the other one is just for plotting the excluded channels in gray.
@@ -58,7 +60,7 @@ def print_results(file_with_fit_results):
 	print('The fit produced the following results:')
 	print('Final fit type: ', fit_type)
 	print(r'χ²:  ', round(results['Reduced chi sq'][0], ndigits = 2))
-	print('Intensity at 100 keV :', round(results['c1'][0], ndigits = 2), r'+/-', round(results['c1 err'][0], ndigits = 2))
+	print('Intensity at 100 keV :', round(results['I0'][0], ndigits = 2), r'+/-', round(results['I0 err'][0], ndigits = 2))
 	print(r'γ 1:  ', round(results['Gamma1'][0], ndigits = 2), r'+/-', round(results['Gamma1 err'][0], ndigits = 2))
 
 	if fit_type == 'double power-law' or fit_type == 'double power-law with exponential cutoff' or fit_type == 'triple power-law':
@@ -82,3 +84,47 @@ def print_results(file_with_fit_results):
 		
 
 	return ''
+
+
+def plot_spectrum(data):
+	x_data = data['Energy'] # energy for spectra
+	y_data   = data['Intensity']
+	x_err = None
+	y_err = None
+
+	if 'E_err' in data:
+		x_err  = data['E_err']
+	if 'I_err' in data:
+		y_err    = data['I_err'] 
+	if x_err.isnull().all():
+		x_err = None
+	if y_err.isnull().all():
+	    y_err = None
+		
+	f, ax = plt.subplots(1, figsize=(5, 4), dpi = 300)
+		
+	ax.errorbar(x_data, y_data, xerr = x_err, yerr=y_err, marker='o', markersize= 3 , linestyle='', color='red', alpha = 0.5, label='data points', zorder = -1)
+    
+	x_range_min = min(data['Energy'])
+	x_range_max = max(data['Energy'])
+
+	ax.set_xlim(x_range_min-(x_range_min/2), x_range_max+(x_range_max/2))
+	locmin = pltt.LogLocator(base=10.0,subs=(0.2,0.4,0.6,0.8),numticks=12)
+        
+	ax.yaxis.set_minor_locator(locmin)
+	ax.yaxis.set_minor_formatter(pltt.NullFormatter())
+
+	ax.set_xscale('log')
+	ax.set_yscale('log')
+
+	#plt.legend('',  prop={'size': 7})
+	plt.ylabel('Intensity')
+	plt.xlabel('Energy')
+	#plt.title('Example spectrum')
+    
+	#if save:
+	#   plt.savefig(folder_path+'/'+file_name+'_'+name_string+'_fit-plot_'+which_fit+'.png', dpi=300)
+	plt.show()
+
+
+	
