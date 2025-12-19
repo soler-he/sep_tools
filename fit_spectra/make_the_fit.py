@@ -1054,8 +1054,8 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 
 
 		result_dataframe["Reduced chi sq"] = redchi_single
-		result_dataframe["c1"] = c1
-		result_dataframe["c1 err"] = errors[0]
+		result_dataframe["I0"] = c1
+		result_dataframe["I0 err"] = errors[0]
 		result_dataframe["Gamma1"] = gamma1
 		result_dataframe["Gamma1 err"] = gamma1_err
 		result_dataframe["Gamma2"] = None
@@ -1198,8 +1198,8 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 		
 
 		result_dataframe["Reduced chi sq"] = redchi_cut
-		result_dataframe["c1"] = c1
-		result_dataframe["c1 err"] = errors[0]
+		result_dataframe["I0"] = c1
+		result_dataframe["I0 err"] = errors[0]
 		result_dataframe["Gamma1"] = gamma1
 		result_dataframe["Gamma1 err"] = gamma1_err
 		result_dataframe["Gamma2"] = None
@@ -1282,8 +1282,8 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 
 
 		result_dataframe["Reduced chi sq"] = redchi_cut
-		result_dataframe["c1"] = c1
-		result_dataframe["c1 err"] = errors[0]
+		result_dataframe["I0"] = c1
+		result_dataframe["I0 err"] = errors[0]
 		result_dataframe["Gamma1"] = gamma1
 		result_dataframe["Gamma1 err"] = gamma1_err
 		result_dataframe["Gamma2"] = gamma2
@@ -1432,8 +1432,8 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 			ax.axvline(x=breakp_2, color='purple', linestyle='--', label=r'$\mathregular{E_b2=}$ '+str(round(breakp_2*1e3, ndigits=1))+'\n'+r"$\pm$"+str(round(breakp_2_err*1e3, ndigits=1))+' keV')
 
 		result_dataframe["Reduced chi sq"] = redchi_triple
-		result_dataframe["c1"] = c1
-		result_dataframe["c1 err"] = errors[0]
+		result_dataframe["I0"] = c1
+		result_dataframe["I0 err"] = errors[0]
 		result_dataframe["Gamma1"] = gamma1
 		result_dataframe["Gamma1 err"] = gamma1_err
 		result_dataframe["Gamma2"] = gamma2
