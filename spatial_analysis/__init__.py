@@ -39,10 +39,10 @@ warnings.filterwarnings(action='ignore', message='The variable "HET_', category=
 warnings.filterwarnings(action='ignore', category=OptimizeWarning, message='Covariance of the parameters could not be estimated')
 
 marker_settings = {
-    'Solar Orbiter': {'marker': 's', 'color': 'dodgerblue', 'label': 'Solar Orbiter-EPD/HET'},
-    'SOHO': {'marker': 'o', 'color': 'darkgreen', 'label': 'SOHO-ERNE/HED'},
-    'STEREO-A': {'marker': '^', 'color': 'red', 'label': 'STEREO-A/HET'},
-    'PSP':  {'marker': 'p', 'color': 'purple', 'label': 'PSP/HET'},
+    'Solar Orbiter': {'marker': 's', 'color': 'dodgerblue', 'label': 'Solar Orbiter /EPD-HET'},
+    'SOHO': {'marker': 'o', 'color': 'darkgreen', 'label': 'SOHO /ERNE-HED'},
+    'STEREO A': {'marker': '^', 'color': 'red', 'label': 'STEREO A/HET'},
+    'PSP':  {'marker': 'p', 'color': 'purple', 'label': 'PSP /EpiHi-HET'},
     # 'Wind': {'marker': '*', 'color': 'slategray', 'label': 'Wind'},
     # 'STEREO-B': {'marker': 'v', 'color': 'blue', 'label': 'STEREO-B'},
     # 'BepiColombo': {'marker': 'd', 'color': 'orange', 'label': 'BepiColombo'}
@@ -153,7 +153,7 @@ class SpatialEvent:
         """As the user defines the event, the solarmach information at the start time
         of the event is plotted and shown."""
         sm = SolarMACH(self.start,
-                       ['BepiColombo', 'PSP', 'SOHO', 'Solar Orbiter', 'STEREO-A'],
+                       ['BepiColombo', 'PSP', 'SOHO', 'Solar Orbiter', 'STEREO A'],
                        vsw_list = self.vsw_list*5,
                        reference_long = self.flare_loc[0],
                        reference_lat = self.flare_loc[1],
@@ -427,7 +427,8 @@ class SpatialEvent:
 
         if len(scdata) != 0:
             dfs = pd.concat(scdata, axis=1, join='outer')
-            dfs.to_csv(self.out_path+f'SpatialIntensities{label}.csv', na_rep='nan')
+            dfs = dfs.dropna(how='all') # Drop any rows that are just NaNs
+            dfs.to_csv(self.out_path+f'SpatialIntensityData{label}.csv', na_rep='nan')
         else:
             print("Please run '*.load_spacecraft_data()' first.")
 
@@ -509,12 +510,9 @@ def solarmach_loop(observers, dates, data_path, resampling, source_loc, vsw_list
 
     df2.index = date_list
     df2.index.name = 'Time'
-    # print(df2)
-    # jax=input('Is there a df at this point? ')
 
 
     # Save to csv
-    # print(data_path+filename)
     df2.to_csv(data_path+filename)
 
     return df2
@@ -649,7 +647,6 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
                                           startdate=dates[0], enddate=dates[1],
                                           path=data_path, resample=None)
 
-
         # Find channels and bin widths
         bin_list = proton_channels['PSP']
 
@@ -769,7 +766,7 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
 
         return soho, energy_range_lbl
 
-    if 'stereo-a' == spacecraft:
+    if 'stereo a' == spacecraft:
         # if JAX_TESTERS:
         #     if f'sta_rawdata_{dates[0].strftime("%d%b%Y")}.csv' in os.listdir(data_path):
         #         sta = pd.read_csv(data_path+f'sta_rawdata_{dates[0].strftime("%d%b%Y")}.csv', index_col=0, na_values='nan', parse_dates=True)
@@ -783,7 +780,7 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
 
 
         # Find channels and bin widths
-        bin_list = proton_channels['STEREO-A']
+        bin_list = proton_channels['STEREO A']
         if len(bin_list)==1:
             bin_label = f"{bin_list[0]}"
             bin_list.append(bin_list[0])
