@@ -60,7 +60,7 @@ def print_results(file_with_fit_results):
 	print('The fit produced the following results:')
 	print('Final fit type: ', fit_type)
 	print(r'χ²:  ', round(results['Reduced chi sq'][0], ndigits = 2))
-	print('Intensity at 100 keV :', round(results['c1'][0], ndigits = 2), r'+/-', round(results['c1 err'][0], ndigits = 2))
+	print('Intensity at 100 keV :', round(results['I0'][0], ndigits = 2), r'+/-', round(results['I0 err'][0], ndigits = 2))
 	print(r'γ 1:  ', round(results['Gamma1'][0], ndigits = 2), r'+/-', round(results['Gamma1 err'][0], ndigits = 2))
 
 	if fit_type == 'double power-law' or fit_type == 'double power-law with exponential cutoff' or fit_type == 'triple power-law':
