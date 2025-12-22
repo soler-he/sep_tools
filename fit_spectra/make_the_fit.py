@@ -1476,7 +1476,7 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 	#print(result.work, 'work')
 	#print(result.work_ind, 'work_ind')
 	#print(result.info, 'info')
-	#print(result.stopreason, 'stopreason')
+	#print('STOP REASON : ', result.stopreason)
 	
 	# save result to pickle file 
 	if path != None:
