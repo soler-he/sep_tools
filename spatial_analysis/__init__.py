@@ -39,10 +39,10 @@ warnings.filterwarnings(action='ignore', message='The variable "HET_', category=
 warnings.filterwarnings(action='ignore', category=OptimizeWarning, message='Covariance of the parameters could not be estimated')
 
 marker_settings = {
-    'Solar Orbiter': {'marker': 's', 'color': 'dodgerblue', 'label': 'Solar Orbiter /EPD-HET'},
-    'SOHO': {'marker': 'o', 'color': 'darkgreen', 'label': 'SOHO /ERNE-HED'},
-    'STEREO A': {'marker': '^', 'color': 'red', 'label': 'STEREO A/HET'},
-    'PSP':  {'marker': 'p', 'color': 'purple', 'label': 'PSP /EpiHi-HET'},
+    'Solar Orbiter': {'marker': 's', 'color': 'dodgerblue', 'label': 'Solar Orbiter / EPD - HET'},
+    'SOHO': {'marker': 'o', 'color': 'darkgreen', 'label': 'SOHO / ERNE - HED'},
+    'STEREO A': {'marker': '^', 'color': 'red', 'label': 'STEREO A / HET'},
+    'PSP':  {'marker': 'p', 'color': 'purple', 'label': 'PSP / EpiHi - HET'},
     # 'Wind': {'marker': '*', 'color': 'slategray', 'label': 'Wind'},
     # 'STEREO-B': {'marker': 'v', 'color': 'blue', 'label': 'STEREO-B'},
     # 'BepiColombo': {'marker': 'd', 'color': 'orange', 'label': 'BepiColombo'}
@@ -62,6 +62,8 @@ mpl.rcParams.update({'font.size': 10,
 DEGREE_TEXT = r'$^{\circ}$'
 SIGMA_TEXT = r'$\sigma$'
 PM_SYMB = r"$\pm$"
+SQUARED_TEXT = r"$^{2}$"
+NEGPOWER_TEXT = r"$^{-1}$"
 
 
 ################################################
@@ -428,9 +430,17 @@ class SpatialEvent:
         if len(scdata) != 0:
             dfs = pd.concat(scdata, axis=1, join='outer')
             dfs = dfs.dropna(how='all') # Drop any rows that are just NaNs
-            dfs.to_csv(self.out_path+f'SpatialIntensityData{label}.csv', na_rep='nan')
+            dfs.to_csv(self.out_path+f'Spatial_IntensityData{label}.csv', na_rep='nan')
         else:
             print("Please run '*.load_spacecraft_data()' first.")
+
+    def plot_simple_curve_at_timestep(self, timestep):
+        """Allows the user the option to just plot one Gaussian curve at the given time
+            without the time series alongside. Must be done after all the gaussians are
+            calculated."""
+
+            # Add check for timestep data type
+        plot_one_timestep_curve(self.sc_data_rs, self.out_path, timestep, self.channel_labels, self.flare_loc, self.reference)
 
 
 
@@ -1134,7 +1144,10 @@ def odr_gauss_fit(dict_1timestep, prev_results={'A': np.nan, 'X0': np.nan, 'sigm
     stopreason = []
     for reasons in out.stopreason:
         if 'convergence' in reasons:
-            stopreason.append('pass')
+            if (abs(out.beta[1]) > 270) or (abs(out.beta[2]) > 180): # X0 > 360 or sigma >180
+                stopreason.append('fail')
+            else:
+                stopreason.append('pass')
         else:
             stopreason.append('fail')
 
@@ -1213,7 +1226,7 @@ def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data
 
     fits_df1 = fits_df.dropna(axis='index', how='all', inplace=False)
 
-    fits_df1.to_csv(data_path+'Gaussian_fit_results.csv')
+    fits_df1.to_csv(data_path+'Spatial_Gaussian_Results.csv')
 
 
 
@@ -1226,9 +1239,9 @@ def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data
             filepath = os.path.join(png_dir, filename)
             images.append(imageio.imread(filepath))
 
-    imageio.mimsave(png_dir+'Gauss_fits.gif', images, duration=150, loop=0)
+    imageio.mimsave(png_dir+'Spatial_Gauss-Intensity.gif', images, duration=150, loop=0)
 
-    gif = Image(filename=png_dir+"Gauss_fits.gif")
+    gif = Image(filename=png_dir+"Spatial_Gauss-Intensity.gif")
     display(gif)
 
     return fits_df1
@@ -1295,7 +1308,7 @@ def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, background
     ax[n-1].xaxis.set_major_formatter(mpl.dates.ConciseDateFormatter(locator, show_offset=False))
 
     label=''
-    plt.savefig(data_path+'SEP_Intensities.png')
+    plt.savefig(data_path+'Spatial_Intensities.png')
     plt.show()
 
 
@@ -1410,7 +1423,7 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results):
                                        show_offset=False))
     tseries_ax.tick_params(left=False, labelleft=False)
 
-    plt.savefig(data_path+'PeakFits.png', bbox_inches='tight')
+    plt.savefig(data_path+'Spatial_Gauss-Intensity_Peaks.png', bbox_inches='tight')
     plt.show()
 
 
@@ -1475,23 +1488,34 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
     if not pd.isna(flare_loc[0]):
         gauss_ax.axvline(x=flare_loc[0], color='k', linestyle='dashed', linewidth=0.5, alpha=0.9, label=f'Reference at {flare_loc[0]}{DEGREE_TEXT}')
 
-    # Calculate and plot the curve
-    x_curve = np.linspace(-360,360,200)
-    y_curve = 10 ** log_gauss_function(x_curve, gauss_values['A'], gauss_values['X0']+reference, gauss_values['sigma'])
-    gauss_ax.semilogy(x_curve, y_curve)
-
-    # Show the different elements of the curve (ie the center and width)
-    gauss_ax.axvline(x=gauss_values['X0']+reference, color='goldenrod', alpha=0.8)
-    gauss_ax.hlines(y=0.6065*(10**gauss_values['A']),
-                    xmin=(gauss_values['X0']+reference-gauss_values['sigma']),
-                    xmax=(gauss_values['X0']+reference+gauss_values['sigma']),
-                    color='turquoise', alpha=0.8, linewidth=1.2)
-
-    gauss_text = f"Center: {gauss_values['X0']+reference:.2f}{DEGREE_TEXT}\n"
+    # Add the Gauss results text
+    gauss_values['X0'] = gauss_values['X0']+reference
+    gauss_text = f"Center: {gauss_values['X0']:.2f}{DEGREE_TEXT}\n"
     gauss_text = f"{gauss_text}Width: {gauss_values['sigma']:.2f}{DEGREE_TEXT}"
     box_obj = AnchoredText(gauss_text, frameon=True, loc='upper left', pad=0.5, prop={'size':9})
     plt.setp(box_obj.patch, facecolor='grey', alpha=0.9)
     gauss_ax.add_artist(box_obj)
+
+    # Calculate and plot the curve
+    x_curve = np.linspace(-360,360,200)
+    y_curve = 10 ** log_gauss_function(x_curve, gauss_values['A'], gauss_values['X0'], gauss_values['sigma'])
+    gauss_ax.semilogy(x_curve, y_curve, color='k')
+    
+    # Add the error region
+    y_err_curve = log_gauss_error_range_calc(x_curve, y_curve, gauss_values)
+    gauss_ax.fill_between(x_curve, y_curve-y_err_curve, y_curve+y_err_curve,
+        alpha=0.7, color='peachpuff')
+
+
+
+    # Show the different elements of the curve (ie the center and width)
+    gauss_ax.axvline(x=gauss_values['X0'], color='goldenrod', alpha=0.8)
+    gauss_ax.hlines(y=0.6065*(10**gauss_values['A']),
+                    xmin=(gauss_values['X0']-gauss_values['sigma']),
+                    xmax=(gauss_values['X0']+gauss_values['sigma']),
+                    color='turquoise', alpha=0.8, linewidth=1.2)
+
+
 
 
     for n in range(len(sc_df['sc'])):
@@ -1514,8 +1538,96 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
                            left=False, labelleft=False)
 
 
-    plt.savefig(data_path+f'GaussCurve_TimeSeries_{timestep.strftime("%d%b%Y_%Hh%M")}.png')
+    plt.savefig(data_path+f'Spatial_Gauss-Intensity_{timestep.strftime("%d%b%Y_%Hh%M")}.png')
     plt.close("all")
+
+
+def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_loc, reference, **kwargs):
+    """Plots only the curve at the given timestep."""
+    fig, ax = plt.subplots(1,1, figsize=[3,3], dpi=300)
+
+    # ax.set_title(timestep.strftime("%H:%M UTC - %d %b, %Y"), pad=5, loc='left')
+    box_obj1 = AnchoredText(timestep.strftime("%H:%M UTC\n%d %b, %Y"), frameon=True, 
+        loc='lower right', pad=0.5, prop={'size':7.5})
+    box_obj1.txt._text.set_ha('right')
+    box_obj1.txt._text.set_multialignment('right')
+    plt.setp(box_obj1.patch, facecolor='lemonchiffon', alpha=0.9)
+    ax.add_artist(box_obj1)
+
+    ax.set_ylabel(f'Intensity (s sr cm{SQUARED_TEXT} MeV){NEGPOWER_TEXT}', fontsize=9)
+    ax.set_xlabel(f'Footprint Longitude ({DEGREE_TEXT})', fontsize=9)
+
+    ylimits = [1e5, 1e-5]
+    xlimits = [reference-90, reference+90]
+
+    # Plot the observed values
+    for sc, sdf in sc_dict.items():
+        if sc=='Gauss':
+            continue
+        mrkr = marker_settings[sc]
+        ax.semilogy(sdf.loc[timestep, 'foot_long'], sdf.loc[timestep, 'Flux'], 
+                    label=mrkr['label'], color=mrkr['color'], marker=mrkr['marker'])
+
+        ylimits[0] = np.nanmin([ylimits[0], np.nanmin(sdf.loc[timestep,'Flux'])])
+        ylimits[1] = np.nanmax([ylimits[1], np.nanmax(sdf.loc[timestep,'Flux'])])
+        xlimits[0] = np.nanmin([xlimits[0], np.nanmin(sdf.loc[timestep,'foot_long'])])
+        xlimits[1] = np.nanmax([xlimits[1], np.nanmax(sdf.loc[timestep,'foot_long'])])
+
+    # Plot the curve
+    gauss_values = sc_dict['Gauss'].loc[timestep].to_dict()
+    gauss_values['X0'] = gauss_values['X0']+reference
+    x_curve = np.linspace(-360,360, 250)
+    y_curve = 10 ** log_gauss_function(x_curve, 
+                                        gauss_values['A'],
+                                        gauss_values['X0'], 
+                                        gauss_values['sigma'])
+    ax.semilogy(x_curve, y_curve, color='k')
+    # Add the error region
+    
+    y_err_curve = log_gauss_error_range_calc(x_curve, y_curve, gauss_values)
+    ax.fill_between(x_curve, y_curve-y_err_curve, y_curve+y_err_curve,
+        alpha=0.7, color='peachpuff')
+
+    # Show the curves elements
+    ax.axvline(x=gauss_values['X0'], color='goldenrod', alpha=0.8)
+    ax.hlines(y=0.6065*(10**gauss_values['A']),
+                xmin=(gauss_values['X0']-gauss_values['sigma']),
+                xmax=(gauss_values['X0']+gauss_values['sigma']),
+                color='turquoise', alpha=0.8, linewidth=1.2, zorder=0)
+
+    gauss_text = f"Center: {gauss_values['X0']:.2f}{DEGREE_TEXT}\n"
+    gauss_text = f"{gauss_text}Width: {gauss_values['sigma']:.2f}{DEGREE_TEXT}"
+    box_obj2 = AnchoredText(gauss_text, frameon=True, loc='upper right', 
+                            pad=0.5, prop={'size':7})
+    plt.setp(box_obj2.patch, facecolor='lemonchiffon', alpha=0.5)
+    ax.add_artist(box_obj2)
+
+
+    # Add vertical line for flare if given
+    if not pd.isna(flare_loc[0]):
+        ax.axvline(x=flare_loc[0], color='k', linestyle='dashed',
+                    linewidth=0.5, alpha=0.9, 
+                    label=f"Reference at {flare_loc[0]}{DEGREE_TEXT}")
+
+    ax.legend(#bbox_to_anchor=(1., 0.9, 0.5, 0.1), loc='upper left',
+                loc='upper left', ncols=1, fontsize=5)
+
+
+    # Define the limits
+    ax.set_ylim(ylimits[0]*0.2, ylimits[1]*12)
+    ax.set_xlim(xlimits[0]-20, xlimits[1]+20)
+
+    plt.savefig(data_path+f'Spatial_Gauss_{timestep.strftime("%d%b%Y_%Hh%M")}.png')
+    plt.show()
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1586,5 +1698,5 @@ def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, fl
         mpl.dates.ConciseDateFormatter(ax[1].xaxis.get_major_locator(),
                                        show_offset=False))
 
-    plt.savefig(f"{data_path}Intensity_Gauss_TimeProfiles.png", bbox_inches='tight')
+    plt.savefig(f"{data_path}Spatial_TimeProfiles_Intensity-Gauss.png", bbox_inches='tight')
     plt.show()
