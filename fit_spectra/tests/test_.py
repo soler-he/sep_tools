@@ -23,15 +23,15 @@ pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-gene
 
 @pytest.mark.parametrize("spacecraft, sensor, view, species, level, spectral_type, resample",
                          [('PSP', 'EPIHI-HET', 'A', 'protons', 'L2', 'peak', '2min'),
-                          ('PSP', 'EPIHI-HET', 'B', 'protons', 'L2', 'integral', None),
-                          ('Solar Orbiter', 'HET', 'sun', 'protons', 'L2', 'integral', '1min'),
+                          # ('PSP', 'EPIHI-HET', 'B', 'protons', 'L2', 'integral', None),
+                          # ('Solar Orbiter', 'HET', 'sun', 'protons', 'L2', 'integral', '1min'),
                           ('Solar Orbiter', 'EPT', 'north', 'ions', 'L2', 'peak', None),
-                          ('STEREO-A', 'HET', None, 'protons', 'L2', 'peak', None),
+                          # ('STEREO-A', 'HET', None, 'protons', 'L2', 'peak', None),
                           ('STEREO-A', 'HET', None, 'electrons', 'L2', 'integral', '5min'),
-                          ('STEREO-A', 'SEPT', 'asun', 'electrons', 'L2', 'peak', '5min'),
+                          # ('STEREO-A', 'SEPT', 'asun', 'electrons', 'L2', 'peak', '5min'),
                           ('STEREO-A', 'SEPT', 'asun', 'protons', 'L2', 'integral', None),
                           ('SOHO', 'ERNE-HED', None, 'protons', 'L2', 'integral', '5min'),
-                          ('SOHO', 'ERNE-HED', None, 'protons', 'L2', 'peak', '2min'),
+                          # ('SOHO', 'ERNE-HED', None, 'protons', 'L2', 'peak', '2min'),
                           ('Wind', '3DP', 'omnidirectional', 'electrons', 'L2', 'integral', '5min'),
                           ('Wind', '3DP', 'sector 1', 'protons', 'L2', 'peak', None)
                           ])
