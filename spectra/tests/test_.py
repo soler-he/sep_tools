@@ -42,7 +42,7 @@ pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-gene
 # @pytest.mark.filterwarnings("ignore::UserWarning:seppy")
 # @pytest.mark.filterwarnings("ignore::UserWarning:solo_epd_loader")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-def test_SEP_Multi_Spacecraft_Plot(spacecraft, sensor, view, species, level, spectral_type, resample):
+def test_Spectra(spacecraft, sensor, view, species, level, spectral_type, resample):
     display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop, w.level_drop)
 
     startdate = dt.datetime(2021, 10, 28, 8)
