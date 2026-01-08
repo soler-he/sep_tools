@@ -18,13 +18,22 @@ pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-gene
 """
 
 
-@pytest.mark.parametrize("which_fit", [('single'), ('double'), ('best_sb'), ('cut'), ('double_cut'), ('best_cb'), ('triple'), ('best')])
+@pytest.mark.parametrize("which_fit, use_random",
+                         [('single', False),
+                          ('double', False),
+                          ('best_sb', False),
+                          ('cut', False),
+                          ('double_cut', False),
+                          ('best_cb', False),
+                          ('triple', False),
+                          ('best', False)
+                          ])
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
 @pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 # @pytest.mark.filterwarnings("ignore::UserWarning:seppy")
 # @pytest.mark.filterwarnings("ignore::UserWarning:solo_epd_loader")
 # @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-def test_SEP_Fit_Spectra(which_fit):
+def test_SEP_Fit_Spectra(which_fit, use_random):
     path = f"{os.getcwd()}{os.sep}output_spectra{os.sep}spectrum_integral_SOLO_EPT_sun_electrons.csv"
     data = pd.read_csv(path)  # or pd.read_excel() for xlsx data
 
@@ -32,6 +41,7 @@ def test_SEP_Fit_Spectra(which_fit):
 
     # set by function call:
     # which_fit = 'single'  # single`, `double`, `best_sb`, `cut`, `double_cut`, `best_cb`, `triple`, `best`
+    # use_random = False  # defined
 
     # initial guesses:
     intensity_zero_guess = 1e14  # peak flux
@@ -47,7 +57,7 @@ def test_SEP_Fit_Spectra(which_fit):
     e_min = None  # in MeV
     e_max = None  # in MeV
     exclude_channels = [31, 32, 33]  # None or list of indices correspong to the channels e.g. [1,3, 24]
-    use_random = False  # True
+    
     iterations = 1000
     legend_details = False
     plot_title = ''
