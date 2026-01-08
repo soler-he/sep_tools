@@ -1,5 +1,8 @@
 # This workflow will install Python dependencies, run tests and lint with a variety of Python versions
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+#
+# Run pytest locally to update durations file:
+# pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html --nbmake -n=auto --nbmake-kernel=python3 --nbmake-timeout=500 --ignore=SEP_Multi-Instrument-Plot.ipynb --ignore=SEP_PyOnset.ipynb --durations=0 --store-durations
 
 name: pytest
 
