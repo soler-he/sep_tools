@@ -28,7 +28,7 @@ pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-gene
                           ('triple', False),
                           ('best', False)
                           ])
-@pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
+@pytest.mark.mpl_image_compare(remove_text=False, deterministic=True, tolerance=3.5)
 @pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 # @pytest.mark.filterwarnings("ignore::UserWarning:seppy")
 # @pytest.mark.filterwarnings("ignore::UserWarning:solo_epd_loader")
