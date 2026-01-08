@@ -28,7 +28,7 @@ def test_SEP_Fit_Spectra(which_fit):
     path = f"{os.getcwd()}{os.sep}output_spectra{os.sep}spectrum_integral_SOLO_EPT_sun_electrons.csv"
     data = pd.read_csv(path)  # or pd.read_excel() for xlsx data
 
-    plot_spectrum(data)
+    plot_spectrum(data)  # deactivate here because it's mixing up with the result plot
 
     # set by function call:
     # which_fit = 'single'  # single`, `double`, `best_sb`, `cut`, `double_cut`, `best_cb`, `triple`, `best`
@@ -47,8 +47,8 @@ def test_SEP_Fit_Spectra(which_fit):
     e_min = None  # in MeV
     e_max = None  # in MeV
     exclude_channels = [31, 32, 33]  # None or list of indices correspong to the channels e.g. [1,3, 24]
-    use_random = True
-    iterations = 100
+    use_random = False  # True
+    iterations = 1000
     legend_details = False
     plot_title = ''
     x_label = 'Energy (MeV)'
@@ -58,6 +58,7 @@ def test_SEP_Fit_Spectra(which_fit):
     use_filename_as_title = True
     save_plot = True
 
+    plt.close('all')
     run_the_fit(path, data, save_plot, use_filename_as_title, channels_to_exclude=exclude_channels, plot_title=plot_title, x_label=x_label, y_label=y_label, legend_title=legend_title, which_fit=which_fit,  e_min=e_min, e_max=e_max, g1_guess=gamma_1_guess, g2_guess=gamma_2_guess, g3_guess=gamma_3_guess, I0_guess=intensity_zero_guess, alpha_guess=alpha_guess, beta_guess=beta_guess, break_guess_low=break_energy_low_guess, break_guess_high=break_energy_high_guess, cut_guess=cutoff_energy_guess, exponent_guess=exponent_guess, use_random=use_random, iterations=iterations, legend_details=legend_details)
     fig = plt.gcf()
 
