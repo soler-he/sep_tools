@@ -1,17 +1,13 @@
-import datetime as dt
 import os
-
-import numpy as np
-import pandas as pd
 import pytest
-from IPython.display import display
+import datetime as dt
+import pandas as pd
+import numpy as np
+from spectra import Event
+import spectra.widgets as w
+from IPython.display import Image, display
 from seppy.util import jupyterhub_data_path
 
-import spectra.widgets as w
-from spectra import Event
-
-# ignore divide by zero warnings in numpy
-np.seterr(divide='ignore', invalid='ignore')
 
 """
 Install dependencies for tests:
@@ -20,441 +16,82 @@ pip install flake8 pytest pytest-doctestplus pytest-cov pytest-mpl
 To create/update the baseline images, run the following command from the base package dir:
 pytest --mpl-generate-path=spectra/tests/baseline spectra/tests/test_.py
 
-To run these specific tests locally, go to the base directory of the repository and run:
-pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html spectra/tests/test_.py
-
-To run alls tests locally, go to the base directory of the repository and run:
-pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html
+To run the tests locally, go to the base directory of the repository and run:
+pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html --durations=0 spectra/tests/test_.py
 """
 
 
-@pytest.mark.parametrize("spectral_type, species", [('integral', 'protons'), ('peak', 'protons')])
+@pytest.mark.parametrize("spacecraft, sensor, view, species, level, spectral_type, resample",
+                         [('PSP', 'EPIHI-HET', 'A', 'protons', 'L2', 'peak', '2min'),
+                          ('PSP', 'EPIHI-HET', 'B', 'protons', 'L2', 'integral', None),
+                          ('SOHO', 'ERNE-HED', None, 'protons', 'L2', 'integral', '5min'),
+                          ('SOHO', 'ERNE-HED', None, 'protons', 'L2', 'peak', '2min'),
+                          ('Solar Orbiter', 'HET', 'sun', 'electrons', 'L2', 'integral', '1min'),
+                          ('Solar Orbiter', 'HET', 'sun', 'protons', 'L2', 'peak', '1min'),
+                          ('Solar Orbiter', 'EPT', 'south', 'electrons', 'L2', 'integral', None),
+                          ('Solar Orbiter', 'EPT', 'north', 'ions', 'L2', 'peak', None),
+                          ('STEREO-A', 'HET', None, 'electrons', 'L2', 'integral', '5min'),
+                          ('STEREO-A', 'HET', None, 'protons', 'L2', 'peak', None),
+                          ('STEREO-A', 'SEPT', 'asun', 'electrons', 'L2', 'peak', '5min'),
+                          ('STEREO-A', 'SEPT', 'asun', 'protons', 'L2', 'integral', None),
+                          ('Wind', '3DP', 'omnidirectional', 'electrons', 'L2', 'integral', '5min'),
+                          ('Wind', '3DP', 'sector 1', 'protons', 'L2', 'peak', None)
+                          ])
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
 @pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
-@pytest.mark.filterwarnings("ignore::UserWarning:seppy")
+# @pytest.mark.filterwarnings("ignore::UserWarning:seppy")
+# @pytest.mark.filterwarnings("ignore::UserWarning:solo_epd_loader")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
-def test_SEP_Spectra_PSP_ISOIS_EPIHI(spectral_type, species):
-    display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop)
-    #
-    w.spacecraft_drop.value = 'PSP'
-    w.sensor_drop.value = 'EPIHI-HET'
-    w.view_drop.value = 'A'
-    w.species_drop.value = species
-    #
-    # spectral integration interval:
-    startdate = dt.datetime(2021, 10, 28)
-    enddate = dt.datetime(2021, 11, 2)
-    #
-    subtract_background = True
-    background_start = dt.datetime(2021, 10, 28, 2, 0)
-    background_end = dt.datetime(2021, 10, 28, 14, 0)
-    #
-    spec_start = dt.datetime(2021, 10, 28, 16, 0)
-    spec_end = dt.datetime(2021, 11, 1)
-    #
-    resample = '30min'  # '60s'
-    #
-    # set your local path where you want to save the data files:
+def test_Spectra(spacecraft, sensor, view, species, level, spectral_type, resample):
+    display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop, w.level_drop)
+
+    startdate = dt.datetime(2021, 10, 28, 8)
+    enddate = dt.datetime(2021, 10, 29, 20)
+
     data_path = f"{os.getcwd()}{os.sep}data"
     data_path = jupyterhub_data_path(data_path)
-    #
+
+    # loading the data
     E = Event()
-    E.load_data(spacecraft=w.spacecraft_drop.value,
-                instrument=w.sensor_drop.value,
-                species=w.species_drop.value,
-                startdate=startdate,
-                enddate=enddate,
-                viewing=w.view_drop.value,
-                data_level=w.level_drop.value,
+    E.load_data(spacecraft=spacecraft, instrument=sensor,
+                species=species, startdate=startdate, enddate=enddate,
+                viewing=view, data_level=level,
                 data_path=data_path)
-    #
-    fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end,
-                          savefig=False, spec_type=spectral_type, resample=resample)
-    #
-    E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end,
-                          spec_type=spectral_type, resample=resample)
-    #
-    fig, ax = E.plot_spectrum(savefig=False)
-    return fig
 
+    # spectral_type = 'integral'  # 'integral' or 'peak'
 
-@pytest.mark.parametrize("spectral_type, species", [('peak', 'protons')])
-@pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
-@pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
-@pytest.mark.filterwarnings("ignore::UserWarning:seppy")
-@pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
-def test_SEP_Spectra_SOHO_ERNE_HED(spectral_type, species):
-    display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop)
-    #
-    w.spacecraft_drop.value = 'SOHO'
-    w.sensor_drop.value = 'ERNE-HED'
-    # w.view_drop.value = 'asun'
-    w.species_drop.value = species
-    #
-    # spectral integration interval:
-    startdate = dt.datetime(2021, 10, 28)
-    enddate = dt.datetime(2021, 11, 2)
-    #
+    spec_start = dt.datetime(2021, 10, 28, 16)
+    spec_end = dt.datetime(2021, 10, 29, 0)
+
     subtract_background = True
-    background_start = dt.datetime(2021, 10, 28, 2, 0)
-    background_end = dt.datetime(2021, 10, 28, 14, 0)
-    #
-    spec_start = dt.datetime(2021, 10, 28, 16, 0)
-    spec_end = dt.datetime(2021, 11, 1)
-    #
-    resample = '30min'  # '60s'
-    #
-    # set your local path where you want to save the data files:
-    data_path = f"{os.getcwd()}{os.sep}data"
-    data_path = jupyterhub_data_path(data_path)
-    #
-    E = Event()
-    E.load_data(spacecraft=w.spacecraft_drop.value,
-                instrument=w.sensor_drop.value,
-                species=w.species_drop.value,
-                startdate=startdate,
-                enddate=enddate,
-                viewing=w.view_drop.value,
-                data_level=w.level_drop.value,
-                data_path=data_path)
-    #
-    fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end,
-                          savefig=False, spec_type=spectral_type, resample=resample)
-    #
-    E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end,
-                          spec_type=spectral_type, resample=resample)
-    #
-    fig, ax = E.plot_spectrum(savefig=False)
-    return fig
 
+    background_start = dt.datetime(2021, 10, 28, 12)
+    background_end = dt.datetime(2021, 10, 28, 15)
 
-@pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
-@pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
-@pytest.mark.filterwarnings("ignore::UserWarning:seppy")
-@pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
-def test_SEP_Spectra_SOHO_ERNE_HED_None():
-    display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop)
-    #
-    w.spacecraft_drop.value = 'SOHO'
-    w.sensor_drop.value = 'ERNE-HED'
-    # w.view_drop.value = 'asun'
-    w.species_drop.value = 'protons'
-    #
-    # spectral integration interval:
-    startdate = dt.datetime(2021, 10, 28)
-    enddate = dt.datetime(2021, 11, 2)
-    #
-    subtract_background = True
-    background_start = dt.datetime(2021, 10, 28, 2, 0)
-    background_end = dt.datetime(2021, 10, 28, 14, 0)
-    #
-    spec_start = dt.datetime(2021, 10, 28, 16, 0)
-    spec_end = dt.datetime(2021, 11, 1)
-    #
-    resample = '30min'  # '60s'
-    #
-    # set your local path where you want to save the data files:
-    data_path = f"{os.getcwd()}{os.sep}data"
-    data_path = jupyterhub_data_path(data_path)
-    #
-    E = Event()
-    E.load_data(spacecraft=w.spacecraft_drop.value,
-                instrument=w.sensor_drop.value,
-                species=w.species_drop.value,
-                startdate=startdate,
-                enddate=enddate,
-                viewing=w.view_drop.value,
-                data_level=w.level_drop.value,
-                data_path=data_path)
-    #
-    fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end,
-                          savefig=False, resample=resample)
-    #
-    E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end, resample=resample)
-    #
-    fig, ax = E.plot_spectrum(savefig=False)
-    return fig
+    # resample = '5min'
 
+    save_quicklook_plot = False
 
-@pytest.mark.parametrize("spectral_type, species", [('integral', 'electrons'), ('peak', 'ions')])
-@pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
-@pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
-@pytest.mark.filterwarnings("ignore::UserWarning:seppy")
-@pytest.mark.filterwarnings("ignore::UserWarning:solo_epd_loader")
-@pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
-def test_SEP_Spectra_Solar_Orbiter_EPT(spectral_type, species):
-    display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop)
-    #
-    w.spacecraft_drop.value = 'Solar Orbiter'
-    w.sensor_drop.value = 'EPT'
-    w.view_drop.value = 'asun'
-    w.species_drop.value = species
-    #
-    # spectral integration interval:
-    startdate = dt.datetime(2021, 10, 28)
-    enddate = dt.datetime(2021, 11, 2)
-    #
-    subtract_background = True
-    background_start = dt.datetime(2021, 10, 28, 2, 0)
-    background_end = dt.datetime(2021, 10, 28, 14, 0)
-    #
-    spec_start = dt.datetime(2021, 10, 28, 16, 0)
-    spec_end = dt.datetime(2021, 11, 1)
-    #
-    resample = '30min'  # '60s'
-    #
-    # set your local path where you want to save the data files:
-    data_path = f"{os.getcwd()}{os.sep}data"
-    data_path = jupyterhub_data_path(data_path)
-    #
-    E = Event()
-    E.load_data(spacecraft=w.spacecraft_drop.value,
-                instrument=w.sensor_drop.value,
-                species=w.species_drop.value,
-                startdate=startdate,
-                enddate=enddate,
-                viewing=w.view_drop.value,
-                data_level=w.level_drop.value,
-                data_path=data_path)
-    #
-    fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end,
-                          savefig=False, spec_type=spectral_type, resample=resample)
-    #
-    E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end,
-                          spec_type=spectral_type, resample=resample)
-    #
-    fig, ax = E.plot_spectrum(savefig=False)
-    return fig
+    fig_ts, ax_ts = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
+                                background_start=background_start, background_end=background_end,
+                                savefig=save_quicklook_plot, spec_type=spectral_type, resample=resample)
 
+    E.get_spec(spec_start, spec_end, spec_type=spectral_type, subtract_background=subtract_background,
+               background_start=background_start, background_end=background_end, resample=resample)
+    fig, ax = E.plot_spectrum(savefig=True)
 
-@pytest.mark.parametrize("spectral_type, species", [('integral', 'electrons'), ('peak', 'protons')])
-@pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
-@pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
-@pytest.mark.filterwarnings("ignore::UserWarning:seppy")
-@pytest.mark.filterwarnings("ignore::UserWarning:solo_epd_loader")
-@pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
-def test_SEP_Spectra_Solar_Orbiter_HET(spectral_type, species):
-    display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop)
-    #
-    w.spacecraft_drop.value = 'Solar Orbiter'
-    w.sensor_drop.value = 'HET'
-    w.view_drop.value = 'asun'
-    w.species_drop.value = species
-    #
-    # spectral integration interval:
-    startdate = dt.datetime(2021, 10, 28)
-    enddate = dt.datetime(2021, 11, 2)
-    #
-    subtract_background = True
-    background_start = dt.datetime(2021, 10, 28, 2, 0)
-    background_end = dt.datetime(2021, 10, 28, 14, 0)
-    #
-    spec_start = dt.datetime(2021, 10, 28, 16, 0)
-    spec_end = dt.datetime(2021, 11, 1)
-    #
-    resample = '30min'  # '60s'
-    #
-    # set your local path where you want to save the data files:
-    data_path = f"{os.getcwd()}{os.sep}data"
-    data_path = jupyterhub_data_path(data_path)
-    #
-    E = Event()
-    E.load_data(spacecraft=w.spacecraft_drop.value,
-                instrument=w.sensor_drop.value,
-                species=w.species_drop.value,
-                startdate=startdate,
-                enddate=enddate,
-                viewing=w.view_drop.value,
-                data_level=w.level_drop.value,
-                data_path=data_path)
-    #
-    fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end,
-                          savefig=False, spec_type=spectral_type, resample=resample)
-    #
-    E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end,
-                          spec_type=spectral_type, resample=resample)
-    #
-    fig, ax = E.plot_spectrum(savefig=False)
-    return fig
-
-
-@pytest.mark.parametrize("spectral_type, species", [('integral', 'electrons'), ('peak', 'ions')])
-@pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
-@pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
-@pytest.mark.filterwarnings("ignore::UserWarning:seppy")
-@pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
-def test_SEP_Spectra_STEREO_A_SEPT(spectral_type, species):
-    display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop)
-    #
-    w.spacecraft_drop.value = 'STEREO-A'
-    w.sensor_drop.value = 'SEPT'
-    w.view_drop.value = 'asun'
-    w.species_drop.value = species
-    #
-    # spectral integration interval:
-    startdate = dt.datetime(2021, 10, 28)
-    enddate = dt.datetime(2021, 11, 2)
-    #
-    subtract_background = True
-    background_start = dt.datetime(2021, 10, 28, 2, 0)
-    background_end = dt.datetime(2021, 10, 28, 14, 0)
-    #
-    spec_start = dt.datetime(2021, 10, 28, 16, 0)
-    spec_end = dt.datetime(2021, 11, 1)
-    #
-    resample = '30min'  # '60s'
-    #
-    # set your local path where you want to save the data files:
-    data_path = f"{os.getcwd()}{os.sep}data"
-    data_path = jupyterhub_data_path(data_path)
-    #
-    E = Event()
-    E.load_data(spacecraft=w.spacecraft_drop.value,
-                instrument=w.sensor_drop.value,
-                species=w.species_drop.value,
-                startdate=startdate,
-                enddate=enddate,
-                viewing=w.view_drop.value,
-                data_level=w.level_drop.value,
-                data_path=data_path)
-    #
-    fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end,
-                          savefig=False, spec_type=spectral_type, resample=resample)
-    #
-    E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end,
-                          spec_type=spectral_type, resample=resample)
-    #
-    fig, ax = E.plot_spectrum(savefig=False)
-    #
-    # Temporal evolution of the spectra
+    # 6. Spectral temporal evolution
+    duration = pd.Timedelta(hours=1)
     interval_start = spec_start
     interval_end = spec_end
-    duration = pd.Timedelta(hours=1)
-    #
+    num_steps = int((interval_end-interval_start) / duration)
+
+    for i in np.arange(1, num_steps, 1):
+        time = interval_start + i * duration
+        ax_ts.axvline(time, color='k')
+
     E.get_spec_slices(interval_start, interval_end, duration, subtract_background=subtract_background, background_start=background_start, background_end=background_end)
-    assert os.path.isfile(E.gif_filename)
-    return fig
+    gif_path = E.gif_filename
+    _ = Image(filename=gif_path)
 
-
-@pytest.mark.parametrize("spectral_type, species", [('integral', 'electrons'), ('peak', 'protons')])
-@pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
-@pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
-@pytest.mark.filterwarnings("ignore::UserWarning:seppy")
-@pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
-def test_SEP_Spectra_STEREO_A_HET(spectral_type, species):
-    display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop)
-    #
-    w.spacecraft_drop.value = 'STEREO-A'
-    w.sensor_drop.value = 'HET'
-    # w.view_drop.value = 'asun'
-    w.species_drop.value = species
-    #
-    # spectral integration interval:
-    startdate = dt.datetime(2021, 10, 28)
-    enddate = dt.datetime(2021, 11, 2)
-    #
-    subtract_background = True
-    background_start = dt.datetime(2021, 10, 28, 2, 0)
-    background_end = dt.datetime(2021, 10, 28, 14, 0)
-    #
-    spec_start = dt.datetime(2021, 10, 28, 16, 0)
-    spec_end = dt.datetime(2021, 11, 1)
-    #
-    resample = '30min'  # '60s'
-    #
-    # set your local path where you want to save the data files:
-    data_path = f"{os.getcwd()}{os.sep}data"
-    data_path = jupyterhub_data_path(data_path)
-    #
-    E = Event()
-    E.load_data(spacecraft=w.spacecraft_drop.value,
-                instrument=w.sensor_drop.value,
-                species=w.species_drop.value,
-                startdate=startdate,
-                enddate=enddate,
-                viewing=w.view_drop.value,
-                data_level=w.level_drop.value,
-                data_path=data_path)
-    #
-    fig, ax = E.plot_flux(spec_start, spec_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end,
-                          savefig=False, spec_type=spectral_type, resample=resample)
-    #
-    E.get_spec(spec_start, spec_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end,
-                          spec_type=spectral_type, resample=resample)
-    #
-    fig, ax = E.plot_spectrum(savefig=False)
-    return fig
-
-
-@pytest.mark.parametrize("spectral_type, species, viewing", [('integral', 'electrons', 'omnidirectional'), ('peak', 'protons', 'sector 7')])
-@pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
-@pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
-@pytest.mark.filterwarnings("ignore::UserWarning:seppy")
-@pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
-def test_SEP_Spectra_Wind_3DP(spectral_type, species, viewing):
-    display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop)
-    #
-    w.spacecraft_drop.value = 'Wind'
-    w.sensor_drop.value = '3DP'
-    w.view_drop.value = viewing  # 'omnidirectional'
-    w.species_drop.value = species
-    #
-    # spectral integration interval:
-    startdate = dt.datetime(2021, 10, 28)
-    enddate = dt.datetime(2021, 11, 2)
-    #
-    subtract_background = True
-    background_start = dt.datetime(2021, 10, 28, 2, 0)
-    background_end = dt.datetime(2021, 10, 28, 14, 0)
-    #
-    spectral_type_start = dt.datetime(2021, 10, 28, 16, 0)
-    spectral_type_end = dt.datetime(2021, 11, 1)
-    #
-    resample = '30min'  # '60s'
-    #
-    # set your local path where you want to save the data files:
-    data_path = f"{os.getcwd()}{os.sep}data"
-    data_path = jupyterhub_data_path(data_path)
-    #
-    E = Event()
-    E.load_data(spacecraft=w.spacecraft_drop.value,
-                instrument=w.sensor_drop.value,
-                species=w.species_drop.value,
-                startdate=startdate,
-                enddate=enddate,
-                viewing=w.view_drop.value,
-                data_level=w.level_drop.value,
-                data_path=data_path)
-    #
-    fig, ax = E.plot_flux(spectral_type_start, spectral_type_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end,
-                          savefig=False, spec_type=spectral_type, resample=resample)
-    #
-    E.get_spec(spectral_type_start, spectral_type_end, subtract_background=subtract_background,
-                          background_start=background_start, background_end=background_end,
-                          spec_type=spectral_type, resample=resample)
-    #
-    fig, ax = E.plot_spectrum(savefig=False)
     return fig

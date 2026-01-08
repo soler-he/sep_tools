@@ -269,5 +269,8 @@ output_spectra/*.csv
 output_spectra/*.gif
 output_spectra/*.png
 
+# spatial analysis output
+output_spatial_analysis/
+
 # Regression onset testing
 SEP_Regression-Onset-Testing.ipynb
