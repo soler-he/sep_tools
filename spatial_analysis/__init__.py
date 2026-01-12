@@ -500,7 +500,7 @@ def solarmach_loop(observers, dates, data_path, resampling, source_loc, vsw_list
             if "Longitudinal separation between body's magnetic footpoint and reference_long" not in tmp_df.columns:
                 print(tmp_df)
                 print(tmp_df.columns)
-                jax=input()
+                jax=input("There's a problem with the label for the magnetic footpoint. Please contact JT Lang.")
             long_sep.append(tmp_df["Longitudinal separation between body's magnetic footpoint and reference_long"][obs])
 
 
@@ -646,13 +646,6 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
     spacecraft = spacecraft.lower()
 
     if 'psp' == spacecraft:
-        # if JAX_TESTERS:
-        #     if f'psp_rawdata_{dates[0].strftime("%d%b%Y")}.csv' in os.listdir(data_path):
-        #         psp = pd.read_csv(data_path+f'psp_rawdata_{dates[0].strftime("%d%b%Y")}.csv', index_col=0, na_values='nan', parse_dates=True)
-        #         energy_range_lbl = "11.3-16.0 MeV"
-        #         return psp, energy_range_lbl
-
-
         psp_df, psp_meta = psp_isois_load(dataset='PSP_ISOIS-EPIHI_L2-HET-RATES60',
                                           startdate=dates[0], enddate=dates[1],
                                           path=data_path, resample=None)
@@ -707,23 +700,13 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
 
         # Resample
         psp = psp_df2.resample(resampling).agg({'Flux':'mean', 'Uncertainty': rms_mean})
-        # if JAX_TESTERS:
-        #     psp.to_csv(data_path+f'psp_rawdata_{dates[0].strftime("%d%b%Y")}.csv', na_rep='nan')
 
-        
 
         return psp, energy_range_lbl
 
 
 
     if 'soho' == spacecraft:
-        # if JAX_TESTERS:
-        #     if f'soho_rawdata_{dates[0].strftime("%d%b%Y")}.csv' in os.listdir(data_path):
-        #         soho = pd.read_csv(data_path+f'soho_rawdata_{dates[0].strftime("%d%b%Y")}.csv', index_col=0, na_values='nan', parse_dates=True)
-        #         energy_range_lbl = "13.0-16.0 MeV"
-        #         return soho, energy_range_lbl
-
-
         soho_df, soho_meta = soho_load(dataset='SOHO_ERNE-HED_L2-1MIN',
                                        startdate=dates[0], enddate=dates[1],
                                        path=data_path, resample=None,
@@ -770,19 +753,11 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
 
         # Resample
         soho = soho_df2.resample(resampling).agg({'Flux':'mean', 'Uncertainty': rms_mean})
-        # if JAX_TESTERS:
-        #     soho.to_csv(data_path+f'soho_rawdata_{dates[0].strftime("%d%b%Y")}.csv', na_rep='nan')
 
 
         return soho, energy_range_lbl
 
     if 'stereo a' == spacecraft:
-        # if JAX_TESTERS:
-        #     if f'sta_rawdata_{dates[0].strftime("%d%b%Y")}.csv' in os.listdir(data_path):
-        #         sta = pd.read_csv(data_path+f'sta_rawdata_{dates[0].strftime("%d%b%Y")}.csv', index_col=0, na_values='nan', parse_dates=True)
-        #         energy_range_lbl = "13.6-15.1 MeV"
-        #         return sta, energy_range_lbl
-
         sta_df, sta_meta = stereo_load(instrument='HET', spacecraft='ahead',
                                        startdate=dates[0], enddate=dates[1],
                                        path=data_path, resample=None,
@@ -799,8 +774,8 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
 
         bin_width = []
         energy_range = []
+        sta_meta = sta_meta['channels_dict_df_p']
         for n in range(bin_list[0], bin_list[1]+1):
-            sta_meta = sta_meta['channels_dict_df_p']
             bin_start = sta_meta.loc[n, 'lower_E']
             bin_end = sta_meta.loc[n, 'upper_E']
 
@@ -824,21 +799,12 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
 
         # Resample
         sta = sta_df2.resample(resampling).agg({'Flux':'mean', 'Uncertainty': rms_mean})
-        # if JAX_TESTERS:
-        #     sta.to_csv(data_path+f'sta_rawdata_{dates[0].strftime("%d%b%Y")}.csv', na_rep='nan')
 
 
         return sta, energy_range_lbl
 
 
     if 'solar orbiter' == spacecraft:
-        # if JAX_TESTERS:
-        #     if f'solo_rawdata_{dates[0].strftime("%d%b%Y")}.csv' in os.listdir(data_path):
-        #         solo = pd.read_csv(data_path+f'solo_rawdata_{dates[0].strftime("%d%b%Y")}.csv', index_col=0, na_values='nan', parse_dates=True)
-        #         energy_range_lbl = "12.4-15.7 MeV"
-        #         return solo, energy_range_lbl
-
-
         # Download directional data
         solo_s, soloe, solo_meta = epd_load(sensor='het', level='l2',
                                             startdate=dates[0], enddate=dates[1],
@@ -936,8 +902,6 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
 
         # Resample
         solo = solo_df1.resample(resampling).agg({'Flux':'mean', 'Uncertainty': rms_mean})
-        # if JAX_TESTERS:
-        #     solo.to_csv(data_path+f'solo_rawdata_{dates[0].strftime("%d%b%Y")}.csv', na_rep='nan')
 
 
         return solo, energy_range_lbl
