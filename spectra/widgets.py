@@ -4,9 +4,9 @@ import ipywidgets as widgets
 list_of_sc = ["PSP", "SOHO", "Solar Orbiter", "STEREO-A", "STEREO-B", "Wind"]
 
 stereo_instr = ["HET", "SEPT"]
-solo_instr = ["EPT", "HET"]
+solo_instr = ["HET", "EPT"]
 soho_instr = ["ERNE-HED"]
-psp_instr = ["isois-epihi"]
+psp_instr = ["EPIHI-HET"]
 wind_instr = ["3DP"]
 
 sensor_dict = {
@@ -25,9 +25,9 @@ view_dict = {
     #                             "Pixel 11", "Pixel 12", "Pixel 13", "Pixel 14", "Pixel 15"),
     ("Solar Orbiter", "EPT"): ("sun", "asun", "north", "south"),
     ("Solar Orbiter", "HET"): ("sun", "asun", "north", "south"),
-    ("PSP", "isois-epihi"): ("A", "B"),
+    ("PSP", "EPIHI-HET"): ("A", "B"),
     # ("PSP", "isois-epilo"): ('3', '7'),  # ('0', '1', '2', '3', '4', '5', '6', '7')
-    ("Wind", "3DP"): ('omnidirectional', )  # 'sector 0', 'sector 1', 'sector 2', 'sector 3', 'sector 4', 'sector 5', 'sector 6', 'sector 7')
+    ("Wind", "3DP"): ('omnidirectional', 'sector 0', 'sector 1', 'sector 2', 'sector 3', 'sector 4', 'sector 5', 'sector 6', 'sector 7')
 }
 
 species_dict = {
@@ -42,9 +42,27 @@ species_dict = {
     ("Solar Orbiter", "HET"): ("protons", "electrons"),
     ("SOHO", "ERNE-HED"): ("protons",),
     # ("SOHO", "EPHIN"): ("electrons",),
-    ("PSP", "isois-epihi"): ("protons", ),  # "electrons"),
+    ("PSP", "EPIHI-HET"): ("protons", ),  # "electrons"),
     # ("PSP", "isois-epilo"): ("electrons",),
     ("Wind", "3DP"): ("protons", "electrons")
+}
+
+level_dict = {
+    ("STEREO-A", "LET"): ("L1",),
+    ("STEREO-A", "SEPT"): ("L2",),
+    ("STEREO-A", "HET"): ("L2",),
+    ("STEREO-B", "LET"): ("L1",),
+    ("STEREO-B", "SEPT"): ("L2",),
+    ("STEREO-B", "HET"): ("L2",),
+    ("Solar Orbiter", "STEP"): ("L2",),
+    ("Solar Orbiter", "EPT"): ("L2",),
+    ("Solar Orbiter", "HET"): ("L2",),
+    ("BepiColombo", "SIXS-P"): ("L3",),
+    ("SOHO", "ERNE-HED"): ("L2",),
+    ("SOHO", "EPHIN"): ("L2",),
+    ("PSP", "isois-epihi"): ("L2",),
+    ("PSP", "isois-epilo"): ("L2",),
+    ("Wind", "3DP"): ("L2",)
 }
 
 
@@ -67,6 +85,12 @@ view_drop = widgets.Dropdown(options=view_dict[(spacecraft_drop.value, sensor_dr
 
 species_drop = widgets.Dropdown(options=species_dict[(spacecraft_drop.value, sensor_drop.value)],
                                 description="Species:",
+                                disabled=False,
+                                )
+
+
+level_drop = widgets.Dropdown(options=level_dict[(spacecraft_drop.value, sensor_drop.value)],
+                                description="Data level:",
                                 disabled=False,
                                 )
 
@@ -98,6 +122,13 @@ def update_species_options(val):
         pass
 
 
+def update_level_options(val):
+    try:
+        level_drop.options = level_dict[(spacecraft_drop.value, sensor_drop.value)]
+    except KeyError:
+        pass
+
+
 # makes spacecraft_drop run these functions every time it is accessed by user
 spacecraft_drop.observe(update_sensor_options)
 spacecraft_drop.observe(update_view_options)
@@ -106,6 +137,9 @@ sensor_drop.observe(update_view_options)
 # does the same but for sensor menu
 spacecraft_drop.observe(update_species_options)
 sensor_drop.observe(update_species_options)
+
+spacecraft_drop.observe(update_level_options)
+sensor_drop.observe(update_level_options)
 
 # also observe the radio menu
 # radio_button.observe(update_radio_options)

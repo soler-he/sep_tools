@@ -5,3 +5,6 @@ comment:
 #   status:
 #     project: off
 #     patch: off
+
+ignore:
+  - "**/test_*.py  # ignore any files at any depth that start with 'test_' and end with '.py'

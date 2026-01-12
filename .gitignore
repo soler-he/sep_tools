@@ -232,6 +232,7 @@ aia_map.fits
 # Misc Stuff
 .history
 *.orig
+*.org
 .tmp
 
 # PyInstaller Files
@@ -261,6 +262,15 @@ data/
 
 # Plot output folder
 plots/
+
+# spec output
+output_spectra/*.csv
+!output_spectra/spectrum_integral_SOLO_EPT_sun_electrons.csv  # allow specific example file
+output_spectra/*.gif
+output_spectra/*.png
+
+# spatial analysis output
+output_spatial_analysis/
 
 # Regression onset testing
 SEP_Regression-Onset-Testing.ipynb
