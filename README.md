@@ -1,5 +1,5 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15058294.svg)](https://doi.org/10.5281/zenodo.15058293)
-[![Python versions](https://img.shields.io/badge/python-3.10_--_3.13-blue)]()
+[![Python versions](https://img.shields.io/badge/python-3.10_--_3.14-blue)]()
 [![pytest](https://github.com/soler-he/sep_tools/actions/workflows/pytest.yml/badge.svg?branch=main)](https://github.com/soler-he/sep_tools/actions/workflows/pytest.yml)
 [![codecov](https://codecov.io/gh/soler-he/sep_tools/graph/badge.svg?token=YW5I35VUIC)](https://codecov.io/gh/soler-he/sep_tools)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
