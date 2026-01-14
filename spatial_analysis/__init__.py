@@ -1222,7 +1222,10 @@ def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, background
         mrkr = marker_settings[sc]
 
         # Show the event start time
-        ax[n].axvline(x=dates[0], color='k', linestyle='dashed', linewidth=0.5)
+        if n == 0:
+            ax[n].axvline(x=dates[0], color='k', linestyle='dashed', linewidth=0.5, label=f"Event start at: {dates[0].strftime('%H:%M %d %b, %Y')}")
+        else:
+            ax[n].axvline(x=dates[0], color='k', linestyle='dashed', linewidth=0.5)
 
         # Show the background window
         if len(background_window) > 1:
