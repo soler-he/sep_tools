@@ -102,13 +102,14 @@ class SpatialEvent:
         self.end = dates[1]
         self.channels = {}
         self.channel_labels = {}
+        self.energy_range_label = ""
         self.resampling = ""
 
         if 'flare_loc' in kwargs.keys():
             self.flare_loc = kwargs['flare_loc']
             self.reference = kwargs['flare_loc'][0] # Using the longitude as the ref point
         else:
-            self.flare_loc = [None, None]
+            self.flare_loc = [np.nan, np.nan]
             self.reference = np.nan
 
         out_path = f"{filepaths[0]}{os.sep}SEP_{dates[0].strftime('%d%b%Y')}"
@@ -172,15 +173,13 @@ class SpatialEvent:
         """Download the solarmach data for the time period."""
         if np.isnan(self.reference):
             self._get_reference_point()
-        try:
-            self.sm_data = solarmach_loop(observers = self.spacecraft_list,
-                                          dates = [self.start, self.end],
-                                          data_path = self.out_path,
-                                          resampling = self.resampling,
-                                          source_loc = self.reference,
-                                          vsw_list = self.vsw_list)
-        except Exception as e:
-            print(f"Warning: Could not load solarmach data: {e}")
+        
+        self.sm_data = solarmach_loop(observers = self.spacecraft_list,
+                                      dates = [self.start, self.end],
+                                      data_path = self.out_path,
+                                      resampling = self.resampling,
+                                      source_loc = self.reference,
+                                      vsw_list = self.vsw_list)
 
         # Merge the sc data to the sm data
         if len(self.sc_data_ic) != 0:
@@ -205,11 +204,24 @@ class SpatialEvent:
         self.resampling = resampling
         self.spacecraft_list = list(channels.keys())
 
+        full_energy_range = [np.nan, np.nan]
         for sc in (self.spacecraft_list):
-            try:
-                self.sc_data[sc], self.channel_labels[sc] = load_sc_data(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling)
-            except Exception as e:
-                print(f"Warning: Could not load data for {sc}: {e}")
+            self.sc_data[sc], self.channel_labels[sc] = load_sc_data(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling)
+
+            # Collecting the full energy range
+            lbl_tmp = (self.channel_labels[sc]).split('-')
+            s_tmp = float(lbl_tmp[0])
+            e_tmp = float( (lbl_tmp[1]).split(' M')[0]) 
+            if np.isnan(full_energy_range[0]):
+                full_energy_range[0] = s_tmp
+                full_energy_range[1] = e_tmp
+            else:
+                if (s_tmp < full_energy_range[0]):
+                    full_energy_range[0] = s_tmp
+                if (e_tmp > full_energy_range[1]):
+                    full_energy_range[1] = e_tmp
+        self.energy_range_label = f"{full_energy_range[0]:.1f}-{full_energy_range[1]:.1f} MeV"
+            
         print("Data loading complete.")
 
 
@@ -257,10 +269,8 @@ class SpatialEvent:
 
 
                 for sc in self.spacecraft_list:
-                    try:
-                        self.sc_data_bg[sc] = background_subtracting(self.sc_data.get(sc), background_window)
-                    except Exception as e:
-                        print(f"Warning: Could not background subtract for {sc}: {e}")
+                    self.sc_data_bg[sc] = background_subtracting(self.sc_data.get(sc), background_window)
+                    
                 print("Background subtraction function complete.")
         else:
             for sc in self.spacecraft_list:
@@ -282,10 +292,8 @@ class SpatialEvent:
 
         if perform_process:
             for sc in self.spacecraft_list:
-                try:
-                    self.sc_data_ic[sc] = intercalibration_calculation(self.sc_data_bg.get(sc), intercalibration_factors[sc])
-                except Exception as e:
-                    print(f"Warning: Could not intercalibrate for {sc}: {e}")
+                self.sc_data_ic[sc] = intercalibration_calculation(self.sc_data_bg.get(sc), intercalibration_factors[sc])
+                
             print("Intercalibration function complete.")
         else:
             for sc in self.spacecraft_list:
@@ -314,10 +322,8 @@ class SpatialEvent:
 
         if perform_process:
             for sc in self.spacecraft_list:
-                try:
-                    self.sc_data_rs[sc] = radial_scaling_calculation(self.sc_data_ic.get(sc), radial_scaling_factors)
-                except Exception as e:
-                    print(f"Warning: Could not radial scale for {sc}: {e}")
+                self.sc_data_rs[sc] = radial_scaling_calculation(self.sc_data_ic.get(sc), radial_scaling_factors)
+                
             print("Radial Scaling function complete.")
         else:
             for sc in self.spacecraft_list:
@@ -379,7 +385,7 @@ class SpatialEvent:
                 print("Please run '*.load_spacecraft_data() first.")
             else:
                 self._get_peak_fits(scdata, window_length=window_length)
-                plot_peak_intensity(scdata, self.out_path, self.start, self.peak_data)
+                plot_peak_intensity(scdata, self.out_path, self.start, self.peak_data, self.energy_range_label)
 
     def _get_reference_point(self):
         """Function to find a reference point for the Gaussian calculations.
@@ -399,20 +405,18 @@ class SpatialEvent:
 
         if len(self.peak_data) == 0:
             self._get_peak_fits()
-        try:
-            self.sc_data_rs['Gauss'] = fit_gauss_curves_to_data(self.sc_data_rs, self.out_path, self.reference, self.flare_loc, self.peak_data)
-        except Exception as e:
-            print(f"Warning: Could not calculate Gaussian fit: {e}")
+        
+        self.sc_data_rs['Gauss'] = fit_gauss_curves_to_data(self.sc_data_rs, self.out_path, self.reference, self.flare_loc, self.peak_data, self.energy_range_label)
+        
+        print(f"Calculations for Gaussian curves complete.")
 
     # Final Results
     def plot_Gauss_results(self): # Step 8
         if len(self.sc_data_rs.get('Gauss')) == 0:
             self.calc_Gaussian_fit()
 
-        try:
-            plot_gauss_fits_timeseries(self.sc_data_rs, self.out_path, self.start, self.reference, self.channel_labels, self.flare_loc)
-        except Exception as e:
-            print(f"Warning: Could not plot figure: {e}")
+        plot_gauss_fits_timeseries(self.sc_data_rs, self.out_path, self.start, self.reference, self.channel_labels, self.flare_loc)
+        
 
     def save_df_to_csv(self, label=''):
         """Allows the user to save the observational data and Gaussian calculations
@@ -440,7 +444,7 @@ class SpatialEvent:
             calculated."""
 
             # Add check for timestep data type
-        plot_one_timestep_curve(self.sc_data_rs, self.out_path, timestep, self.channel_labels, self.flare_loc, self.reference)
+        plot_one_timestep_curve(self.sc_data_rs, self.out_path, timestep, self.channel_labels, self.flare_loc, self.reference, self.energy_range_label)
 
 
 
@@ -1123,7 +1127,7 @@ def odr_gauss_fit(dict_1timestep, prev_results={'A': np.nan, 'X0': np.nan, 'sigm
             'A err': float(out.sd_beta[0]), 'X0 err': float(out.sd_beta[1]), 'sigma err': float(out.sd_beta[2]),
             'res': float(out.res_var)}
 
-def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data):
+def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data, energy_range_label):
     """Read in the full df, calculate the curve at each timestep, save the results to new columns."""
     # Create a folder to save the gaussian timestep figures in
     try:
@@ -1171,7 +1175,7 @@ def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data
 
         # Plot the fit for this timestep
         if not np.isnan(x).any() and not np.isnan(gauss_results['X0']):
-            plot_curve_and_timeseries(gauss_results, timestep_dict, sc_dict, data_path+f'Gauss_fits{os.sep}', i, reference, flare_loc)
+            plot_curve_and_timeseries(gauss_results, timestep_dict, sc_dict, data_path+f'Gauss_fits{os.sep}', i, reference, flare_loc, energy_range_label)
 
         prev_gauss = gauss_results
 
@@ -1234,7 +1238,10 @@ def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, background
         mrkr = marker_settings[sc]
 
         # Show the event start time
-        ax[n].axvline(x=dates[0], color='k', linestyle='dashed', linewidth=0.5)
+        if n == 0:
+            ax[n].axvline(x=dates[0], color='k', linestyle='dashed', linewidth=0.5, label=f"Event start at: {dates[0].strftime('%H:%M %d %b, %Y')}")
+        else:
+            ax[n].axvline(x=dates[0], color='k', linestyle='dashed', linewidth=0.5)
 
         # Show the background window
         if len(background_window) > 1:
@@ -1309,7 +1316,7 @@ def find_peak_intensity(sc_dict, data_path, date, window_length=10):
 
     return peak_data_results
 
-def plot_peak_intensity(sc_dict, data_path, date, peak_data_results):
+def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_range_label):
     """Plotting the results of the find_peak_intensity function."""
 
     # Plot
@@ -1325,8 +1332,8 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results):
     gauss_ax.set_xlabel('Footprint Longitude')
     tseries_ax.set_xlabel('Time & Date')
 
-    # Add a text box with the energy and species - JAX: NEEDS TO BE ADAPTABLE
-    box_obj = AnchoredText('Peak Fits\n14 MeV Protons',
+    # Add a text box with the energy and species
+    box_obj = AnchoredText(f'Peak Fits\n{energy_range_label} Protons',
                            frameon=True, loc='lower right', pad=0.5, prop={'size':9})
     plt.setp(box_obj.patch, facecolor='grey', alpha=0.9)
     tseries_ax.add_artist(box_obj)
@@ -1413,7 +1420,7 @@ def log_gauss_error_range_calc(x_arr, y_arr, peak_fit):
     return y_err
 
 
-def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep, reference, flare_loc):
+def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep, reference, flare_loc, energy_range_label):
     """Plotting two subplots, left the fitted gaussian curve, right the time series."""
 
     ylimits = [1e5, 1e-5]
@@ -1440,7 +1447,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
     tseries_ax.set_xlabel('Time & Date')
 
     # Add a text box with the energy and species
-    box_obj = AnchoredText('14 MeV Protons\n'+timestep.strftime("%H:%M %d %b %Y"),
+    box_obj = AnchoredText(f'{energy_range_label} Protons\n'+timestep.strftime("%H:%M %d %b %Y"),
                            frameon=True, loc='lower right', pad=0.5, prop={'size':9})
     plt.setp(box_obj.patch, facecolor='grey', alpha=0.9)
     tseries_ax.add_artist(box_obj)
@@ -1506,13 +1513,13 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
     plt.close("all")
 
 
-def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_loc, reference, **kwargs):
+def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_loc, reference, energy_range_label, **kwargs):
     """Plots only the curve at the given timestep."""
     fig, ax = plt.subplots(1,1, figsize=[3,3], dpi=300)
 
     # ax.set_title(timestep.strftime("%H:%M UTC - %d %b, %Y"), pad=5, loc='left')
-    box_obj1 = AnchoredText(timestep.strftime("%H:%M UTC\n%d %b, %Y"), frameon=True, 
-        loc='lower right', pad=0.5, prop={'size':7.5})
+    box_obj1 = AnchoredText(timestep.strftime("%H:%M UTC\n%d %b, %Y")+f"\n{energy_range_label} protons",
+                            frameon=True, loc='lower right', pad=0.5, prop={'size':7.5})
     box_obj1.txt._text.set_ha('right')
     box_obj1.txt._text.set_multialignment('right')
     plt.setp(box_obj1.patch, facecolor='lemonchiffon', alpha=0.9)
