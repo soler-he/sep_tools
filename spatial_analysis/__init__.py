@@ -172,15 +172,13 @@ class SpatialEvent:
         """Download the solarmach data for the time period."""
         if np.isnan(self.reference):
             self._get_reference_point()
-        try:
-            self.sm_data = solarmach_loop(observers = self.spacecraft_list,
-                                          dates = [self.start, self.end],
-                                          data_path = self.out_path,
-                                          resampling = self.resampling,
-                                          source_loc = self.reference,
-                                          vsw_list = self.vsw_list)
-        except Exception as e:
-            print(f"Warning: Could not load solarmach data: {e}")
+        
+        self.sm_data = solarmach_loop(observers = self.spacecraft_list,
+                                      dates = [self.start, self.end],
+                                      data_path = self.out_path,
+                                      resampling = self.resampling,
+                                      source_loc = self.reference,
+                                      vsw_list = self.vsw_list)
 
         # Merge the sc data to the sm data
         if len(self.sc_data_ic) != 0:
@@ -206,10 +204,8 @@ class SpatialEvent:
         self.spacecraft_list = list(channels.keys())
 
         for sc in (self.spacecraft_list):
-            try:
-                self.sc_data[sc], self.channel_labels[sc] = load_sc_data(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling)
-            except Exception as e:
-                print(f"Warning: Could not load data for {sc}: {e}")
+            self.sc_data[sc], self.channel_labels[sc] = load_sc_data(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling)
+            
         print("Data loading complete.")
 
 
@@ -257,10 +253,8 @@ class SpatialEvent:
 
 
                 for sc in self.spacecraft_list:
-                    try:
-                        self.sc_data_bg[sc] = background_subtracting(self.sc_data.get(sc), background_window)
-                    except Exception as e:
-                        print(f"Warning: Could not background subtract for {sc}: {e}")
+                    self.sc_data_bg[sc] = background_subtracting(self.sc_data.get(sc), background_window)
+                    
                 print("Background subtraction function complete.")
         else:
             for sc in self.spacecraft_list:
@@ -282,10 +276,8 @@ class SpatialEvent:
 
         if perform_process:
             for sc in self.spacecraft_list:
-                try:
-                    self.sc_data_ic[sc] = intercalibration_calculation(self.sc_data_bg.get(sc), intercalibration_factors[sc])
-                except Exception as e:
-                    print(f"Warning: Could not intercalibrate for {sc}: {e}")
+                self.sc_data_ic[sc] = intercalibration_calculation(self.sc_data_bg.get(sc), intercalibration_factors[sc])
+                
             print("Intercalibration function complete.")
         else:
             for sc in self.spacecraft_list:
@@ -314,10 +306,8 @@ class SpatialEvent:
 
         if perform_process:
             for sc in self.spacecraft_list:
-                try:
-                    self.sc_data_rs[sc] = radial_scaling_calculation(self.sc_data_ic.get(sc), radial_scaling_factors)
-                except Exception as e:
-                    print(f"Warning: Could not radial scale for {sc}: {e}")
+                self.sc_data_rs[sc] = radial_scaling_calculation(self.sc_data_ic.get(sc), radial_scaling_factors)
+                
             print("Radial Scaling function complete.")
         else:
             for sc in self.spacecraft_list:
@@ -399,20 +389,18 @@ class SpatialEvent:
 
         if len(self.peak_data) == 0:
             self._get_peak_fits()
-        try:
-            self.sc_data_rs['Gauss'] = fit_gauss_curves_to_data(self.sc_data_rs, self.out_path, self.reference, self.flare_loc, self.peak_data)
-        except Exception as e:
-            print(f"Warning: Could not calculate Gaussian fit: {e}")
+        
+        self.sc_data_rs['Gauss'] = fit_gauss_curves_to_data(self.sc_data_rs, self.out_path, self.reference, self.flare_loc, self.peak_data)
+        
+        print(f"Calculations for Gaussian curves complete.")
 
     # Final Results
     def plot_Gauss_results(self): # Step 8
         if len(self.sc_data_rs.get('Gauss')) == 0:
             self.calc_Gaussian_fit()
 
-        try:
-            plot_gauss_fits_timeseries(self.sc_data_rs, self.out_path, self.start, self.reference, self.channel_labels, self.flare_loc)
-        except Exception as e:
-            print(f"Warning: Could not plot figure: {e}")
+        plot_gauss_fits_timeseries(self.sc_data_rs, self.out_path, self.start, self.reference, self.channel_labels, self.flare_loc)
+        
 
     def save_df_to_csv(self, label=''):
         """Allows the user to save the observational data and Gaussian calculations
