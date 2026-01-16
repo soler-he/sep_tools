@@ -445,7 +445,7 @@ def make_plot(options):
         
         if isinstance(psp_het_org, pd.DataFrame):
             if resample > 1:
-                psp_het = resample_df(psp_het_org, str(60 * resample) + "s")
+                psp_het = resample_df(psp_het_org, str(60 * resample) + "s", cols_unc=[])
             else:
                 print("EPI-Hi/HET native cadence is 1 min, so no averaging was applied.")
                 psp_het = psp_het_org
@@ -457,7 +457,7 @@ def make_plot(options):
 
         if isinstance(psp_epilo_org, pd.DataFrame):
             if resample > 0.1:
-                psp_epilo = resample_df(psp_epilo_org, str(60 * resample) + "s")
+                psp_epilo = resample_df(psp_epilo_org, str(60 * resample) + "s", cols_unc=[])
             else:
                 print("EPI-Lo PE native cadence is 10 s, so no averaging was applied.")
                 psp_epilo = psp_epilo_org
@@ -469,7 +469,7 @@ def make_plot(options):
 
         if isinstance(psp_epilo_ic_org, pd.DataFrame):
             if resample > 1:
-                psp_epilo_ic = resample_df(psp_epilo_ic_org, str(60 * resample) + "s")
+                psp_epilo_ic = resample_df(psp_epilo_ic_org, str(60 * resample) + "s", cols_unc=[])
             else:
                 print("EPI-Lo IC native cadence is 1 min, so no averaging was applied.")
                 psp_epilo_ic = psp_epilo_ic_org
@@ -480,7 +480,7 @@ def make_plot(options):
     if options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value:
         if isinstance(df_psp_spani, pd.DataFrame):   
             if resample > 3.75:  # cadence varies, but it seems to be somewhere around 3 min 45 s
-                df_magplas_spani = resample_df(df_psp_spani, str(60 * resample_mag) + "s")
+                df_magplas_spani = resample_df(df_psp_spani, str(60 * resample_mag) + "s", cols_unc=[])
             else:
                 print("SPANI-i native cadence is around 3 min 45 s, so no averaging was applied")
                 df_magplas_spani = df_psp_spani
@@ -489,7 +489,7 @@ def make_plot(options):
 
         if isinstance(df_psp_spc, pd.DataFrame):
             if resample_mag > 0.5:   
-                df_magplas_spc = resample_df(df_psp_spc, str(60 * resample_mag) + "s")
+                df_magplas_spc = resample_df(df_psp_spc, str(60 * resample_mag) + "s", cols_unc=[])
             else:
                 print("SPC native cadence is around 30 s, so no averaging was applied.")
                 df_magplas_spc = df_psp_spc
@@ -500,7 +500,7 @@ def make_plot(options):
     if options.mag.value or options.mag_angles.value:
         if isinstance(psp_mag, pd.DataFrame):
             if resample_mag > 1:
-                mag = resample_df(psp_mag, str(60 * resample_mag) + "s")
+                mag = resample_df(psp_mag, str(60 * resample_mag) + "s", cols_unc=[])
             else:
                 print("MAG native cadence is 1 min, so no averaging was applied.")
                 mag = psp_mag
@@ -509,14 +509,14 @@ def make_plot(options):
 
     if options.goes.value == True:
         if isinstance(df_goes_, pd.DataFrame) and resample_stixgoes > 0:
-            df_goes = resample_df(df_goes_, str(60 * resample_stixgoes) + "s")
+            df_goes = resample_df(df_goes_, str(60 * resample_stixgoes) + "s", cols_unc=[])
             
         else:
             df_goes = df_goes_    
         
     if options.stix.value == True:
         if isinstance(df_stix_, pd.DataFrame) and resample_stixgoes > 0:
-            df_stix = resample_df(df_stix_, str(60 * resample_stixgoes) + "s")
+            df_stix = resample_df(df_stix_, str(60 * resample_stixgoes) + "s", cols_unc=[])
             
         else:
             df_stix = df_stix_
