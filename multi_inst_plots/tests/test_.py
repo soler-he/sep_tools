@@ -1,5 +1,5 @@
 import os
-from IPython.display import display
+# from IPython.display import display
 import multi_inst_plots as m
 from seppy.util import jupyterhub_data_path
 import pytest
@@ -26,7 +26,11 @@ def test_SEP_Multi_Instrument_Plot_PSP():
     m.options.spacecraft.value = 'Parker Solar Probe'
     # deactivate STIX for now as it crashes on GitHub
     m.options.stix.value = False
-    m.load_data()
+    data, metadata = m.load_data()
+    m.energy_channel_selection()
+    m.range_selection()
+    m.options.plot_start = None
+    m.options.plot_end = None
     fig, axs = m.make_plot()
     return fig
 
@@ -39,7 +43,11 @@ def test_SEP_Multi_Instrument_Plot_SolO():
     m.options.spacecraft.value = 'Solar Orbiter'
     # deactivate STIX for now as it crashes on GitHub
     m.options.stix.value = False
-    m.load_data()
+    data, metadata = m.load_data()
+    m.energy_channel_selection()
+    m.range_selection()
+    m.options.plot_start = None
+    m.options.plot_end = None
     fig, axs = m.make_plot()
     return fig
 
@@ -51,7 +59,11 @@ def test_SEP_Multi_Instrument_Plot_STEREO():
     m.options.path = f"{os.getcwd()}{os.sep}data"
     m.options.spacecraft.value = 'STEREO'
     m.options.stix.value = False
-    m.load_data()
+    data, metadata = m.load_data()
+    m.energy_channel_selection()
+    m.range_selection()
+    m.options.plot_start = None
+    m.options.plot_end = None
     fig, axs = m.make_plot()
     return fig
 
@@ -64,6 +76,10 @@ def test_SEP_Multi_Instrument_Plot_L1():
     m.options.path = f"{os.getcwd()}{os.sep}data"
     m.options.spacecraft.value = 'L1 (Wind/SOHO)'
     m.options.stix.value = False
-    m.load_data()
+    data, metadata = m.load_data()
+    m.energy_channel_selection()
+    m.range_selection()
+    m.options.plot_start = None
+    m.options.plot_end = None
     fig, axs = m.make_plot()
     return fig
