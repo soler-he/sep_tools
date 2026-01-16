@@ -17,6 +17,7 @@ from seppy.tools import resample_df
 from sunpy.coordinates import frames, get_horizons_coord
 
 from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
+from multi_sc_plots import add_watermark
 
 # disable unused speasy data provider before importing to speed it up
 os.environ['SPEASY_CORE_DISABLED_PROVIDERS'] = "sscweb,archive,csa"
@@ -812,11 +813,11 @@ def make_plot(options):
             axs[i].legend(loc='upper right', borderaxespad=0., fontsize=font_legend)
         else:
             axs[i].legend(bbox_to_anchor=(1.01, 1), borderaxespad=0., loc='upper left', fontsize=font_legend)
-        # i += 1     
+        # i += 1
+
+    add_watermark(fig, scaling=0.7, alpha=0.5, zorder=-1)
 
     if options.showplot:
         plt.show()
 
     return fig, axs
-
-    

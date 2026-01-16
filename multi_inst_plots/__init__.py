@@ -4,7 +4,6 @@ import os
 import matplotlib as mpl
 
 from IPython.display import display
-from multi_sc_plots import add_watermark
 import multi_inst_plots.stereo_tools as stereo
 import multi_inst_plots.psp_tools as psp
 import multi_inst_plots.l1_tools as l1
@@ -555,7 +554,7 @@ def range_selection(**kwargs):
     return                
 
     
-def make_plot(show=False):
+def make_plot(show=True):
     """
     Reads the selected options and makes the plot based on loaded data. Returns the created Figure and Axes objects
     for further fine tuning and/or editing. 
@@ -581,8 +580,6 @@ def make_plot(show=False):
     
     if options.spacecraft.value == "STEREO":
         fig, axs = stereo.make_plot(options)
-    
-    add_watermark(fig, scaling=0.7, alpha=0.5, zorder=-1)
 
     return fig, axs
     
