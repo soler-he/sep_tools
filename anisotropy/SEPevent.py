@@ -42,6 +42,8 @@ from anisotropy.solo_methods import (
 from anisotropy.stereo_methods import stereo_download_and_prepare
 from anisotropy.wind_methods import wind_download_and_prepare
 
+from multi_sc_plots import add_watermark
+
 plt.rcParams["font.size"] = 12
 # plt.rcParams["font.family"] = "Arial"
 # plt.rcParams['mathtext.rm'] = 'Arial'
@@ -63,18 +65,6 @@ def format_tick_labels(x):
             if lbl[m-1] != "":
                 lbl[m-1] = ""
     return lbl
-
-
-def add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=1.0, y=0.0):
-    logo = Image.open(f'multi_sc_plots{os.sep}soler.png')
-    new_size = (np.array(logo.size) * scaling).astype(int)
-    logo_s = logo.resize(new_size, Image.Resampling.LANCZOS)
-    # x_offset = int((fig.bbox.xmax - pad*logo_s.size[0]) * 1.0)
-    # y_offset = int((fig.bbox.ymax - pad*logo_s.size[1]) * 0.0)
-    x_offset = int(fig.bbox.xmax * x)
-    y_offset = int(fig.bbox.ymax * y)
-
-    fig.figimage(logo_s, x_offset, y_offset, alpha=alpha, zorder=zorder)
 
 
 class SEPevent: 
@@ -1031,7 +1021,7 @@ class SEPevent:
         ax3.tick_params(axis='x', which='major', pad=15, direction="in")
 
         if not savefig:
-            add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=0.95)
+            add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=0.97)
 
         try:
             filename = f"{event_id}_{instrument}_{startdate.year}-{startdate.month}-{startdate.day}_{enddate.month}-{enddate.day}_{species}_ch{en_channel[0]}-{en_channel[1]}_bgsub.png"
@@ -1679,7 +1669,7 @@ class SEPevent:
         ax3.tick_params(axis='x', which='major', pad=15, direction="in")
 
         if not savefig:
-            add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=0.97)
+            add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=0.99)
 
         try:
             filename = f"{event_id}_{instrument}_{startdate.year}-{startdate.month}-{startdate.day}_{enddate.month}-{enddate.day}_{species}_ch{en_channel[0]}-{en_channel[1]}_ani_bgsub{ani_method_str}.png"
