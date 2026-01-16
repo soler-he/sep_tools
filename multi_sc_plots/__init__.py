@@ -37,6 +37,29 @@ warnings.filterwarnings(action='ignore', message='The variable "HET_', category=
 warnings.filterwarnings(action='ignore', message="Note that for the Dataframes containing the flow direction and SC coordinates timestamp position will not be adjusted by 'pos_timestamp'!", module='solo_epd_loader')
 
 
+def get_max_figure_dimensions(fig):
+    # Get figure size
+    fig_size = fig.get_size_inches()  # Width and height in inches
+    fig_width = fig_size[0] * fig.dpi  # Convert to pixels
+    fig_height = fig_size[1] * fig.dpi  # Convert to pixels
+
+    max_width = fig_width
+    max_height = fig_height
+
+    # Loop through each axis in the figure
+    for ax in fig.get_axes():
+        if ax.get_legend() is not None:
+            legend = ax.get_legend()
+            legend_size = legend.get_window_extent(renderer=fig.canvas.get_renderer())
+            # legend_size_inches = legend_size.width / fig.dpi, legend_size.height / fig.dpi
+
+            # Adjust the maximum dimensions based on legend size if it's larger
+            max_width = max(max_width, fig_width + legend_size.width)
+            max_height = max(max_height, fig_height + legend_size.height)
+
+    return max_width, max_height
+
+
 def add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=1.0, y=0.0):
     logo = Image.open(f'multi_sc_plots{os.sep}soler.png')
     new_size = (np.array(logo.size) * scaling).astype(int)
@@ -47,6 +70,32 @@ def add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1, x=1.0, y=0.0):
     y_offset = int(fig.bbox.ymax * y)
 
     fig.figimage(logo_s, x_offset, y_offset, alpha=alpha, zorder=zorder)
+
+
+# def add_watermark(fig, scaling=0.15, alpha=0.5, zorder=-1):
+#     logo = Image.open(f'multi_sc_plots{os.sep}soler.png')
+#     new_size = (np.array(logo.size) * scaling).astype(int)
+#     logo_s = logo.resize(new_size, Image.Resampling.LANCZOS)
+#     logo_s = np.array(logo_s)
+#     max_dimensions = get_max_figure_dimensions(fig)
+#     logo_position = (max_dimensions[0] - 1.5*logo_s.shape[1],
+#                      0*(max_dimensions[1] - 1.5*logo_s.shape[0]))
+
+#     fig.figimage(logo_s, *logo_position, alpha=alpha, zorder=zorder)
+
+
+# def add_watermark(fig, alpha=0.5, zorder=-1, **kwargs):
+#     logo = Image.open(f'multi_sc_plots{os.sep}soler.png')
+
+#     # Scale the logo to desired size (width, height)
+#     scaled_logo_size = (50, 50)  # Desired width and height in pixels
+#     logo = logo.resize(scaled_logo_size, Image.LANCZOS)
+
+#     # Create new axes for the logo. Adjust the values as needed:
+#     # [left, bottom, width, height] all ranging from 0 to 1
+#     logo_ax = fig.add_axes([0.98, 0.03, 0.1, 0.1], zorder=zorder)  # Adjust width and height to fractions of the figure
+#     logo_ax.imshow(logo, alpha=alpha)
+#     logo_ax.axis('off')  # Turn off axis
 
 
 class Event:
@@ -500,8 +549,8 @@ class Event:
         if 'BepiColombo/SIXS-P e' in plot_instruments or 'BepiColombo/SIXS-P p' in plot_instruments:
             if len(self.sixs_df) > 0:
                 if isinstance(sixs_resample, str):
-                    self.sixs_df_e = resample_df(self.sixs_df_e_org, sixs_resample)
-                    self.sixs_df_p = resample_df(self.sixs_df_p_org, sixs_resample)
+                    self.sixs_df_e = resample_df(self.sixs_df_e_org, sixs_resample, cols_unc=[])
+                    self.sixs_df_p = resample_df(self.sixs_df_p_org, sixs_resample, cols_unc=[])
                 else:
                     self.sixs_df_e = self.sixs_df_e_org
                     self.sixs_df_p = self.sixs_df_p_org
@@ -512,12 +561,12 @@ class Event:
                     # print('calc_av_en_flux_PSP_EPIHI e 1 MeV')
                     self.df_psp_het_e, self.psp_het_chstring_e = calc_av_en_flux_PSP_EPIHI(self.psp_het, self.psp_het_energies, self.channels_e['Parker Solar Probe/EPI-Hi HET e'], 'e', 'het', self.viewing['Parker Solar Probe/EPI-Hi HET'])
                     if isinstance(self.psp_het_resample, str):
-                        self.df_psp_het_e = resample_df(self.df_psp_het_e, self.psp_het_resample)
+                        self.df_psp_het_e = resample_df(self.df_psp_het_e, self.psp_het_resample, cols_unc=[])
                 if 'Parker Solar Probe/EPI-Hi HET p' in plot_instruments:
                     # print('calc_av_en_flux_PSP_EPIHI p')
                     self.df_psp_het_p, self.psp_het_chstring_p = calc_av_en_flux_PSP_EPIHI(self.psp_het, self.psp_het_energies, self.channels_p['Parker Solar Probe/EPI-Hi HET p'], 'p', 'het', self.viewing['Parker Solar Probe/EPI-Hi HET'])
                     if isinstance(self.psp_het_resample, str):
-                        self.df_psp_het_p = resample_df(self.df_psp_het_p, self.psp_het_resample)
+                        self.df_psp_het_p = resample_df(self.df_psp_het_p, self.psp_het_resample, cols_unc=[])
 
         if 'Parker Solar Probe/EPI-Lo PE e' in plot_instruments:
             if len(self.psp_epilo_e) > 0:
@@ -543,7 +592,7 @@ class Event:
                 # chstring_e = np.round(energy_low,1).astype(str) + ' - ' + np.round(energy_high,1).astype(str) + ' keV'
 
                 if isinstance(psp_epilo_resample, str):
-                    self.df_psp_epilo_e = resample_df(self.df_psp_epilo_e, psp_epilo_resample)
+                    self.df_psp_epilo_e = resample_df(self.df_psp_epilo_e, psp_epilo_resample, cols_unc=[])
 
         if 'Parker Solar Probe/EPI-Lo IC p' in plot_instruments:
             if len(self.psp_epilo_p) > 0:
@@ -556,28 +605,28 @@ class Event:
                                                                                            viewing=self.viewing['Parker Solar Probe/EPI-Lo IC'])
 
                 if isinstance(psp_epilo_resample, str):
-                    self.df_psp_epilo_p = resample_df(self.df_psp_epilo_p, psp_epilo_resample)
+                    self.df_psp_epilo_p = resample_df(self.df_psp_epilo_p, psp_epilo_resample, cols_unc=[])
 
         if 'SOHO/EPHIN e' in plot_instruments or 'SOHO/EPHIN p' in plot_instruments:
             if hasattr(self, 'soho_ephin_org'):
                 if isinstance(soho_ephin_resample, str):
-                    self.soho_ephin = resample_df(self.soho_ephin_org, soho_ephin_resample)
+                    self.soho_ephin = resample_df(self.soho_ephin_org, soho_ephin_resample, cols_unc=[])
                 else:
                     self.soho_ephin = self.soho_ephin_org
 
         if 'SOHO/ERNE-HED p' in plot_instruments:
             if len(self.soho_erne_org) > 0:
                 if isinstance(soho_erne_resample, str):
-                    self.soho_erne = resample_df(self.soho_erne_org, soho_erne_resample)
+                    self.soho_erne = resample_df(self.soho_erne_org, soho_erne_resample, cols_unc=[])
                 else:
                     self.soho_erne = self.soho_erne_org
                 #
                 if type(self.channels_p['SOHO/ERNE-HED p']) is list and len(self.soho_erne) > 0:
                     self.soho_erne_avg_p, self.soho_erne_chstring_p = calc_av_en_flux_ERNE(self.soho_erne.filter(like='PH_'),
-                                                                                        self.erne_energies['channels_dict_df_p'],
-                                                                                        self.channels_p['SOHO/ERNE-HED p'],
-                                                                                        species='p',
-                                                                                        sensor='HED')
+                                                                                           self.erne_energies['channels_dict_df_p'],
+                                                                                           self.channels_p['SOHO/ERNE-HED p'],
+                                                                                           species='p',
+                                                                                           sensor='HED')
 
         if 'Solar Orbiter/EPT e' in plot_instruments:
             if self.ept_data_product == 'l2':
@@ -590,8 +639,8 @@ class Event:
                         ept_p2 = self.ept_p
                         print('correcting solo/ept e')
                         if isinstance(solo_ept_resample, str):
-                            ept_e2 = resample_df(self.ept_e, solo_ept_resample)
-                            ept_p2 = resample_df(self.ept_p, solo_ept_resample)
+                            ept_e2 = resample_df(self.ept_e, solo_ept_resample, cols_unc=[])
+                            ept_p2 = resample_df(self.ept_p, solo_ept_resample, cols_unc=[])
                         self.df_ept_e_corr = calc_ept_corrected_e(ept_e2, ept_p2)
 
                         # df_ept_e = df_ept_e[f'Electron_Flux_{self.channels_e['Solar Orbiter/EPT e'][0]}']
@@ -607,7 +656,7 @@ class Event:
 
             if hasattr(self, 'df_ept_e'):
                 if isinstance(solo_ept_resample, str) and len(self.df_ept_e) > 0:
-                    self.df_ept_e = resample_df(self.df_ept_e, solo_ept_resample)
+                    self.df_ept_e = resample_df(self.df_ept_e, solo_ept_resample, cols_unc=[])
 
         if 'Solar Orbiter/EPT p' in plot_instruments:
             if self.ept_data_product == 'l2':
@@ -621,7 +670,7 @@ class Event:
 
             if hasattr(self, 'df_ept_p'):
                 if isinstance(solo_ept_resample, str) and len(self.df_ept_p) > 0:
-                    self.df_ept_p = resample_df(self.df_ept_p, solo_ept_resample)
+                    self.df_ept_p = resample_df(self.df_ept_p, solo_ept_resample, cols_unc=[])
 
         if 'Solar Orbiter/HET e' in plot_instruments or 'Solar Orbiter/HET p' in plot_instruments:
             if len(self.het_e) > 0:
@@ -629,17 +678,17 @@ class Event:
                     # print('calc_av_en_flux_HET e')
                     self.df_het_e, het_chstring_e = calc_av_en_flux_EPD(self.het_e, self.het_energies, self.channels_e['Solar Orbiter/HET e'], 'het')
                     if isinstance(solo_het_resample, str):
-                        self.df_het_e = resample_df(self.df_het_e, solo_het_resample)
+                        self.df_het_e = resample_df(self.df_het_e, solo_het_resample, cols_unc=[])
                 if 'Solar Orbiter/HET p' in plot_instruments:
                     # print('calc_av_en_flux_HET p')
                     self.df_het_p, self.het_chstring_p = calc_av_en_flux_EPD(self.het_p, self.het_energies, self.channels_p['Solar Orbiter/HET p'], 'het')
                     if isinstance(solo_het_resample, str):
-                        self.df_het_p = resample_df(self.df_het_p, solo_het_resample)
+                        self.df_het_p = resample_df(self.df_het_p, solo_het_resample, cols_unc=[])
 
         if 'STEREO-A/HET e' in plot_instruments or 'STEREO-A/HET p' in plot_instruments:
             if len(self.sta_het_df_org) > 0:
                 if isinstance(sta_het_resample, str):
-                    self.sta_het_df = resample_df(self.sta_het_df_org, sta_het_resample)
+                    self.sta_het_df = resample_df(self.sta_het_df_org, sta_het_resample, cols_unc=[])
                 else:
                     self.sta_het_df = self.sta_het_df_org
             #
@@ -665,14 +714,14 @@ class Event:
 
         if 'STEREO-A/LET e' in plot_instruments or 'STEREO-A/LET p' in plot_instruments:
             if isinstance(sta_let_resample, str):
-                self.sta_let_df = resample_df(self.sta_let_df_org, sta_let_resample)
+                self.sta_let_df = resample_df(self.sta_let_df_org, sta_let_resample, cols_unc=[])
             else:
                 self.sta_let_df = self.sta_let_df_org
 
         if 'STEREO-A/SEPT e' in plot_instruments:
             if hasattr(self, 'sta_sept_df_e_org') and len(self.sta_sept_df_e_org) > 0:
                 if isinstance(sta_sept_resample, str):
-                    self.sta_sept_df_e = resample_df(self.sta_sept_df_e_org, sta_sept_resample)
+                    self.sta_sept_df_e = resample_df(self.sta_sept_df_e_org, sta_sept_resample, cols_unc=[])
                 else:
                     self.sta_sept_df_e = self.sta_sept_df_e_org
             #
@@ -685,7 +734,7 @@ class Event:
         if 'STEREO-A/SEPT p' in plot_instruments:
             if hasattr(self, 'sta_sept_df_p_org') and len(self.sta_sept_df_p_org) > 0:
                 if isinstance(sta_sept_resample, str):
-                    self.sta_sept_df_p = resample_df(self.sta_sept_df_p_org, sta_sept_resample)
+                    self.sta_sept_df_p = resample_df(self.sta_sept_df_p_org, sta_sept_resample, cols_unc=[])
                 else:
                     self.sta_sept_df_p = self.sta_sept_df_p_org
             #
@@ -698,14 +747,14 @@ class Event:
         if 'WIND/3DP e' in plot_instruments:
             if hasattr(self, 'wind3dp_e_df_org') and len(self.wind3dp_e_df_org) > 0:
                 if isinstance(wind_3dp_resample, str):
-                    self.wind3dp_e_df = resample_df(self.wind3dp_e_df_org, wind_3dp_resample)
+                    self.wind3dp_e_df = resample_df(self.wind3dp_e_df_org, wind_3dp_resample, cols_unc=[])
                 else:
                     self.wind3dp_e_df = self.wind3dp_e_df_org
 
         if 'WIND/3DP p' in plot_instruments:
             if hasattr(self, 'wind3dp_p_df_org') and len(self.wind3dp_p_df_org) > 0:
                 if isinstance(wind_3dp_resample, str):
-                    self.wind3dp_p_df = resample_df(self.wind3dp_p_df_org, wind_3dp_resample)
+                    self.wind3dp_p_df = resample_df(self.wind3dp_p_df_org, wind_3dp_resample, cols_unc=[])
                 else:
                     self.wind3dp_p_df = self.wind3dp_p_df_org
         ##########################################################################################
