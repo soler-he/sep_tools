@@ -23,7 +23,7 @@ try:
 except ModuleNotFoundError:
     pass
 from solo_epd_loader import combine_channels as calc_av_en_flux_EPD
-from solo_epd_loader import epd_load, calc_ept_corrected_e
+from solo_epd_loader import epd_load  # calc_ept_corrected_e
 from sunpy.time import parse_time
 # from sunpy.coordinates import frames, get_horizons_coord
 # from tqdm import tqdm
@@ -203,7 +203,7 @@ class Event:
     def load_data(self, startdate, enddate, dict_instruments, data_path=None):
 
         with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", module='seppy')
+            # warnings.filterwarnings("ignore", module='seppy')
 
             self.startdate = parse_time(startdate).to_datetime()
             self.enddate = parse_time(enddate).to_datetime()
@@ -276,11 +276,11 @@ class Event:
                 # print('loading soho/ephin')
                 try:
                     self.soho_ephin_org, self.ephin_energies = soho_load(dataset="SOHO_COSTEP-EPHIN_L2-1MIN",
-                                                                        startdate=self.startdate,
-                                                                        enddate=self.enddate,
-                                                                        path=soho_path,
-                                                                        resample=None,
-                                                                        pos_timestamp='center')
+                                                                         startdate=self.startdate,
+                                                                         enddate=self.enddate,
+                                                                         path=soho_path,
+                                                                         resample=None,
+                                                                         pos_timestamp='center')
                 except UnboundLocalError:
                     pass
 
@@ -302,10 +302,10 @@ class Event:
             if 'Parker Solar Probe/EPI-Lo PE e' in self.instruments:
                 # print('loading PSP/EPI-Lo PE data')
                 self.psp_epilo_e, self.psp_epilo_energies_e = psp_isois_load('PSP_ISOIS-EPILO_L2-PE',
-                                                                            startdate=self.startdate, enddate=self.enddate,
-                                                                            epilo_channel=self.psp_epilo_channel_e,
-                                                                            epilo_threshold=psp_epilo_threshold_e,
-                                                                            path=psp_path, resample=None)
+                                                                             startdate=self.startdate, enddate=self.enddate,
+                                                                             epilo_channel=self.psp_epilo_channel_e,
+                                                                             epilo_threshold=psp_epilo_threshold_e,
+                                                                             path=psp_path, resample=None)
                 if len(self.psp_epilo_e) == 0:
                     print(f'No PSP/EPI-Lo PE data for {self.startdate.date()} - {self.enddate.date()}')
 
@@ -313,10 +313,10 @@ class Event:
                 custom_warning('Parker Solar Probe/EPI-Lo IC p is in beta mode! Please be cautious and report bugs.')
             #     print('loading PSP/EPI-Lo IC proton data')
                 self.psp_epilo_p, self.psp_epilo_energies_p = psp_isois_load('PSP_ISOIS-EPILO_L2-IC',
-                                                                            startdate=self.startdate, enddate=self.enddate,
-                                                                            epilo_channel=self.psp_epilo_channel_p,
-                                                                            epilo_threshold=psp_epilo_threshold_p,
-                                                                            path=psp_path, resample=None)
+                                                                             startdate=self.startdate, enddate=self.enddate,
+                                                                             epilo_channel=self.psp_epilo_channel_p,
+                                                                             epilo_threshold=psp_epilo_threshold_p,
+                                                                             path=psp_path, resample=None)
                 if len(self.psp_epilo_p) == 0:
                     print(f'No PSP/EPI-Lo IC data for {self.startdate.date()} - {self.enddate.date()}')
 
@@ -636,20 +636,21 @@ class Event:
                     self.df_ept_e = self.ept_e['Electron_Flux']
                     # ept_en_str_e = self.ept_energies['Electron_Bins_Text'][:]
 
-                    if ept_use_corr_e:
-                        ept_e2 = self.ept_e
-                        ept_p2 = self.ept_p
-                        print('correcting solo/ept e')
-                        if isinstance(solo_ept_resample, str):
-                            ept_e2 = resample_df(self.ept_e, solo_ept_resample, cols_unc=[])
-                            ept_p2 = resample_df(self.ept_p, solo_ept_resample, cols_unc=[])
-                        self.df_ept_e_corr = calc_ept_corrected_e(ept_e2, ept_p2)
+                    # if ept_use_corr_e:
+                    #     ept_e2 = self.ept_e
+                    #     ept_p2 = self.ept_p
+                    #     print('correcting solo/ept e')
+                    #     if isinstance(solo_ept_resample, str):
+                    #         print('resampling ept e and p for correction')
+                    #         ept_e2 = resample_df(self.ept_e, solo_ept_resample, cols_unc='auto')
+                    #         ept_p2 = resample_df(self.ept_p, solo_ept_resample, cols_unc='auto')
+                    #     self.df_ept_e_corr = calc_ept_corrected_e(ept_e2, ept_p2)
 
-                        # df_ept_e = df_ept_e[f'Electron_Flux_{self.channels_e['Solar Orbiter/EPT e'][0]}']
-                        # ept_chstring_e = ept_energies['Electron_Bins_Text'][self.channels_e['Solar Orbiter/EPT e'][0]][0]
+                    #     # df_ept_e = df_ept_e[f'Electron_Flux_{self.channels_e['Solar Orbiter/EPT e'][0]}']
+                    #     # ept_chstring_e = ept_energies['Electron_Bins_Text'][self.channels_e['Solar Orbiter/EPT e'][0]][0]
 
-                        # TODO: calc_av_en_flux_EPD expects multi-index with df['Electron_Flux']['Electron_Flux_0'], and looks for the first 'Electron_Flux' to check whether this is electron or ion data...
-                        self.df_ept_e_corr, self.ept_chstring_e_corr = calc_av_en_flux_EPD2(self.df_ept_e_corr, self.ept_energies, self.channels_e['Solar Orbiter/EPT e'], 'ept', particles='e')
+                    #     # TODO: calc_av_en_flux_EPD expects multi-index with df['Electron_Flux']['Electron_Flux_0'], and looks for the first 'Electron_Flux' to check whether this is electron or ion data...
+                    #     self.df_ept_e_corr, self.ept_chstring_e_corr = calc_av_en_flux_EPD2(self.df_ept_e_corr, self.ept_energies, self.channels_e['Solar Orbiter/EPT e'], 'ept', particles='e')
 
                     self.df_ept_e, self.ept_chstring_e = calc_av_en_flux_EPD(self.ept_e, self.ept_energies, self.channels_e['Solar Orbiter/EPT e'], 'ept')
             elif self.ept_data_product == 'l3':
@@ -690,7 +691,7 @@ class Event:
         if 'STEREO-A/HET e' in plot_instruments or 'STEREO-A/HET p' in plot_instruments:
             if len(self.sta_het_df_org) > 0:
                 if isinstance(sta_het_resample, str):
-                    self.sta_het_df = resample_df(self.sta_het_df_org, sta_het_resample, cols_unc=[])
+                    self.sta_het_df = resample_df(self.sta_het_df_org, sta_het_resample, cols_unc='auto', verbose=False)
                 else:
                     self.sta_het_df = self.sta_het_df_org
             #
@@ -716,14 +717,15 @@ class Event:
 
         if 'STEREO-A/LET e' in plot_instruments or 'STEREO-A/LET p' in plot_instruments:
             if isinstance(sta_let_resample, str):
-                self.sta_let_df = resample_df(self.sta_let_df_org, sta_let_resample, cols_unc=[])
+                print('sta_let')
+                self.sta_let_df = resample_df(self.sta_let_df_org, sta_let_resample, cols_unc='auto')
             else:
                 self.sta_let_df = self.sta_let_df_org
 
         if 'STEREO-A/SEPT e' in plot_instruments:
             if hasattr(self, 'sta_sept_df_e_org') and len(self.sta_sept_df_e_org) > 0:
                 if isinstance(sta_sept_resample, str):
-                    self.sta_sept_df_e = resample_df(self.sta_sept_df_e_org, sta_sept_resample, cols_unc=[])
+                    self.sta_sept_df_e = resample_df(self.sta_sept_df_e_org, sta_sept_resample, cols_unc='auto', verbose=False)
                 else:
                     self.sta_sept_df_e = self.sta_sept_df_e_org
             #
@@ -736,7 +738,7 @@ class Event:
         if 'STEREO-A/SEPT p' in plot_instruments:
             if hasattr(self, 'sta_sept_df_p_org') and len(self.sta_sept_df_p_org) > 0:
                 if isinstance(sta_sept_resample, str):
-                    self.sta_sept_df_p = resample_df(self.sta_sept_df_p_org, sta_sept_resample, cols_unc=[])
+                    self.sta_sept_df_p = resample_df(self.sta_sept_df_p_org, sta_sept_resample, cols_unc='auto', verbose=False)
                 else:
                     self.sta_sept_df_p = self.sta_sept_df_p_org
             #
