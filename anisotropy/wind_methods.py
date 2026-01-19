@@ -23,10 +23,8 @@ def wind_download_and_prepare(instrument, startdate, enddate, path, averaging, s
         ch_string = 'Electrons'
         sp_str = "Electron"
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", module='seppy')
-        df_omni, meta_omni = wind3dp_load(dataset1, startdate, enddate, resample=averaging, path=path, multi_index=False)
-        df_angle, meta_angle = wind3dp_load(dataset2, startdate, enddate, resample=averaging, path=path)
+    df_omni, meta_omni = wind3dp_load(dataset1, startdate, enddate, resample=averaging, path=path, multi_index=False)
+    df_angle, meta_angle = wind3dp_load(dataset2, startdate, enddate, resample=averaging, path=path)
 
     en_ch_df = pd.DataFrame({'energy': meta_angle['channels_dict_df']['Bins_Text'].values})
     en_ch_df.index.names = ['channel']
