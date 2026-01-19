@@ -202,158 +202,158 @@ class Event:
 
     def load_data(self, startdate, enddate, dict_instruments, data_path=None):
 
-        with warnings.catch_warnings():
-            # warnings.filterwarnings("ignore", module='seppy')
+        # with warnings.catch_warnings():
+        #    warnings.filterwarnings("ignore", module='seppy')
 
-            self.startdate = parse_time(startdate).to_datetime()
-            self.enddate = parse_time(enddate).to_datetime()
+        self.startdate = parse_time(startdate).to_datetime()
+        self.enddate = parse_time(enddate).to_datetime()
 
-            # create a list only containing spacecraft/instrument/particle combinations used
-            self.instruments = []
-            for key in dict_instruments:
-                if dict_instruments[key].value:
-                    self.instruments.append(key)
+        # create a list only containing spacecraft/instrument/particle combinations used
+        self.instruments = []
+        for key in dict_instruments:
+            if dict_instruments[key].value:
+                self.instruments.append(key)
 
-            # create list containing all spacecraft used
-            spacecraft = []
-            for inst in self.instruments:
-                spacecraft.append(inst.split('/')[0])
-            self.spacecraft = [*{*spacecraft}]
-            self.spacecraft.sort()
+        # create list containing all spacecraft used
+        spacecraft = []
+        for inst in self.instruments:
+            spacecraft.append(inst.split('/')[0])
+        self.spacecraft = [*{*spacecraft}]
+        self.spacecraft.sort()
 
-            if not data_path:
-                data_path = os.getcwd()+os.sep+'data'+os.sep
+        if not data_path:
+            data_path = os.getcwd()+os.sep+'data'+os.sep
 
-            sixs_path = data_path
-            soho_path = data_path
-            solo_path = data_path
-            stereo_path = data_path
-            wind_path = data_path
-            psp_path = data_path
+        sixs_path = data_path
+        soho_path = data_path
+        solo_path = data_path
+        stereo_path = data_path
+        wind_path = data_path
+        psp_path = data_path
 
-            # catch alternative writings of 'asun'
-            for key in self.viewing.keys():
-                if type(self.viewing[key]) is str and self.viewing[key].lower() in ['antisun', 'anti-sun']:
-                    self.viewing[key] = 'asun'
+        # catch alternative writings of 'asun'
+        for key in self.viewing.keys():
+            if type(self.viewing[key]) is str and self.viewing[key].lower() in ['antisun', 'anti-sun']:
+                self.viewing[key] = 'asun'
 
-            wind_3dp_threshold = None  # 1e3/1e6  # None
-            psp_epilo_threshold_e = None  # 1e2  # None
-            psp_epilo_threshold_p = None  # 1e2  # None
+        wind_3dp_threshold = None  # 1e3/1e6  # None
+        psp_epilo_threshold_e = None  # 1e2  # None
+        psp_epilo_threshold_p = None  # 1e2  # None
 
-            self.psp_3600 = False  # don't change this!
+        self.psp_3600 = False  # don't change this!
 
-            ##################################################################
+        ##################################################################
 
-            if 'WIND/3DP e' in self.instruments:
-                # # print('loading wind/3dp e omni')
-                self.wind3dp_e_df_org, self.wind3dp_e_meta = wind3dp_load(dataset="WI_SFSP_3DP", startdate=self.startdate, enddate=self.enddate, resample=None, multi_index=False, path=wind_path, threshold=wind_3dp_threshold)
+        if 'WIND/3DP e' in self.instruments:
+            # # print('loading wind/3dp e omni')
+            self.wind3dp_e_df_org, self.wind3dp_e_meta = wind3dp_load(dataset="WI_SFSP_3DP", startdate=self.startdate, enddate=self.enddate, resample=None, multi_index=False, path=wind_path, threshold=wind_3dp_threshold)
 
-            if 'WIND/3DP p' in self.instruments:
-                # print('loading wind/3dp p omni')
-                self.wind3dp_p_df_org, self.wind3dp_p_meta = wind3dp_load(dataset="WI_SOSP_3DP", startdate=self.startdate, enddate=self.enddate, resample=None, multi_index=False, path=wind_path)
+        if 'WIND/3DP p' in self.instruments:
+            # print('loading wind/3dp p omni')
+            self.wind3dp_p_df_org, self.wind3dp_p_meta = wind3dp_load(dataset="WI_SOSP_3DP", startdate=self.startdate, enddate=self.enddate, resample=None, multi_index=False, path=wind_path)
 
-            if 'STEREO-A/HET e' in self.instruments or 'STEREO-A/HET p' in self.instruments:
-                # print('loading stereo/het')
-                self.sta_het_e_labels = ['0.7-1.4 MeV', '1.4-2.8 MeV', '2.8-4.0 MeV']
-                self.sta_het_p_labels = ['13.6-15.1 MeV', '14.9-17.1 MeV', '17.0-19.3 MeV', '20.8-23.8 MeV', '23.8-26.4 MeV', '26.3-29.7 MeV', '29.5-33.4 MeV', '33.4-35.8 MeV', '35.5-40.5 MeV', '40.0-60.0 MeV']
-                self.sta_het_df_org, self.sta_het_meta = stereo_load(instrument='het', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', resample=None, path=stereo_path, max_conn=1)
+        if 'STEREO-A/HET e' in self.instruments or 'STEREO-A/HET p' in self.instruments:
+            # print('loading stereo/het')
+            self.sta_het_e_labels = ['0.7-1.4 MeV', '1.4-2.8 MeV', '2.8-4.0 MeV']
+            self.sta_het_p_labels = ['13.6-15.1 MeV', '14.9-17.1 MeV', '17.0-19.3 MeV', '20.8-23.8 MeV', '23.8-26.4 MeV', '26.3-29.7 MeV', '29.5-33.4 MeV', '33.4-35.8 MeV', '35.5-40.5 MeV', '40.0-60.0 MeV']
+            self.sta_het_df_org, self.sta_het_meta = stereo_load(instrument='het', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', resample=None, path=stereo_path, max_conn=1)
 
-            # if 'STEREO-A/LET e' in self.instruments or 'STEREO-A/LET p' in self.instruments:
-            #     # print('loading stereo/let')
-            #     # for H and He4:
-            #     self.let_chstring = ['1.8-2.2 MeV', '2.2-2.7 MeV', '2.7-3.2 MeV', '3.2-3.6 MeV', '3.6-4.0 MeV', '4.0-4.5 MeV', '4.5-5.0 MeV', '5.0-6.0 MeV', '6.0-8.0 MeV', '8.0-10.0 MeV', '10.0-12.0 MeV', '12.0-15.0 MeV']
-            #     self.sta_let_df_org, self.sta_let_meta = stereo_load(instrument='let', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', resample=sta_let_resample, path=stereo_path, max_conn=1)
+        # if 'STEREO-A/LET e' in self.instruments or 'STEREO-A/LET p' in self.instruments:
+        #     # print('loading stereo/let')
+        #     # for H and He4:
+        #     self.let_chstring = ['1.8-2.2 MeV', '2.2-2.7 MeV', '2.7-3.2 MeV', '3.2-3.6 MeV', '3.6-4.0 MeV', '4.0-4.5 MeV', '4.5-5.0 MeV', '5.0-6.0 MeV', '6.0-8.0 MeV', '8.0-10.0 MeV', '10.0-12.0 MeV', '12.0-15.0 MeV']
+        #     self.sta_let_df_org, self.sta_let_meta = stereo_load(instrument='let', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', resample=sta_let_resample, path=stereo_path, max_conn=1)
 
-            if 'STEREO-A/SEPT e' in self.instruments:
-                # print('loading stereo/sept e')
-                self.sta_sept_df_e_org, self.sta_sept_dict_e = stereo_load(instrument='sept', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', sept_species='e', sept_viewing=self.viewing['STEREO-A/SEPT'], resample=None, path=stereo_path, max_conn=1)
+        if 'STEREO-A/SEPT e' in self.instruments:
+            # print('loading stereo/sept e')
+            self.sta_sept_df_e_org, self.sta_sept_dict_e = stereo_load(instrument='sept', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', sept_species='e', sept_viewing=self.viewing['STEREO-A/SEPT'], resample=None, path=stereo_path, max_conn=1)
 
-            if 'STEREO-A/SEPT p' in self.instruments:
-                # print('loading stereo/sept p')
-                self.sta_sept_df_p_org, self.sta_sept_dict_p = stereo_load(instrument='sept', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', sept_species='p', sept_viewing=self.viewing['STEREO-A/SEPT'], resample=None, path=stereo_path, max_conn=1)
+        if 'STEREO-A/SEPT p' in self.instruments:
+            # print('loading stereo/sept p')
+            self.sta_sept_df_p_org, self.sta_sept_dict_p = stereo_load(instrument='sept', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', sept_species='p', sept_viewing=self.viewing['STEREO-A/SEPT'], resample=None, path=stereo_path, max_conn=1)
 
-            if 'SOHO/EPHIN e' in self.instruments or 'SOHO/EPHIN p' in self.instruments:
-                # print('loading soho/ephin')
-                try:
-                    self.soho_ephin_org, self.ephin_energies = soho_load(dataset="SOHO_COSTEP-EPHIN_L2-1MIN",
-                                                                         startdate=self.startdate,
-                                                                         enddate=self.enddate,
-                                                                         path=soho_path,
-                                                                         resample=None,
-                                                                         pos_timestamp='center')
-                except UnboundLocalError:
-                    pass
+        if 'SOHO/EPHIN e' in self.instruments or 'SOHO/EPHIN p' in self.instruments:
+            # print('loading soho/ephin')
+            try:
+                self.soho_ephin_org, self.ephin_energies = soho_load(dataset="SOHO_COSTEP-EPHIN_L2-1MIN",
+                                                                        startdate=self.startdate,
+                                                                        enddate=self.enddate,
+                                                                        path=soho_path,
+                                                                        resample=None,
+                                                                        pos_timestamp='center')
+            except UnboundLocalError:
+                pass
 
-            if 'SOHO/ERNE-HED p' in self.instruments:
-                # print('loading soho/erne')
-                self.erne_chstring = ['13-16 MeV', '16-20 MeV', '20-25 MeV', '25-32 MeV', '32-40 MeV', '40-50 MeV', '50-64 MeV', '64-80 MeV', '80-100 MeV', '100-130 MeV']
-                self.soho_erne_org, self.erne_energies = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=self.startdate, enddate=self.enddate, path=soho_path, resample=None, max_conn=1)
+        if 'SOHO/ERNE-HED p' in self.instruments:
+            # print('loading soho/erne')
+            self.erne_chstring = ['13-16 MeV', '16-20 MeV', '20-25 MeV', '25-32 MeV', '32-40 MeV', '40-50 MeV', '50-64 MeV', '64-80 MeV', '80-100 MeV', '100-130 MeV']
+            self.soho_erne_org, self.erne_energies = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=self.startdate, enddate=self.enddate, path=soho_path, resample=None, max_conn=1)
 
-            if 'Parker Solar Probe/EPI-Hi HET e' in self.instruments or 'Parker Solar Probe/EPI-Hi HET p' in self.instruments:
-                # print('loading PSP/EPI-Hi HET data')
-                self.psp_het, self.psp_het_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-HET-RATES60', startdate=self.startdate, enddate=self.enddate, path=psp_path, resample=None)
-                # psp_let1, psp_let1_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-LET1-RATES60', startdate, enddate, path=psp_path, resample=psp_resample)
-                if len(self.psp_het) == 0:
-                    print(f'No PSP/EPI-Hi HET 60s data found for {self.startdate.date()} - {self.enddate.date()}. Trying 3600s data.')
-                    self.psp_het, self.psp_het_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-HET-RATES3600', startdate=self.startdate, enddate=self.enddate, path=psp_path, resample=None)
-                    self.psp_3600 = True
-                    # self.psp_het_resample = None
+        if 'Parker Solar Probe/EPI-Hi HET e' in self.instruments or 'Parker Solar Probe/EPI-Hi HET p' in self.instruments:
+            # print('loading PSP/EPI-Hi HET data')
+            self.psp_het, self.psp_het_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-HET-RATES60', startdate=self.startdate, enddate=self.enddate, path=psp_path, resample=None)
+            # psp_let1, psp_let1_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-LET1-RATES60', startdate, enddate, path=psp_path, resample=psp_resample)
+            if len(self.psp_het) == 0:
+                print(f'No PSP/EPI-Hi HET 60s data found for {self.startdate.date()} - {self.enddate.date()}. Trying 3600s data.')
+                self.psp_het, self.psp_het_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-HET-RATES3600', startdate=self.startdate, enddate=self.enddate, path=psp_path, resample=None)
+                self.psp_3600 = True
+                # self.psp_het_resample = None
 
-            if 'Parker Solar Probe/EPI-Lo PE e' in self.instruments:
-                # print('loading PSP/EPI-Lo PE data')
-                self.psp_epilo_e, self.psp_epilo_energies_e = psp_isois_load('PSP_ISOIS-EPILO_L2-PE',
-                                                                             startdate=self.startdate, enddate=self.enddate,
-                                                                             epilo_channel=self.psp_epilo_channel_e,
-                                                                             epilo_threshold=psp_epilo_threshold_e,
-                                                                             path=psp_path, resample=None)
-                if len(self.psp_epilo_e) == 0:
-                    print(f'No PSP/EPI-Lo PE data for {self.startdate.date()} - {self.enddate.date()}')
+        if 'Parker Solar Probe/EPI-Lo PE e' in self.instruments:
+            # print('loading PSP/EPI-Lo PE data')
+            self.psp_epilo_e, self.psp_epilo_energies_e = psp_isois_load('PSP_ISOIS-EPILO_L2-PE',
+                                                                            startdate=self.startdate, enddate=self.enddate,
+                                                                            epilo_channel=self.psp_epilo_channel_e,
+                                                                            epilo_threshold=psp_epilo_threshold_e,
+                                                                            path=psp_path, resample=None)
+            if len(self.psp_epilo_e) == 0:
+                print(f'No PSP/EPI-Lo PE data for {self.startdate.date()} - {self.enddate.date()}')
 
-            if 'Parker Solar Probe/EPI-Lo IC p' in self.instruments:
-                custom_warning('Parker Solar Probe/EPI-Lo IC p is in beta mode! Please be cautious and report bugs.')
-            #     print('loading PSP/EPI-Lo IC proton data')
-                self.psp_epilo_p, self.psp_epilo_energies_p = psp_isois_load('PSP_ISOIS-EPILO_L2-IC',
-                                                                             startdate=self.startdate, enddate=self.enddate,
-                                                                             epilo_channel=self.psp_epilo_channel_p,
-                                                                             epilo_threshold=psp_epilo_threshold_p,
-                                                                             path=psp_path, resample=None)
-                if len(self.psp_epilo_p) == 0:
-                    print(f'No PSP/EPI-Lo IC data for {self.startdate.date()} - {self.enddate.date()}')
+        if 'Parker Solar Probe/EPI-Lo IC p' in self.instruments:
+            custom_warning('Parker Solar Probe/EPI-Lo IC p is in beta mode! Please be cautious and report bugs.')
+        #     print('loading PSP/EPI-Lo IC proton data')
+            self.psp_epilo_p, self.psp_epilo_energies_p = psp_isois_load('PSP_ISOIS-EPILO_L2-IC',
+                                                                            startdate=self.startdate, enddate=self.enddate,
+                                                                            epilo_channel=self.psp_epilo_channel_p,
+                                                                            epilo_threshold=psp_epilo_threshold_p,
+                                                                            path=psp_path, resample=None)
+            if len(self.psp_epilo_p) == 0:
+                print(f'No PSP/EPI-Lo IC data for {self.startdate.date()} - {self.enddate.date()}')
 
-            if 'Solar Orbiter/EPT e' in self.instruments or 'Solar Orbiter/EPT p' in self.instruments:
-                # print('loading solo/ept e & p')
-                try:
-                    result = epd_load(sensor='EPT', viewing=self.viewing['Solar Orbiter/EPT'], level=self.ept_data_product, startdate=self.startdate, enddate=self.enddate, path=solo_path, autodownload=True)
-                    if self.ept_data_product == 'l2':
-                        self.ept_p, self.ept_e, self.ept_energies = result
-                    if self.ept_data_product == 'l3':
-                        self.ept, self.ept_rtn, self.ept_hci, self.ept_energies, self.ept_metadata = result
-                except (Exception):
-                    print(f'No SOLO/EPT {self.ept_data_product} data for {self.startdate.date()} - {self.enddate.date()}')
-                    self.ept = []
-                    self.ept_e = []
-                    self.ept_p = []
-            if 'Solar Orbiter/HET e' in self.instruments or 'Solar Orbiter/HET p' in self.instruments:
-                # print('loading solo/het e & p')
-                try:
-                    self.het_p, self.het_e, self.het_energies = epd_load(sensor='HET', viewing=self.viewing['Solar Orbiter/HET'], level=self.het_data_product, startdate=self.startdate, enddate=self.enddate, path=solo_path, autodownload=True)
-                except (Exception):
-                    print(f'No SOLO/HET data for {self.startdate.date()} - {self.enddate.date()}')
-                    self.het_e = []
-                    self.het_p = []
+        if 'Solar Orbiter/EPT e' in self.instruments or 'Solar Orbiter/EPT p' in self.instruments:
+            # print('loading solo/ept e & p')
+            try:
+                result = epd_load(sensor='EPT', viewing=self.viewing['Solar Orbiter/EPT'], level=self.ept_data_product, startdate=self.startdate, enddate=self.enddate, path=solo_path, autodownload=True)
+                if self.ept_data_product == 'l2':
+                    self.ept_p, self.ept_e, self.ept_energies = result
+                if self.ept_data_product == 'l3':
+                    self.ept, self.ept_rtn, self.ept_hci, self.ept_energies, self.ept_metadata = result
+            except (Exception):
+                print(f'No SOLO/EPT {self.ept_data_product} data for {self.startdate.date()} - {self.enddate.date()}')
+                self.ept = []
+                self.ept_e = []
+                self.ept_p = []
+        if 'Solar Orbiter/HET e' in self.instruments or 'Solar Orbiter/HET p' in self.instruments:
+            # print('loading solo/het e & p')
+            try:
+                self.het_p, self.het_e, self.het_energies = epd_load(sensor='HET', viewing=self.viewing['Solar Orbiter/HET'], level=self.het_data_product, startdate=self.startdate, enddate=self.enddate, path=solo_path, autodownload=True)
+            except (Exception):
+                print(f'No SOLO/HET data for {self.startdate.date()} - {self.enddate.date()}')
+                self.het_e = []
+                self.het_p = []
 
-            if 'BepiColombo/SIXS-P e' in self.instruments or 'BepiColombo/SIXS-P p' in self.instruments:
-                # print('loading Bepi/SIXS')
-                try:
-                    self.sixs_df, self.sixs_meta = bepi_sixsp_l3_loader(startdate=self.startdate, enddate=self.enddate, resample=None, path=sixs_path, pos_timestamp='center')
-                    if len(self.sixs_df) > 0:
-                        self.sixs_df_p_org = self.sixs_df[[f"Side{self.viewing['BepiColombo/SIXS-P']}_P{i}" for i in range(1, 10)]]
-                        self.sixs_df_e_org = self.sixs_df[[f"Side{self.viewing['BepiColombo/SIXS-P']}_E{i}" for i in range(1, 8)]]
-                except NameError:
-                    custom_warning('BepiColombo/SIXS-P not yet supported.')
-                    self.sixs_df = []
-                    self.sixs_df_e_org = []
-                    self.sixs_df_p_org = []
+        if 'BepiColombo/SIXS-P e' in self.instruments or 'BepiColombo/SIXS-P p' in self.instruments:
+            # print('loading Bepi/SIXS')
+            try:
+                self.sixs_df, self.sixs_meta = bepi_sixsp_l3_loader(startdate=self.startdate, enddate=self.enddate, resample=None, path=sixs_path, pos_timestamp='center')
+                if len(self.sixs_df) > 0:
+                    self.sixs_df_p_org = self.sixs_df[[f"Side{self.viewing['BepiColombo/SIXS-P']}_P{i}" for i in range(1, 10)]]
+                    self.sixs_df_e_org = self.sixs_df[[f"Side{self.viewing['BepiColombo/SIXS-P']}_E{i}" for i in range(1, 8)]]
+            except NameError:
+                custom_warning('BepiColombo/SIXS-P not yet supported.')
+                self.sixs_df = []
+                self.sixs_df_e_org = []
+                self.sixs_df_p_org = []
 
     def print_energies(self):
         #
