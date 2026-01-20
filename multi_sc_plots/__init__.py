@@ -691,7 +691,10 @@ class Event:
         if 'STEREO-A/HET e' in plot_instruments or 'STEREO-A/HET p' in plot_instruments:
             if len(self.sta_het_df_org) > 0:
                 if isinstance(sta_het_resample, str):
-                    self.sta_het_df = resample_df(self.sta_het_df_org, sta_het_resample, cols_unc='auto', verbose=False)
+                    try:  # TODO: remove try-except after updating seppy on the hub
+                        self.sta_het_df = resample_df(self.sta_het_df_org, sta_het_resample, cols_unc='auto', verbose=False)
+                    except TypeError:
+                        self.sta_het_df = resample_df(self.sta_het_df_org, sta_het_resample, cols_unc='auto')
                 else:
                     self.sta_het_df = self.sta_het_df_org
             #
@@ -725,7 +728,10 @@ class Event:
         if 'STEREO-A/SEPT e' in plot_instruments:
             if hasattr(self, 'sta_sept_df_e_org') and len(self.sta_sept_df_e_org) > 0:
                 if isinstance(sta_sept_resample, str):
-                    self.sta_sept_df_e = resample_df(self.sta_sept_df_e_org, sta_sept_resample, cols_unc='auto', verbose=False)
+                    try:  # TODO: remove try-except after updating seppy on the hub
+                        self.sta_sept_df_e = resample_df(self.sta_sept_df_e_org, sta_sept_resample, cols_unc='auto', verbose=False)
+                    except TypeError:
+                        self.sta_sept_df_e = resample_df(self.sta_sept_df_e_org, sta_sept_resample, cols_unc='auto')
                 else:
                     self.sta_sept_df_e = self.sta_sept_df_e_org
             #
@@ -738,7 +744,10 @@ class Event:
         if 'STEREO-A/SEPT p' in plot_instruments:
             if hasattr(self, 'sta_sept_df_p_org') and len(self.sta_sept_df_p_org) > 0:
                 if isinstance(sta_sept_resample, str):
-                    self.sta_sept_df_p = resample_df(self.sta_sept_df_p_org, sta_sept_resample, cols_unc='auto', verbose=False)
+                    try:  # TODO: remove try-except after updating seppy on the hub
+                        self.sta_sept_df_p = resample_df(self.sta_sept_df_p_org, sta_sept_resample, cols_unc='auto', verbose=False)
+                    except TypeError:
+                        self.sta_sept_df_p = resample_df(self.sta_sept_df_p_org, sta_sept_resample, cols_unc='auto')
                 else:
                     self.sta_sept_df_p = self.sta_sept_df_p_org
             #
