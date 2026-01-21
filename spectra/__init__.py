@@ -13,7 +13,7 @@ from seppy.loader.soho import soho_load
 from seppy.loader.psp import psp_isois_load
 from seppy.loader.stereo import stereo_load
 from seppy.loader.wind import wind3dp_load
-from seppy.util import resample_df, custom_warning
+from seppy.util import resample_df, custom_warning, custom_notification
 import imageio
 
 # omit some warnings
@@ -87,7 +87,7 @@ class Event:
                 elif self.viewing[:6].lower() == 'sector':
                     dataset = 'WI_SOPD_3DP'
             self.df, self.meta = wind3dp_load(dataset=dataset, startdate=self.startdate, enddate=self.enddate, path=data_path, multi_index=False)
-            custom_warning('No intensity uncertainties available for Wind/3DP.')
+            custom_notification('No intensity uncertainties available for Wind/3DP.')
 
         if self.spacecraft.lower() in ['soho']:
             self.viewing = ''
@@ -118,7 +118,7 @@ class Event:
 
         fig, axs = plt.subplots(1, sharex=True, figsize=(9, 6), dpi=200)
         if resample is not None:
-            df_resampled = resample_df(self.df, resample, cols_unc='auto')
+            df_resampled = resample_df(self.df, resample, cols_unc='auto', verbose=False)
         else: 
             df_resampled = self.df.copy()
         if self.spacecraft.lower() == 'solo':
