@@ -347,7 +347,7 @@ def make_plot(options):
     if options.mag.value or options.mag_angles.value:
         if isinstance(df_mag_orig, pd.DataFrame):
             if resample == 0:
-                df_mag = resample_df(df_mag_orig, "5s") # high cadence, resample to ease loa, cols_unc=[]d
+                df_mag = resample_df(df_mag_orig, "5s", cols_unc=[])  # high cadence, resample to ease load
             else:
                 df_mag = resample_df(df_mag_orig, str(60 * resample_mag) + "s", cols_unc=[])
         else:
