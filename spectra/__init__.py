@@ -96,12 +96,12 @@ class Event:
             soho_fluxes = self.df[self.df.filter(like='PH_').columns]
             soho_counts = self.df[self.df.filter(like='PHC_').columns]
             for i in range(0, soho_fluxes.shape[1]):
-                soho_unc = np.divide(soho_fluxes[f'PH_{i}'], np.sqrt(soho_counts[f'PHC_{i}']), 
-                                     out=np.zeros_like(soho_fluxes[f'PH_{i}']), 
+                soho_unc = np.divide(soho_fluxes[f'PH_{i}'], np.sqrt(soho_counts[f'PHC_{i}']),
+                                     out=np.zeros_like(soho_fluxes[f'PH_{i}']),
                                      where=~((soho_counts[f'PHC_{i}'] == 0) & (soho_fluxes[f'PH_{i}'] == 0)))
                 soho_unc[np.isnan(soho_fluxes[f'PH_{i}'])] = np.nan
                 self.df[f'uncertainty_{i}'] = soho_unc
-            
+
             custom_warning('No intensity uncertainties available for SOHO/ERNE. Calculating uncertainties as I/sqrt(counts).')
 
         if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
@@ -119,18 +119,18 @@ class Event:
         fig, axs = plt.subplots(1, sharex=True, figsize=(9, 6), dpi=200)
         if resample is not None:
             df_resampled = resample_df(self.df, resample, cols_unc='auto', verbose=False)
-        else: 
+        else:
             df_resampled = self.df.copy()
         if self.spacecraft.lower() == 'solo':
             if self.instrument.lower() == 'ept':
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
                     flux_id = 'Electron_Flux'
                     energy_text = 'Electron_Bins_Text'
-                    show_channels = np.arange(1, len(self.meta[energy_text]), 5) 
+                    show_channels = np.arange(1, len(self.meta[energy_text]), 5)
                 if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
                     flux_id = 'Ion_Flux'
                     energy_text = 'Ion_Bins_Text'
-                    show_channels = np.arange(1, len(self.meta[energy_text]), 6) 
+                    show_channels = np.arange(1, len(self.meta[energy_text]), 6)
 
             if self.instrument.lower() == 'het':
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
@@ -141,13 +141,13 @@ class Event:
                     show_channels = [0, 4, 8, 12, 16, 20, 24, 28, 32]
                     energy_text = "H_Bins_Text"
                     flux_id = "H_Flux"
-                    show_channels = np.arange(0, len(self.meta[energy_text]), 4) 
-            
+                    show_channels = np.arange(0, len(self.meta[energy_text]), 4)
+
             # plotting
             for channel in show_channels:
                 label = self.meta[energy_text][channel]
                 axs.plot(df_resampled.index, df_resampled[f'{flux_id}_{channel}'], label=label)
-                
+
                 if spec_type == 'peak':
                     ind = np.where((df_resampled.index >= spec_start) & (df_resampled.index <= spec_end))[0]
                     # only plot peak if there is at least one non-nan value in the interval
@@ -183,7 +183,7 @@ class Event:
             for channel in show_channels:
                 label = energy_labels[channel]
                 axs.plot(df_resampled.index, df_resampled[f'{flux_id}_{channel}'], label=label)
-                
+
                 if spec_type == 'peak':
                     ind = np.where((df_resampled.index >= spec_start) & (df_resampled.index <= spec_end))[0]
                     # only plot peak if there is at least one non-nan value in the interval
@@ -216,7 +216,7 @@ class Event:
                         peak_time = df_resampled[f'{flux_id}{channel}{view_id}'].iloc[ind].idxmax(skipna=True)
                         peak_val = df_resampled[f'{flux_id}{channel}{view_id}'].iloc[ind].max()*1e6
                         axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
-                    
+
         if self.spacecraft.lower() in ['soho']:
             flux_id = 'PH'
             show_channels = np.arange(len(self.erne_chstring))
@@ -225,7 +225,7 @@ class Event:
             for channel in show_channels:
                 label = self.erne_chstring[channel]
                 axs.plot(df_resampled.index, df_resampled[f'{flux_id}_{channel}'], label=label)
-                
+
                 if spec_type == 'peak':
                     ind = np.where((df_resampled.index >= spec_start) & (df_resampled.index <= spec_end))[0]
                     # only plot peak if there is at least one non-nan value in the interval
@@ -233,8 +233,7 @@ class Event:
                         peak_time = df_resampled[f'{flux_id}_{channel}'].iloc[ind].idxmax(skipna=True)
                         peak_val = df_resampled[f'{flux_id}_{channel}'].iloc[ind].max()
                         axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
-                
-       
+
         if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
             # if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:  # !!! no fluxes available for electrons
             #     print('!!! no intensity data available for PSP electrons!')
@@ -249,7 +248,7 @@ class Event:
             for channel in show_channels:
                 label = self.meta[energy_text][channel]
                 axs.plot(df_resampled.index, df_resampled[f'{self.viewing}_{flux_id}_{channel}'], label=label)
-                
+
                 if spec_type == 'peak':
                     ind = np.where((df_resampled.index >= spec_start) & (df_resampled.index <= spec_end))[0]
                     # only plot peak if there is at least one non-nan value in the interval
@@ -292,7 +291,7 @@ class Event:
     def make_spec_gif(self, base_filename):
         # Get all PNG files (assuming they're named plot_0.png, plot_1.png, etc.)
         png_files = sorted(glob.glob(f'{base_filename}*.png'))
-        
+
         # write to animated gif; duration (in ms) defines how fast the animation is.
         with imageio.get_writer(f'{base_filename}_animation.gif', mode='I', duration=100, loop=0) as writer:
             for filename in png_files:
@@ -300,11 +299,10 @@ class Event:
                 writer.append_data(image)
         self.gif_filename = f'{base_filename}_animation.gif'
 
-    
     def plot_spec_slices(self, base_filename, spec_start, duration):
         # makes a plot of each spectrum slice based on the already saved csv files
         # taking all csv files, we determine a global y-range used in all plots
-        
+
         csv_files = sorted(glob.glob(f'{base_filename}*.csv'))
         global_min = None
         global_max = None
@@ -314,7 +312,7 @@ class Event:
             df = pd.read_csv(file)
             intensity = df['Intensity'].astype(float)
             if self.spacecraft == 'Wind':
-                #i_err = np.zeros(len(intensity))
+                # i_err = np.zeros(len(intensity))
                 i_err = intensity*0.1
             else:
                 i_err = df['I_err'].astype(float)
@@ -338,10 +336,9 @@ class Event:
                     global_max = file_max
                 else:
                     global_max = max(global_max, file_max)
-            
+
             data_frames.append(df)
-    
-            
+
         # Optional: Check found range
         # print(global_min, global_max)
         print(f'Global y-range: {global_min:.2f} to {global_max:.2f}')
@@ -350,13 +347,12 @@ class Event:
             t1 = spec_start + idx * duration
             t2 = spec_start + (idx+1) * duration
 
-            
             fig, ax = plt.subplots(1, sharex=True, figsize=(5, 4), dpi=150)
             ax.errorbar(df['Energy'], df['Intensity'], yerr=df['I_err'], xerr=df['E_err'], fmt='o', markersize=8,
                         label=self.species, elinewidth=2, capsize=5, capthick=2, ecolor='lightgray')
-            
+
             spec_type_str = 'integral spectrum'
-            
+
             if self.subtract_background:
                 backsub_str = ', backgr. subtr.'
             else:
@@ -368,31 +364,30 @@ class Event:
             ax.set_title(f"{self.spacecraft.upper()} / {self.instrument.upper()} {viewing} ({spec_type_str}{backsub_str})")
             ax.set_xscale("log")
             ax.set_yscale("log")
-           
+
             ax.set_ylim(global_min, global_max)
-    
+
             ax.set_xlabel("Energy (MeV)")
             ax.set_ylabel("Intensity (cm² sr MeV)⁻¹")
 
             ax.text(0.95, 0.95, f'{t1}-{t2}', ha='right', transform=ax.transAxes)
             ax.legend(loc=3)
-        
+
             filename = f'{base_filename}_{idx}.png'
             plt.savefig(filename)
             plt.close('all')
-            
-    
+
     def get_spec_slices(self, spec_start, spec_end, duration, subtract_background=True, background_start=None, background_end=None):
         # Determines spectra for each time slice
         # then makes plots for all spectra using a common y-range
         # then makes an animated gif out of all spectra plots
-        
+
         num_steps = int((spec_end-spec_start) / duration)
-        for i in np.arange(0, num_steps, 1): 
+        for i in np.arange(0, num_steps, 1):
             t1 = spec_start + i * duration
             t2 = spec_start + (i+1) * duration
             self.get_spec(t1, t2, spec_type='integral', subtract_background=subtract_background,
-                      background_start=background_start, background_end=background_end)
+                          background_start=background_start, background_end=background_end)
 
             foldername = f'output_spectra{os.sep}'
             start_time = str(spec_start).replace(" ", "_")
@@ -401,18 +396,17 @@ class Event:
 
             self.E_unc = self.DE/2.
             self.I_unc = self.final_unc
-            
-            spec_df = pd.DataFrame(dict(Energy = self.spec_E, Intensity = self.final_spec, E_err = self.E_unc, I_err = self.I_unc), index=range(len(self.spec_E)))
+
+            spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err=self.E_unc, I_err=self.I_unc), index=range(len(self.spec_E)))
             spec_df.to_csv(filename+'.csv', index=False)
-        
+
         # make  plots for each spec slice using common y-range:
         base_filename = filename = f'{foldername}spectrum_slices_start_{start_time}_step_{duration_min}min_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}_'
         print(base_filename)
         self.plot_spec_slices(base_filename, spec_start, duration)
-        
+
         self.make_spec_gif(base_filename)
-    
-    
+
     def get_spec(self, spec_start, spec_end, spec_type='integral', subtract_background=True, background_start=None, background_end=None, resample=None):
         I_spec = []
         unc_spec = []
@@ -438,7 +432,6 @@ class Event:
             high_E = low_E + np.array(self.meta[f'{species_key}_Bins_Width'])
             self.spec_E = np.sqrt(low_E*high_E)
             self.DE = self.meta[f'{species_key}_Bins_Width']
-            
 
         if self.spacecraft.lower() in ['stereo a', 'stereo-a', 'stereo b', 'stereo-b']:
             if self.instrument.lower() == 'het':
@@ -509,17 +502,17 @@ class Event:
                     except KeyError:
                         pass
 
-        if spec_type == 'integral': # here we use the original (non-resamled) data
+        if spec_type == 'integral':  # here we use the original (non-resamled) data
             df_fluxes_ind = df_fluxes.iloc[ind]
             if not df_fluxes_ind.empty:
-                df_nan_test = df_fluxes_ind.dropna(axis=1, how="all") # drop columns if they contain only NaNs
-                nonan_points = df_nan_test.count() 
-                number_of_nan_entries = df_nan_test.isna().sum() 
+                df_nan_test = df_fluxes_ind.dropna(axis=1, how="all")  # drop columns if they contain only NaNs
+                nonan_points = df_nan_test.count()
+                number_of_nan_entries = df_nan_test.isna().sum()
 
                 nan_percent = np.nanmax(number_of_nan_entries/nonan_points) * 100
-                if np.nanmax(number_of_nan_entries) > 0:   
+                if np.nanmax(number_of_nan_entries) > 0:
                     custom_warning(f'Data gaps in integration time interval! {np.nanmax(number_of_nan_entries)} out of {len(df_nan_test)} points ({nan_percent:.2f}%) of the intensity data points contributing to the integral spectrum are NaN. This may affect the resulting spectrum.')
-                    if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']: # TODO: Jan: check note regarding PSP: is this understandable?
+                    if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:  # TODO: Jan: check note regarding PSP: is this understandable?
                         custom_warning('Note that for PSP there can be large datagaps which do not contain time-stamp data points. These can therefore not be considered in the NaN percentage above.')
 
                 dt = df_fluxes_ind.index.to_series().diff()
@@ -530,7 +523,7 @@ class Event:
 
                 if self.spacecraft.lower() == 'wind':
                     I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)*1e6 * integration_time_per_channel
-                    unc_spec = np.zeros(len(I_spec))*np.nan #* integration_time_per_channel
+                    unc_spec = np.zeros(len(I_spec))*np.nan  # * integration_time_per_channel
                 else:
                     I_spec = np.nansum(df_fluxes.iloc[ind], axis=0) * integration_time_per_channel
                     # For PSP, remove asymmetric uncertainties like A_H_Uncertainty_Minus_0 & A_H_Uncertainty_Plus_0 for now
@@ -541,36 +534,36 @@ class Event:
                             except KeyError:
                                 pass
                     unc_spec = np.nansum(df_uncs.iloc[ind], axis=0) * integration_time_per_channel
-            else: # if dataframe is empty (can happen for slices when bigger datagaps are present)
-                    I_spec = np.zeros(len(self.spec_E))*np.nan
-                    unc_spec = np.zeros(len(self.spec_E))*np.nan
-            
+            else:  # if dataframe is empty (can happen for slices when bigger datagaps are present)
+                I_spec = np.zeros(len(self.spec_E))*np.nan
+                unc_spec = np.zeros(len(self.spec_E))*np.nan
+
             if (subtract_background) and (not np.all(np.isnan(I_spec))):    # here we use the original (non-resampled) data
                 ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
                 bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
 
                 self.final_spec = I_spec - bg_spec
-                
+
                 if self.spacecraft.lower() in ['wind']:
                     self.final_unc = np.zeros(len(I_spec)) * np.nan  # TODO: implement correct uncerstainties for Wind/3DP
                 else:
-                    #bg_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0) #       !!! check if implemented correctly
-                    bg_unc_spec = self.sqrt_sum_squares(df_uncs.iloc[ind_bg]) # TODO: import from seppy.util
+                    # bg_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)  # !!! check if implemented correctly
+                    bg_unc_spec = self.sqrt_sum_squares(df_uncs.iloc[ind_bg])  # TODO: import from seppy.util
                     # unc_spec = np.nanmax(df_uncs.iloc[ind_bg], axis=0)
                     self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)
             else:
                 self.final_spec = I_spec
-                self.final_unc = unc_spec            
-        
-        if spec_type == 'peak': # here we use the resamled data
+                self.final_unc = unc_spec
+
+        if spec_type == 'peak':  # here we use the resamled data
             if resample is not None:
                 # if self.spacecraft.lower() == 'wind':
                 #     cols_unc = []
-                # else:                
+                # else:
                 #     cols_unc = self.df.filter(like=unc_id).columns
                 df_resampled = resample_df(self.df, resample, cols_unc='auto')
                 print(f'Resampling used to determine this peak spectrum was {resample}')
-            else: 
+            else:
                 df_resampled = self.df.copy()
             ind_resampled = np.where((df_resampled.index >= spec_start) & (df_resampled.index <= spec_end))[0]
 
@@ -579,7 +572,7 @@ class Event:
             else:
                 df_fluxes_resampled = df_resampled[df_resampled.filter(like=flux_id).columns]
             I_spec = np.nanmax(df_fluxes_resampled.iloc[ind_resampled], axis=0)
-            
+
             if self.spacecraft.lower() == 'wind':
                 I_spec = np.nanmax(df_fluxes_resampled.iloc[ind_resampled], axis=0)*1e6
                 unc_spec = np.zeros(len(I_spec))*np.nan
@@ -600,8 +593,8 @@ class Event:
                 if self.spacecraft.lower() in ['wind']:
                     self.final_unc = np.zeros(len(I_spec)) * np.nan  # TODO: implement correct uncerstainties for Wind/3DP
                 else:
-                    #bg_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0) #       !!! check if implemented correctly
-                    bg_unc_spec = self.sqrt_sum_squares(df_uncs.iloc[ind_bg]) # TODO: import from seppy.util
+                    # b g_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)  # !!! check if implemented correctly
+                    bg_unc_spec = self.sqrt_sum_squares(df_uncs.iloc[ind_bg])  # TODO: import from seppy.util
                     # unc_spec = np.nanmax(df_uncs.iloc[ind_bg], axis=0)
                     self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)
             else:
@@ -614,12 +607,11 @@ class Event:
         self.I_unc = self.final_unc
         self.E_unc = self.DE/2.
 
-        self.spec_df = pd.DataFrame(dict(Energy = self.spec_E, Intensity = self.final_spec, E_err = self.E_unc, I_err = self.I_unc), index=range(len(self.spec_E)))
+        self.spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err=self.E_unc, I_err=self.I_unc), index=range(len(self.spec_E)))
 
     def sqrt_sum_squares(self, series):
         return np.sqrt(np.nansum(series**2, axis=0)) / len(series)
 
-    
     def plot_spectrum(self, savefig=None, filename='', ylim=None):
         fig, ax = plt.subplots(1, sharex=True, figsize=(5, 4), dpi=150)
         ax.errorbar(self.spec_E, self.final_spec, xerr=self.E_unc, yerr=self.final_unc, fmt='o', markersize=8,
@@ -649,7 +641,7 @@ class Event:
         ax.legend()
         fig.tight_layout()
 
-        if savefig: 
+        if savefig:
             if filename == '':
                 foldername = f'output_spectra{os.sep}'
                 filename = f'{foldername}spectrum_{spec_type_str}_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}.png'
