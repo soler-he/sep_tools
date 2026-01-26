@@ -20,12 +20,15 @@ pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-gene
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
 @pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-def test_SEP_Multi_Instrument_Plot_PSP():
+def test_SEP_Multi_Instrument_Plot_PSP(monkeypatch):
     m.options.path = f"{os.getcwd()}{os.sep}data"
     m.options.path = jupyterhub_data_path(m.options.path)
     m.options.spacecraft.value = 'Parker Solar Probe'
     # deactivate STIX for now as it crashes on GitHub
     m.options.stix.value = False
+    # manually select GOES satellite 16 bc. automatic detection sometimes give different results (17 not always shown)
+    m.options.goes_man_select.value = True
+    monkeypatch.setattr('builtins.input', lambda _: "16")
     data, metadata = m.load_data()
     m.energy_channel_selection()
     m.range_selection()
@@ -38,11 +41,14 @@ def test_SEP_Multi_Instrument_Plot_PSP():
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
 @pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-def test_SEP_Multi_Instrument_Plot_SolO():
+def test_SEP_Multi_Instrument_Plot_SolO(monkeypatch):
     m.options.path = f"{os.getcwd()}{os.sep}data"
     m.options.spacecraft.value = 'Solar Orbiter'
     # deactivate STIX for now as it crashes on GitHub
     m.options.stix.value = False
+    # manually select GOES satellite 16 bc. automatic detection sometimes give different results (17 not always shown)
+    m.options.goes_man_select.value = True
+    monkeypatch.setattr('builtins.input', lambda _: "16")
     data, metadata = m.load_data()
     m.energy_channel_selection()
     m.range_selection()
@@ -55,10 +61,13 @@ def test_SEP_Multi_Instrument_Plot_SolO():
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
 @pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-def test_SEP_Multi_Instrument_Plot_STEREO():
+def test_SEP_Multi_Instrument_Plot_STEREO(monkeypatch):
     m.options.path = f"{os.getcwd()}{os.sep}data"
     m.options.spacecraft.value = 'STEREO'
     m.options.stix.value = False
+    # manually select GOES satellite 16 bc. automatic detection sometimes give different results (17 not always shown)
+    m.options.goes_man_select.value = True
+    monkeypatch.setattr('builtins.input', lambda _: "16")
     data, metadata = m.load_data()
     m.energy_channel_selection()
     m.range_selection()
@@ -72,10 +81,13 @@ def test_SEP_Multi_Instrument_Plot_STEREO():
 @pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
 @pytest.mark.filterwarnings("ignore::UserWarning:seppy")
-def test_SEP_Multi_Instrument_Plot_L1():
+def test_SEP_Multi_Instrument_Plot_L1(monkeypatch):
     m.options.path = f"{os.getcwd()}{os.sep}data"
     m.options.spacecraft.value = 'L1 (Wind/SOHO)'
     m.options.stix.value = False
+    # manually select GOES satellite 16 bc. automatic detection sometimes give different results (17 not always shown)
+    m.options.goes_man_select.value = True
+    monkeypatch.setattr('builtins.input', lambda _: "16")
     data, metadata = m.load_data()
     m.energy_channel_selection()
     m.range_selection()
