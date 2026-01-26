@@ -525,8 +525,7 @@ def range_selection(**kwargs):
                     rang[2] = step
                 else:
                     raise ValueError(f"{step_key_str} must be a positive integer")
-        
-    
+
     if options.spacecraft.value == "Parker Solar Probe":
         options.psp_ch_epilo_pe.value = tuple(range(le_range[0], le_range[1], le_range[2]))
         options.psp_ch_epilo_ic.value = tuple(range(lp_range[0], lp_range[1], lp_range[2]))
@@ -551,9 +550,9 @@ def range_selection(**kwargs):
         options.solo_ch_het_e.value = tuple(range(he_range[0], he_range[1], he_range[2]))
         options.solo_ch_het_p.value = tuple(range(hp_range[0], hp_range[1], hp_range[2]))
 
-    return                
+    return
 
-    
+
 def make_plot(show=True):
     """
     Reads the selected options and makes the plot based on loaded data. Returns the created Figure and Axes objects
@@ -565,21 +564,23 @@ def make_plot(show=True):
     Arguments
     ---------
     show : boolean, optional
-        show plot with Matplotlib frontend, default=True
+        directly show Matplotlib plot (i.e., plt.show()), default=True. This is not needed when running in Jupyter notebooks.
 
     """
     options.showplot = show
     if options.spacecraft.value == "Parker Solar Probe":
-        return psp.make_plot(options)
-    
+        fig, axs = psp.make_plot(options)
+
     if options.spacecraft.value == "Solar Orbiter":
-        return solo.make_plot(options)
+        fig, axs = solo.make_plot(options)
 
     if options.spacecraft.value == "L1 (Wind/SOHO)":
-        return l1.make_plot(options)
-    
+        fig, axs = l1.make_plot(options)
+
     if options.spacecraft.value == "STEREO":
-        return stereo.make_plot(options)
-    
+        fig, axs = stereo.make_plot(options)
+
+    return fig, axs
+
 
 options = Options()

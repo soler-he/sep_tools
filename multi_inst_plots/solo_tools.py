@@ -18,7 +18,7 @@ from sunpy.timeseries import TimeSeries
 from astropy.constants import e, k_B, m_p
 
 from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
-
+from multi_sc_plots import add_watermark
 
 
 # import warnings
@@ -335,31 +335,31 @@ def make_plot(options):
 
     if options.goes.value == True:
         if isinstance(df_goes_, pd.DataFrame) and resample_stixgoes > 0:
-            df_goes = resample_df(df_goes_, str(60 * resample_stixgoes) + "s")
+            df_goes = resample_df(df_goes_, str(60 * resample_stixgoes) + "s", cols_unc=[])
         else:
             df_goes = df_goes_
         
     if options.stix.value == True:
         if isinstance(df_stix_, pd.DataFrame) and resample_stixgoes > 0:
-            df_stix = resample_df(df_stix_, str(60 * resample_stixgoes) + "s")
+            df_stix = resample_df(df_stix_, str(60 * resample_stixgoes) + "s", cols_unc=[])
         else:
             df_stix = df_stix_
 
     if options.solo_het_e.value:
         if isinstance(electrons_het, pd.DataFrame) and resample > 0:
-            df_electrons_het = resample_df(electrons_het, str(60 * resample) + "s", pos_timestamp=None)
+            df_electrons_het = resample_df(electrons_het, str(60 * resample) + "s", pos_timestamp=None, cols_unc=[])
         else:
             df_electrons_het = electrons_het
     if options.solo_het_p.value:
         if isinstance(protons_het, pd.DataFrame) and resample > 0:
-            df_protons_het = resample_df(protons_het, str(60 * resample) + "s", pos_timestamp=None)
+            df_protons_het = resample_df(protons_het, str(60 * resample) + "s", pos_timestamp=None, cols_unc=[])
         else:
             df_protons_het = protons_het
 
     if ept_l3:
         if isinstance(df_ept_org, pd.DataFrame):
             if resample > 1:
-                df_ept = resample_df(df_ept_org, str(60 * resample) + "s", pos_timestamp=None)
+                df_ept = resample_df(df_ept_org, str(60 * resample) + "s", pos_timestamp=None, cols_unc=[])
             else:
                 print("EPT native cadence is 1 min, so no averaging was applied.")
                 df_ept = df_ept_org
@@ -374,20 +374,20 @@ def make_plot(options):
     else:
         if options.solo_ept_e.value:
             if isinstance(electrons_ept, pd.DataFrame) and resample > 0:
-                df_electrons_ept = resample_df(electrons_ept, str(60 * resample) + "s", pos_timestamp=None)
+                df_electrons_ept = resample_df(electrons_ept, str(60 * resample) + "s", pos_timestamp=None, cols_unc=[])
             else:
                 df_electrons_ept = electrons_ept
         
         if options.solo_ept_p.value:
             if isinstance(protons_ept, pd.DataFrame) and resample > 0:
-                df_protons_ept = resample_df(protons_ept, str(60 * resample) + "s", pos_timestamp=None)
+                df_protons_ept = resample_df(protons_ept, str(60 * resample) + "s", pos_timestamp=None, cols_unc=[])
             else:
                 df_protons_ept = protons_ept
 
 
     if options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value:
         if isinstance(swa_data, pd.DataFrame) and resample_mag > 0:
-            df_swa = resample_df(swa_data, str(60 * resample_mag) + "s", pos_timestamp=None)
+            df_swa = resample_df(swa_data, str(60 * resample_mag) + "s", pos_timestamp=None, cols_unc=[])
         else:
             df_swa = swa_data
 
@@ -395,9 +395,9 @@ def make_plot(options):
         if isinstance(mag_data_org, pd.DataFrame):
             if resample_mag == 0:
                 # data is very high cadence and so here we apply a minimum of 5 s to lighten the load
-                mag_data = resample_df(mag_data_org, "5s", pos_timestamp=None)
+                mag_data = resample_df(mag_data_org, "5s", pos_timestamp=None, cols_unc=[])
             elif resample_mag > 0:
-                mag_data = resample_df(mag_data_org, str(60 * resample_mag) + "s", pos_timestamp=None)
+                mag_data = resample_df(mag_data_org, str(60 * resample_mag) + "s", pos_timestamp=None, cols_unc=[])
         else:
             mag_data = mag_data_org
 
@@ -695,7 +695,9 @@ def make_plot(options):
                         '-k', label="Bulk speed")
         axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km s$^{-1}$]", fontsize=font_ylabel)
         i += 1
-    
+
+    add_watermark(fig, scaling=0.7, alpha=0.5, zorder=-1)
+
     if options.showplot:
         plt.show()
 

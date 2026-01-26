@@ -24,6 +24,7 @@ from seppy.tools import resample_df
 
 from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, \
     load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
+from multi_sc_plots import add_watermark
 
 
 plt.rcParams['axes.linewidth'] = 1.5
@@ -448,13 +449,13 @@ def make_plot(options):
         if av_mag > 0 and av_mag <= 1.5:
             print("Wind/MFI native cadence is 1.5 min, so no averaging was applied.")
         if isinstance(mag_data, pd.DataFrame) and av_mag > 1.5:
-            df_mag = resample_df(mag_data, str(60 * av_mag) + "s")
+            df_mag = resample_df(mag_data, str(60 * av_mag) + "s", cols_unc=[])
         else:
             df_mag = mag_data
 
         if options.polarity.value:
             if isinstance(mag_data, pd.DataFrame):
-                df_mag_pol = resample_df(mag_data, '1min')  # resampling to 1min for polarity plot
+                df_mag_pol = resample_df(mag_data, '1min', cols_unc=[])  # resampling to 1min for polarity plot
             else:
                 df_mag_pol = []
             
@@ -462,7 +463,7 @@ def make_plot(options):
         if av_mag > 0 and av_mag <= 1.5:
             print("WI_K0_3DP native cadence is 1.5 min, so no averaging was applied.")
         if isinstance(df_solwind, pd.DataFrame) and av_mag > 1.5:
-            df_vsw = resample_df(df_solwind, str(60 * av_mag) + "s")
+            df_vsw = resample_df(df_solwind, str(60 * av_mag) + "s", cols_unc=[])
         else:
             df_vsw = df_solwind
 
@@ -471,12 +472,12 @@ def make_plot(options):
         if av_sep > 0 and av_sep <= 0.2:
             print("Wind/3DP native cadence is 12 s, so no averaging was applied.")
         if isinstance(edic_, pd.DataFrame) and av_sep > 0.2:
-            edic = resample_df(edic_, str(60 * av_sep) + "s")
+            edic = resample_df(edic_, str(60 * av_sep) + "s", cols_unc=[])
         else:
             edic = edic_
 
         if isinstance(pdic_, pd.DataFrame) and av_sep > 0.2:
-            pdic = resample_df(pdic_, str(60 * av_sep) + "s")
+            pdic = resample_df(pdic_, str(60 * av_sep) + "s", cols_unc=[])
         else:
             pdic = pdic_
     
@@ -484,7 +485,7 @@ def make_plot(options):
         if av_sep > 0 and av_sep <= 1:
             print("EPHIN native cadence is 1 min, so no averaging was applied.")
         if isinstance(ephin_, pd.DataFrame) and av_sep > 1:
-            ephin = resample_df(ephin_, str(60 * av_sep) + "s")
+            ephin = resample_df(ephin_, str(60 * av_sep) + "s", cols_unc=[])
         else:
             ephin = ephin_
 
@@ -492,19 +493,19 @@ def make_plot(options):
         if av_erne > 0 and av_erne <= 1:
             print("ERNE native cadence is 1 min, so no averaging was applied.")
         if isinstance(erne_p_, pd.DataFrame) and av_erne > 1:
-            erne_p = resample_df(erne_p_, str(60 * av_erne) + "s")
+            erne_p = resample_df(erne_p_, str(60 * av_erne) + "s", cols_unc=[])
         else:
             erne_p = erne_p_
 
     if options.goes.value:
         if isinstance(df_goes_, pd.DataFrame) and av_stixgoes > 0:
-            df_goes = resample_df(df_goes_, str(60 * av_stixgoes) + "s")
+            df_goes = resample_df(df_goes_, str(60 * av_stixgoes) + "s", cols_unc=[])
         else:
             df_goes = df_goes_
         
     if options.stix.value:
         if isinstance(df_stix_, pd.DataFrame) and av_stixgoes > 0:
-            df_stix = resample_df(df_stix_, str(60 * av_stixgoes) + "s")
+            df_stix = resample_df(df_stix_, str(60 * av_stixgoes) + "s", cols_unc=[])
         else:
             df_stix = df_stix_
 
@@ -734,10 +735,10 @@ def make_plot(options):
                         '-k', label="Bulk speed")
         axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km s$^{-1}$]", fontsize=font_ylabel)
         i += 1
-            
+
+    add_watermark(fig, scaling=0.7, alpha=0.5, zorder=-1)
+
     if options.showplot:
         plt.show()
 
     return fig, axs
-
-

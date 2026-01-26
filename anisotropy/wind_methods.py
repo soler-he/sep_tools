@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import pandas as pd
+import warnings
 from seppy.loader.wind import wind3dp_load
 # from pandas.tseries.frequencies import to_offset
 # from numba import njit, prange
@@ -24,8 +25,8 @@ def wind_download_and_prepare(instrument, startdate, enddate, path, averaging, s
 
     df_omni, meta_omni = wind3dp_load(dataset1, startdate, enddate, resample=averaging, path=path, multi_index=False)
     df_angle, meta_angle = wind3dp_load(dataset2, startdate, enddate, resample=averaging, path=path)
-   
-    en_ch_df = pd.DataFrame({'energy':meta_angle['channels_dict_df']['Bins_Text'].values})
+
+    en_ch_df = pd.DataFrame({'energy': meta_angle['channels_dict_df']['Bins_Text'].values})
     en_ch_df.index.names = ['channel']
     en_ch_df.to_csv(f'anisotropy/channels_Wind_{instrument}_{species}.csv')
 

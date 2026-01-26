@@ -17,6 +17,7 @@ from sunpy.coordinates import frames
 
 
 from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs, cdaweb_download_fido
+from multi_sc_plots import add_watermark
 
 
 # define some plot settings
@@ -305,7 +306,7 @@ def make_plot(options):
     if options.ster_sept_e.value == True:
         if isinstance(df_sept_electrons_orig, pd.DataFrame):
             if resample > 1:
-                df_sept_electrons = resample_df(df_sept_electrons_orig, str(60 * resample) + "s")
+                df_sept_electrons = resample_df(df_sept_electrons_orig, str(60 * resample) + "s", cols_unc=[])
             else:
                 print("SEPT native cadence is 1 min, so no averaging was applied.")
                 df_sept_electrons = df_sept_electrons_orig
@@ -315,7 +316,7 @@ def make_plot(options):
     if options.ster_sept_p.value == True:
         if isinstance(df_sept_protons_orig, pd.DataFrame):
             if resample > 1:
-                df_sept_protons = resample_df(df_sept_protons_orig, str(60 * resample) + "s")
+                df_sept_protons = resample_df(df_sept_protons_orig, str(60 * resample) + "s", cols_unc=[])
             else:
                 print("SEPT native cadence is 1 min, so no averaging was applied.")
                 df_sept_protons = df_sept_protons_orig
@@ -325,7 +326,7 @@ def make_plot(options):
     if options.ster_het_e.value or options.ster_het_p.value:
         if isinstance(df_het_orig, pd.DataFrame):
             if resample > 1:
-                df_het = resample_df(df_het_orig, str(60 * resample) + "s") 
+                df_het = resample_df(df_het_orig, str(60 * resample) + "s", cols_unc=[])
             else:
                 print("HET native cadence is 1 min, so no averaging was applied.")
                 df_het = df_het_orig
@@ -336,7 +337,7 @@ def make_plot(options):
     if options.Vsw.value or options.N.value or options.T.value or options.polarity.value:
         if isinstance(df_magplasma, pd.DataFrame):
             if resample > 1:
-                df_magplas = resample_df(df_magplasma, str(60 * resample_mag) + "s")
+                df_magplas = resample_df(df_magplasma, str(60 * resample_mag) + "s", cols_unc=[])
             else:
                 print("MAGPLASMA native cadence is 1 min, so no averaging was applied.")
                 df_magplas = df_magplasma
@@ -346,21 +347,21 @@ def make_plot(options):
     if options.mag.value or options.mag_angles.value:
         if isinstance(df_mag_orig, pd.DataFrame):
             if resample == 0:
-                df_mag = resample_df(df_mag_orig, "5s") # high cadence, resample to ease load
+                df_mag = resample_df(df_mag_orig, "5s", cols_unc=[])  # high cadence, resample to ease load
             else:
-                df_mag = resample_df(df_mag_orig, str(60 * resample_mag) + "s")
+                df_mag = resample_df(df_mag_orig, str(60 * resample_mag) + "s", cols_unc=[])
         else:
             df_mag = df_mag_orig
 
     if options.goes.value == True:
         if isinstance(df_goes_, pd.DataFrame) and resample_stixgoes > 0:
-            df_goes = resample_df(df_goes_, str(60 * resample_stixgoes) + "s")
+            df_goes = resample_df(df_goes_, str(60 * resample_stixgoes) + "s", cols_unc=[])
         else:
             df_goes = df_goes_
         
     if options.stix.value == True:
         if isinstance(df_stix_, pd.DataFrame) and resample_stixgoes > 0:
-            df_stix = resample_df(df_stix_, str(60 * resample_stixgoes) + "s")
+            df_stix = resample_df(df_stix_, str(60 * resample_stixgoes) + "s", cols_unc=[])
         else:
             df_stix = df_stix_
 
@@ -590,9 +591,10 @@ def make_plot(options):
                         '-k', label="Bulk speed")
         axs[i].set_ylabel(r"V$_\mathrm{sw}$ [km s$^{-1}$]", fontsize=font_ylabel)
         #i += 1
-        
+
+    add_watermark(fig, scaling=0.7, alpha=0.5, zorder=-1)
+
     if options.showplot:
         plt.show()
         
     return fig, axs
-

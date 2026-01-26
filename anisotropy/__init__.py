@@ -76,6 +76,7 @@ def run_SEPevent(path, spacecraft_instrument, starttime, endtime, species, bg_st
 
     return event
 
+
 def print_available_channels(spacecraft_instrument):
     if spacecraft_instrument == 'Solar Orbiter EPT':
         spacecraft = 'Solar Orbiter'.replace(' ', '_')
@@ -104,6 +105,7 @@ def print_available_channels(spacecraft_instrument):
     print('Electrons:')
     print(en_ch_df_e.to_string(index=False))
     return None
+
 
 def initial_checks(spacecraft, specieschannel, instrument, species, channels, starttime, endtime, averaging):
     sc = check_spacecraft(spacecraft)
