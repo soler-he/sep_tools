@@ -4,7 +4,7 @@ jupyter
 lmfit
 numba
 numpy
-pandas<3.0.0  # TODO: Remove upper limit when compatibility is confirmed
+pandas
 piecewise_regression
 pillow>=11.0.0
 git+https://github.com/Christian-Palmroos/PyOnset/
