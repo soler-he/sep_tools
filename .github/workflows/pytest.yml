@@ -33,7 +33,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8 nbmake pytest pytest-doctestplus pytest-cov pytest-mpl pytest-xdist pytest-split
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        pip freeze > /home/runner/work/sep_tools/tests_report/${{ matrix.python-version }}-${{ matrix.group }}_pip_freeze.txt
+        pip freeze > ${{ matrix.python-version }}-${{ matrix.group }}_pip_freeze.txt
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -53,4 +53,6 @@ jobs:
       uses: actions/upload-artifact@v6
       with:
         name: ${{ matrix.python-version }}-${{ matrix.group }}-pytest-mpl-report-artifact
-        path: "/home/runner/work/sep_tools/tests_report/"
+        path: |
+          ${{ matrix.python-version }}-${{ matrix.group }}_pip_freeze.txt
+          /home/runner/work/sep_tools/tests_report/
