@@ -4,7 +4,7 @@ jupyter
 lmfit
 numba
 numpy
-pandas
+pandas<3.0.0  # TODO: Remove upper bound when pandas 3.0.0 is compatible with regression onset tool
 piecewise_regression
 pillow>=11.0.0
 git+https://github.com/Christian-Palmroos/PyOnset/
