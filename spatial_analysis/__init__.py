@@ -2,6 +2,7 @@ import os
 import datetime as dt
 import numpy as np
 import pandas as pd
+from copy import deepcopy
 
 from scipy.optimize import curve_fit, OptimizeWarning
 from scipy import odr
@@ -16,6 +17,8 @@ from IPython.display import display, Image
 #from sunpy.time import parse_time
 import astropy.constants as aconst
 import astropy.units as u
+import speasy as spz
+from sunpy.coordinates import get_horizons_coord
 
 from seppy.loader.psp import psp_isois_load
 from seppy.loader.soho import soho_load
@@ -170,16 +173,16 @@ class SpatialEvent:
         display(self.sm_data_short)
 
     def _load_solarmach_loop(self): # Step 5.1 or 6.2 or 7.1
-        """Download the solarmach data for the time period."""
+        """Download the location data for the time period."""
         if np.isnan(self.reference):
             self._get_reference_point()
         
-        self.sm_data = solarmach_loop(observers = self.spacecraft_list,
-                                      dates = [self.start, self.end],
-                                      data_path = self.out_path,
-                                      resampling = self.resampling,
-                                      source_loc = self.reference,
-                                      vsw_list = self.vsw_list)
+        self.sm_data = horizons_speasy_location_loader(observers = self.spacecraft_list,
+                                                       dates = [self.start, self.end],
+                                                       data_path = self.out_path,
+                                                       resampling = self.resampling,
+                                                       source_loc = self.reference,
+                                                       vsw_list = self.vsw_list)
 
         # Merge the sc data to the sm data
         if len(self.sc_data_ic) != 0:
@@ -356,6 +359,7 @@ class SpatialEvent:
             plot_timeseries_result(scdata, self.out_path, [self.start, self.end], self.channel_labels, bg_zone)
         else:
             print("Please run '*.load_spacecraft_data()' first.")
+            return None, None
 
     # Gaussian Fitting
     def _get_peak_fits(self, scdata, window_length=10): # Step 6.1 or 7.2
@@ -415,7 +419,8 @@ class SpatialEvent:
         if len(self.sc_data_rs.get('Gauss')) == 0:
             self.calc_Gaussian_fit()
 
-        plot_gauss_fits_timeseries(self.sc_data_rs, self.out_path, self.start, self.reference, self.channel_labels, self.flare_loc)
+        fig, ax = plot_gauss_fits_timeseries(self.sc_data_rs, self.out_path, self.start, self.reference, self.channel_labels, self.flare_loc)
+        return fig, ax
         
 
     def save_df_to_csv(self, label=''):
@@ -450,7 +455,136 @@ class SpatialEvent:
 
 
 
-## Solar mach
+## Observer Location data loader
+def horizons_speasy_location_loader(observers, dates, data_path, resampling, source_loc, vsw_list=[]):
+    """Downloading data from sunpy and speasy, similar to SolarMACH but a full time period is loaded for each observer.
+    
+    NB if any NaNs are present, then they do remain and we do not currently try to fill the gap."""
+    filename = f"SpacecraftLocationData_{dates[0].strftime('%d%m%Y')}.csv"
+
+    if filename in os.listdir(data_path):
+        print("The positional data is already downloaded, would you like to use this data (y) or redownload the data if settings have changed.")
+        if input("Yes (y) or no (press enter)").lower() in ['yes','y']:
+            sm_loop = pd.read_csv(data_path+filename, 
+                                  index_col=0, header=[0,1],
+                                  parse_dates=True, na_values='nan')
+            return sm_loop
+
+    # Set up the start and end times
+    ## Use 2 hours before given flare start time for background if needed
+    start = dt.datetime(dates[0].year, dates[0].month, dates[0].day, dates[0].hour, 0) - dt.timedelta(hours=2) 
+    end = dates[1]
+
+    # Create the dictionary to store horizons coords
+    hc_dict = {}
+
+    # Gather solar wind speeds
+    if len(vsw_list) == 0: # empty list
+        amda_tree = spz.inventories.data_tree.amda
+        cda_tree = spz.inventories.data_tree.cda
+
+        #Download vsw for each observer; convert to df with time index; resample to 15min; add to dict
+        if 'PSP' in observers:
+            vswd = amda_tree.Parameters.PSP.SWEAP_SPC.psp_spc_mom.psp_spc_vp_mom_nrm
+            vswdf = spz.get_data(vswd, start, end, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
+            vsw_df = vswdf.resample(resampling).mean()
+            vsw_df.rename(columns={'|vp_mom|':'vsw'}, inplace=True)
+            hc_dict['PSP'] = vsw_df
+
+        if 'SOHO' in observers:
+            vswd = cda_tree.SOHO.CELIAS_PM.SOHO_CELIAS_PM_5MIN.V_p
+            vswdf = spz.get_data(vswd, start, end).replace_fillval_by_nan().to_dataframe()
+            vsw_df = vswdf.resample(resampling).mean()
+            vsw_df.rename(columns={'Proton V':'vsw'}, inplace=True)
+            hc_dict['SOHO'] = vsw_df
+
+        if 'Solar Orbiter' in observers:
+            vswd = amda_tree.Parameters.SolarOrbiter.SWAPAS.L2.so_pas_momgr1.pas_momgr1_v_rtn_tot
+            vswdf = spz.get_data(vswd, start, end, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
+            vsw_df = vswdf.resample(resampling).mean()
+            vsw_df.rename(columns={'|v_rtn|':'vsw'}, inplace=True)
+            hc_dict['Solar Orbiter'] = vsw_df
+
+        if 'STEREO A' in observers:
+            vswd = amda_tree.Parameters.STEREO.STEREO_A.PLASTIC.sta_l2_pla.vpbulk_sta
+            vswdf = spz.get_data(vswd, start, end, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
+            vsw_df = vswdf.resample(resampling).mean()
+            vsw_df.rename(columns={'|v|':'vsw'}, inplace=True)
+            hc_dict['STEREO A'] = vsw_df
+
+        if 'Wind' in observers:
+            vswd = amda_tree.Parameters.Wind.SWE.wnd_swe_kp.wnd_swe_vmag
+            vswdf = spz.get_data(vswd, start, end, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
+            vsw_df = vswdf.resample(resampling).mean()
+            vsw_df.rename(columns={'|v|':'vsw'}, inplace=True)
+            hc_dict['Wind'] = vsw_df
+
+    else:
+        # Given values for vsw, assign to each observer
+        time_range = pd.date_range(start=start, end=end, freq=resampling)
+        vsw_list_range = [vsw_list[0]] * len(time_range)
+        vsw_df = pd.DataFrame(data={'vsw':vsw_list_range}, index=time_range)
+
+        # Same vsw df gets assigned to each observer
+        for obs in observers:
+            hc_dict[obs] = vsw_df
+
+    # Download coordinate data
+    for obs in observers:
+        vsw_df = hc_dict[obs]
+        if 'STEREO A' == obs:
+            scl = 'STEREO-A'
+        else:
+            scl = obs
+
+        loc_data = get_horizons_coord(scl, time={'start':start,
+                                                 'stop':end,
+                                                 'step':resampling})
+        # Convert to df
+        loc_df = pd.DataFrame(list(zip(loc_data.lon.value, loc_data.lat.value, loc_data.radius.value)),
+                              columns=['long','lat','r_dist'])
+        loc_df.index = pd.to_datetime(loc_data.obstime, format="%Y-%m-%dT%H:%M:%S.%f")
+
+        # Concatenate both dfs
+        df = pd.concat([vsw_df, loc_df], axis=1, join='outer') # along time index; keep all rows
+
+        # Update the dict
+        hc_dict[obs] = df
+
+    # Calculate footpoint data with errors
+    for obs in observers:
+        print(obs)
+        hdf1 = hc_dict[obs]
+        print(hdf1)
+
+        ftlng_arr, fl_err_arr, sep_arr = ([] for i in range(3))
+        for tt in hdf1.index:
+            footlng = move_along_parker_spiral(hdf1.loc[tt,'r_dist'],
+                                               [hdf1.loc[tt,'long'], hdf1.loc[tt,'lat']],
+                                               hdf1.loc[tt,'vsw'],
+                                               towards=True, err_calc=True)
+            ftlng_arr.append(footlng[0]) # footpoint longitude
+            fl_err_arr.append(footlng[1]) # footpoint longitude error
+            sep_arr.append(footlng[0]-source_loc) # footpoint distance to flare
+
+        hdf1['foot_long'] = ftlng_arr
+        hdf1['foot_long_error'] = fl_err_arr
+        hdf1['long_sep'] = sep_arr
+
+        hc_dict[obs] = hdf1
+
+    # Return df with double headers
+    df2 = pd.concat(hc_dict, axis=1, join='outer')
+    print(df2)
+
+    # Save to csv for easy access later
+    df2.to_csv(data_path+filename, na_rep='nan')
+            
+
+    return df2
+
+    
+# Solar-MACH looping function out of use. Kept for archiving purposes.
 def solarmach_loop(observers, dates, data_path, resampling, source_loc, vsw_list=[], coord_sys='Stonyhurst'):
     """Downloads the fleet location data between the given dates with the
         given 'resampling' interval."""
@@ -1600,7 +1734,22 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
 
 
 
+def copy_fig_axs(fig): # Taken from multi_inst_plots
+    """
+    Copy Figure and Axes objects (to make modifications easier).
 
+    Args:
+        fig (matplotlib.Figure): figure object
+
+    Returns:
+        tuple: tuple (matplotlib.Figure, matplotlib.Axes) of copied figure and axes
+
+    """
+    fig_copy = deepcopy(fig)
+    fig_copy.set_dpi(300)
+    axs_copy = fig_copy.get_axes()
+
+    return fig_copy, axs_copy
 
 
 
@@ -1671,3 +1820,7 @@ def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, fl
 
     plt.savefig(f"{data_path}Spatial_TimeProfiles_Intensity-Gauss.png", bbox_inches='tight')
     plt.show()
+
+    fig_copy, ax_copy = copy_fig_axs(fig)
+
+    return fig_copy, ax_copy
