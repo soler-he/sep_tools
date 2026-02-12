@@ -364,7 +364,7 @@ def load_data(options):
             sw_data = TimeSeries(files, concatenate=True)
             df_solwind = sw_data.to_dataframe()
             df_solwind['vsw'] = np.sqrt(df_solwind['ion_vel_0']**2 + df_solwind['ion_vel_1']**2 + df_solwind['ion_vel_2']**2)
-            df_solwind['ion_temp'] = df_solwind['ion_temp'] * e / k_B   # Kelvin
+            df_solwind['ion_temp'] = df_solwind['ion_temp'] * e.si / k_B   # Kelvin
             df_solwind['p_dyn'] = m_p * df_solwind['ion_density'] * 1e6 * (df_solwind['vsw'] * 1e3)**2 * 1e9    # nPa
         except IndexError:
             print(f"Unable to obtain WI_K0_3DP data for {startdate} - {enddate}!")
