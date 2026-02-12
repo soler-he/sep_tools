@@ -27,7 +27,8 @@ pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-gene
 # @pytest.mark.filterwarnings("ignore::UserWarning:seppy")
 # @pytest.mark.filterwarnings("ignore::UserWarning:solo_epd_loader")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-def test_SEP_Spatial_Distribution(obs_vsw, resampling, process_background_subtraction, process_intercalibration, process_radial_scaling):
+def test_SEP_Spatial_Distribution(obs_vsw, resampling, process_background_subtraction, process_intercalibration, process_radial_scaling,
+                                  monkeypatch):
     # Event date and location
     startdate = dt.datetime(2021, 5, 28, 22, 19)
     enddate = startdate + dt.timedelta(days=1, hours=12)
@@ -99,6 +100,8 @@ def test_SEP_Spatial_Distribution(obs_vsw, resampling, process_background_subtra
     # process_radial_scaling = True
 
     radscaling_values = [2.14, 0.26]  # Values must be provided
+
+    monkeypatch.setattr('builtins.input', lambda _: "n")
 
     solar_event.radial_scale(radial_scaling_factors=radscaling_values,
                              perform_process=process_radial_scaling)
