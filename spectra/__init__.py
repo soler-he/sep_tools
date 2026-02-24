@@ -518,14 +518,14 @@ class Event:
                 dt = df_fluxes_ind.index.to_series().diff()
                 most_common_dt = dt.mode().iloc[0]
                 integration_sec = most_common_dt.total_seconds()
-                nonan_points_per_channel = df_fluxes_ind.count()
-                integration_time_per_channel = integration_sec * nonan_points_per_channel.values
+                # nonan_points_per_channel = df_fluxes_ind.count()
+                # total_integration_time_per_channel = integration_sec * nonan_points_per_channel.values
 
                 if self.spacecraft.lower() == 'wind':
-                    I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)*1e6 * integration_time_per_channel
-                    unc_spec = np.zeros(len(I_spec))*np.nan  # * integration_time_per_channel
+                    I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)*1e6 * integration_sec
+                    unc_spec = np.zeros(len(I_spec))*np.nan  # * integration_sec
                 else:
-                    I_spec = np.nansum(df_fluxes.iloc[ind], axis=0) * integration_time_per_channel
+                    I_spec = np.nansum(df_fluxes.iloc[ind], axis=0) * integration_sec
                     # For PSP, remove asymmetric uncertainties like A_H_Uncertainty_Minus_0 & A_H_Uncertainty_Plus_0 for now
                     if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
                         for col in ['Minus', 'Plus']:
@@ -533,14 +533,18 @@ class Event:
                                 df_uncs = df_uncs[df_uncs.columns.drop([i for i in df_uncs.columns if col in i])]
                             except KeyError:
                                 pass
-                    unc_spec = np.nansum(df_uncs.iloc[ind], axis=0) * integration_time_per_channel
+                    # unc_spec =       np.nansum(df_uncs.iloc[ind],    axis=0) * integration_sec  # old implementation
+                    unc_spec = np.sqrt(np.nansum(df_uncs.iloc[ind]**2, axis=0) * integration_sec)
             else:  # if dataframe is empty (can happen for slices when bigger datagaps are present)
                 I_spec = np.zeros(len(self.spec_E))*np.nan
                 unc_spec = np.zeros(len(self.spec_E))*np.nan
 
+            if subtract_background:
+                raise NotImplementedError("Background subtraction for integral spectra is not implemented yet! Please set subtract_background=False for now.")
+
             if (subtract_background) and (not np.all(np.isnan(I_spec))):    # here we use the original (non-resampled) data
                 ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
-                bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
+                bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)  # TODO: 1. background mean von jeder einzelnen messung abziehen bevor I_spec berechnet wird!
 
                 self.final_spec = I_spec - bg_spec
 
@@ -550,7 +554,7 @@ class Event:
                     # bg_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)  # !!! check if implemented correctly
                     bg_unc_spec = self.sqrt_sum_squares(df_uncs.iloc[ind_bg])  # TODO: import from seppy.util
                     # unc_spec = np.nanmax(df_uncs.iloc[ind_bg], axis=0)
-                    self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)
+                    self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)  # TODO: bei todo 1 analog wie hier den fehler pro messung berechnen
             else:
                 self.final_spec = I_spec
                 self.final_unc = unc_spec
