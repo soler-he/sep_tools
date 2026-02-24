@@ -539,9 +539,12 @@ class Event:
                 I_spec = np.zeros(len(self.spec_E))*np.nan
                 unc_spec = np.zeros(len(self.spec_E))*np.nan
 
+            if subtract_background:
+                raise NotImplementedError("Background subtraction for integral spectra is not implemented yet! Please set subtract_background=False for now.")
+
             if (subtract_background) and (not np.all(np.isnan(I_spec))):    # here we use the original (non-resampled) data
                 ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
-                bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
+                bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)  # TODO: 1. background mean von jeder einzelnen messung abziehen bevor I_spec berechnet wird!
 
                 self.final_spec = I_spec - bg_spec
 
@@ -551,7 +554,7 @@ class Event:
                     # bg_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)  # !!! check if implemented correctly
                     bg_unc_spec = self.sqrt_sum_squares(df_uncs.iloc[ind_bg])  # TODO: import from seppy.util
                     # unc_spec = np.nanmax(df_uncs.iloc[ind_bg], axis=0)
-                    self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)
+                    self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)  # TODO: bei todo 1 analog wie hier den fehler pro messung berechnen
             else:
                 self.final_spec = I_spec
                 self.final_unc = unc_spec
