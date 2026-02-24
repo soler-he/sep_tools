@@ -518,14 +518,14 @@ class Event:
                 dt = df_fluxes_ind.index.to_series().diff()
                 most_common_dt = dt.mode().iloc[0]
                 integration_sec = most_common_dt.total_seconds()
-                nonan_points_per_channel = df_fluxes_ind.count()
-                integration_time_per_channel = integration_sec * nonan_points_per_channel.values
+                # nonan_points_per_channel = df_fluxes_ind.count()
+                # total_integration_time_per_channel = integration_sec * nonan_points_per_channel.values
 
                 if self.spacecraft.lower() == 'wind':
-                    I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)*1e6 * integration_time_per_channel
-                    unc_spec = np.zeros(len(I_spec))*np.nan  # * integration_time_per_channel
+                    I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)*1e6 * integration_sec
+                    unc_spec = np.zeros(len(I_spec))*np.nan  # * integration_sec
                 else:
-                    I_spec = np.nansum(df_fluxes.iloc[ind], axis=0) * integration_time_per_channel
+                    I_spec = np.nansum(df_fluxes.iloc[ind], axis=0) * integration_sec
                     # For PSP, remove asymmetric uncertainties like A_H_Uncertainty_Minus_0 & A_H_Uncertainty_Plus_0 for now
                     if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
                         for col in ['Minus', 'Plus']:
@@ -533,7 +533,8 @@ class Event:
                                 df_uncs = df_uncs[df_uncs.columns.drop([i for i in df_uncs.columns if col in i])]
                             except KeyError:
                                 pass
-                    unc_spec = np.nansum(df_uncs.iloc[ind], axis=0) * integration_time_per_channel
+                    # unc_spec =       np.nansum(df_uncs.iloc[ind],    axis=0) * integration_sec  # old implementation
+                    unc_spec = np.sqrt(np.nansum(df_uncs.iloc[ind]**2, axis=0) * integration_sec)
             else:  # if dataframe is empty (can happen for slices when bigger datagaps are present)
                 I_spec = np.zeros(len(self.spec_E))*np.nan
                 unc_spec = np.zeros(len(self.spec_E))*np.nan
