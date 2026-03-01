@@ -50,7 +50,7 @@ jobs:
 
     - name: Save pytest-mpl report and pip freeze as artifcat
       if: always()
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.python-version }}-${{ matrix.group }}-pytest-mpl-report-artifact
         path: |
