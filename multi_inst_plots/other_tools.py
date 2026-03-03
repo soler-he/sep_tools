@@ -171,7 +171,7 @@ def load_solo_stix(start, end, ltc=True, resample=None):
         df_stix = lc.to_pandas()
 
         if resample != "0min" and resample is not None:
-            df_stix = resample_df(df_stix, resample=resample, pos_timestamp=None)
+            df_stix = resample_df(df_stix, resample=resample, pos_timestamp=None, cols_unc=[])
 
     except (TypeError, KeyError):
         print("Unable to load STIX data!")
@@ -273,7 +273,7 @@ def load_goes_xrs(start, end, man_select=False, resample=None, path=None):
     df_goes = df_goes[(df_goes['xrsa_quality'] == 0) | (df_goes['xrsb_quality'] == 0)]     
 
     # if resample != "0min" and resample is not None:
-    #     df_goes = resample_df(df_goes, resample=resample)
+    #     df_goes = resample_df(df_goes, resample=resample, cols_unc=[])
 
     return df_goes, sat
     

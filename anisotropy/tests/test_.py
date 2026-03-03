@@ -13,7 +13,7 @@ To create/update the baseline images, run the following command from the base pa
 pytest --mpl-generate-path=anisotropy/tests/baseline anisotropy/tests/test_.py
 
 To run the tests locally, go to the base directory of the repository and run:
-pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html
+pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html --mpl-results-path='tests_report/' --durations=0 anisotropy/tests/test_.py
 """
 
 

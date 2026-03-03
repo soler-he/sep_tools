@@ -90,9 +90,9 @@ species_drop = widgets.Dropdown(options=species_dict[(spacecraft_drop.value, sen
 
 
 level_drop = widgets.Dropdown(options=level_dict[(spacecraft_drop.value, sensor_drop.value)],
-                                description="Data level:",
-                                disabled=False,
-                                )
+                              description="Data level:",
+                              disabled=False,
+                              )
 
 
 def update_sensor_options(val):

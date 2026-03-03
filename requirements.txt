@@ -4,17 +4,17 @@ jupyter
 lmfit
 numba
 numpy
-pandas
+pandas<3.0.0  # TODO: Remove upper bound when pandas 3.0.0 is compatible with regression onset tool
 piecewise_regression
 pillow>=11.0.0
 git+https://github.com/Christian-Palmroos/PyOnset/
 pyspedas
 scipy
-seppy>=0.4.2
+seppy>=0.4.3
 solarmach>=0.5.2
-solo-epd-loader>=0.4.3
+solo-epd-loader>=0.4.4
 speasy>=1.5.2
-statsmodels>=0.14.5
+statsmodels>=0.14.6
 stixdcpy
 sunpy
 sunpy_soar
