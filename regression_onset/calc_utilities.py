@@ -49,12 +49,19 @@ def add_ordinal_numbers(df:pd.DataFrame):
 def produce_index_numbers(df:pd.DataFrame):
     # Work on a copy to not alter the original one
     df = df.copy(deep=True)
-    #index_numbers = df.index.strftime("%s")
+
+    # Check the precision of the timestamps; for consistency, force 
+    # nanosecond precision on all timestamps
+    if df.index.dtype != "datetime64[ns]":
+        index_numbers = pd.DatetimeIndex(df.index, dtype="datetime64[ns]")
+        index_numbers = index_numbers.astype(np.int64) // 1e9
+    else:
     # pd.Timedelta(seconds=(timestamp_dt.timestamp() - float(timestamp_dt.strftime("%s")))) == Timedelta(0 days, 02:00:00)
     # It seems strftime("%s") shows time 2 hours behind real POSIX time, for reason related to timezone differences between
     # my local timezone (UTC+2 at the moment) and that of UTC time.
     # Instead, utilize DatetimeIndex.astype(int) to get total nanoseconds after the EPOCH in UTC.
-    index_numbers = df.index.astype(np.int64) // 1e9
+        index_numbers = df.index.astype(np.int64) // 1e9
+
     df[INDEX_NUMBER_COL_NAME] = index_numbers.astype(int)
     return df
 
