@@ -1,5 +1,7 @@
 import numpy as np
+import os
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 import pandas as pd
 
 
@@ -20,6 +22,9 @@ from astropy.constants import e, k_B, m_p
 from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
 from multi_sc_plots import add_watermark
 
+# disable unused speasy data provider before importing to speed it up
+os.environ['SPEASY_CORE_DISABLED_PROVIDERS'] = "sscweb,archive,csa"
+import speasy as spz
 
 # import warnings
 # warnings.filterwarnings('ignore')
@@ -68,75 +73,6 @@ def swa_load_grnd_mom(startdate, enddate, path=None):
     df_solo_swa = solo_swa.to_dataframe()
     return df_solo_swa
 
-# def rpw_load_radio(startdate, enddate, freq, path=None):
-#     """
-#     Parameters
-#     ----------
-#     startdate: dt.datetime 
-#     enddate: dt.datetime
-#     freq: str
-#         TNR or HFR
-#     path: str
-#     """
-#     dl = ParfiveDownloader()
-    
-#     timerange = TimeRange(startdate, enddate)
-
-#     try:
-#         from packaging.version import Version
-#         if hasattr(sunpy, "__version__") and Version(sunpy.__version__) >= Version("6.1.0"):
-#             pattern = ("https://spdf.gsfc.nasa.gov/pub/data/solar-orbiter/rpw/science/l2/{freq}-surv/{{year:4d}}/solo_l2_rpw-{freq}-surv_{{year:4d}}{{month:2d}}{{day:2d}}_v{version}.cdf")
-
-#             scrap = Scraper(format=pattern, freq=freq.lower(), version="{:2d}") 
-#         else:
-#             pattern = "https://spdf.gsfc.nasa.gov/pub/data/solar-orbiter/rpw/science/l2/{freq}-surv/%Y/solo_l2_rpw-{freq}-surv_%Y%m%d_v{version}.cdf"
- 
-#             scrap = Scraper(pattern=pattern, freq=freq.lower(), version="v\\d{2}")  # regex matching "v{any digit}{any digit}""
-        
-        
-#         filelist_urls = scrap.filelist(timerange=timerange)
-
-#         filelist_urls.sort()
-
-#         # After sorting, any multiple versions are next to each other in ascending order.
-#         # If there are files with same dates, assume multiple versions -> pop the first one and repeat.
-#         # Should end up with a list with highest version numbers. Magic number -7 is the index where 
-#         # version number starts
-
-#         i = 0
-#         while i < len(filelist_urls) - 1:
-#             if filelist_urls[i+1][:-7] == filelist_urls[i][:-7]:
-#                 filelist_urls.pop(i)
-#             else:
-#                 i += 1
-
-#         filelist = [url.split('/')[-1] for url in filelist_urls]
-
-#         if path is None:
-#             filelist = [sunpy.config.get('downloads', 'download_dir') + os.sep + file for file in filelist]
-#         elif type(path) is str:
-#             filelist = [path + os.sep + f for f in filelist]
-#         downloaded_files = filelist
-
-#         # Check if file with same name already exists in path
-#         for url, f in zip(filelist_urls, filelist):
-#             if os.path.exists(f) and os.path.getsize(f) == 0:
-#                 os.remove(f)
-#             if not os.path.exists(f):
-#                 dl.download(url=url, path=f)
-
-
-#         rpw = TimeSeries(downloaded_files, concatenate=True)
-#         df_rpw = rpw.to_dataframe()
-
-
-#     except (RuntimeError, IndexError):
-#         print(f'Unable to obtain SolO RPW-{freq} data for {startdate}-{enddate}!')
-#         df_rpw = []
-        
-#     return df_rpw
-
-
 
 def load_data(options):
     data = {}
@@ -145,6 +81,8 @@ def load_data(options):
     startdate = options.startdt
     enddate = options.enddt
 
+    global solo_rpw_hfr_psd
+    global solo_rpw_tnr_psd
     global df_ept_org
     global metadata_ept
     global electrons_het
@@ -177,7 +115,7 @@ def load_data(options):
     dataset_num = (options.solo_ept_e.value or options.solo_ept_p.value) + (options.solo_het_e.value or options.solo_het_p.value) \
                  + (options.mag.value or options.mag_angles.value) \
                 + (options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value) \
-                + options.stix.value + options.goes.value # + options.radio.value TODO
+                + options.stix.value + options.goes.value + options.radio.value
 
     dataset_index = 1
 
@@ -220,12 +158,6 @@ def load_data(options):
         metadata["het_energies"] = energies_het
 
         dataset_index += 1
-        
-
-    # if plot_radio:
-    #     df_rpw_hfr = rpw_load_radio(startdate=startdate, enddate=enddate, freq="HFR", path=path)
-    #     df_rpw_tnr = rpw_load_radio(startdate=startdate, enddate=enddate, freq="TNR", path=path)
-
 
     if options.stix.value == True:
         print(f"Loading STIX... (dataset {dataset_index}/{dataset_num})")
@@ -242,6 +174,59 @@ def load_data(options):
 
         dataset_index += 1
 
+    if options.radio.value:
+        print(f"Loading SolO/RPW... (dataset {dataset_index}/{dataset_num})")
+
+        try:
+            solo_l3_rpw_hfr_surv_flux = spz.get_data(spz.inventories.data_tree.cda.Solar_Orbiter.SOLO.RPW_HFR_SURV_FLUX.SOLO_L3_RPW_HFR_SURV_FLUX.PSD_SFU,
+                                                     startdate, enddate).replace_fillval_by_nan()
+
+            # Get frequency (MHz) bins, since metadata is lost upon conversion to df
+            solo_rpw_hfr_freq = solo_l3_rpw_hfr_surv_flux.axes[1].values / 1e6
+
+            solo_rpw_hfr_psd = solo_l3_rpw_hfr_surv_flux.to_dataframe()
+
+            # put frequencies into column names for easier access
+            solo_rpw_hfr_psd.columns = solo_rpw_hfr_freq
+
+            # # Remove bar artifacts caused by non-NaN values before time jumps
+            for i in range(len(solo_rpw_hfr_psd.index) - 1):
+                if (solo_rpw_hfr_psd.index[i+1] - solo_rpw_hfr_psd.index[i]) > np.timedelta64(5, "m"):
+                    solo_rpw_hfr_psd.iloc[i, :] = np.nan
+
+        except (AttributeError, IndexError, ValueError):
+            print("Unable to obtain SolO/RPW L3 data!")
+            solo_rpw_hfr_psd = []
+            solo_rpw_hfr_freq = []
+
+        try:
+            solo_l3_rpw_tnr_surv_flux = spz.get_data(spz.inventories.data_tree.cda.Solar_Orbiter.SOLO.RPW_TNR_SURV_FLUX.SOLO_L3_RPW_TNR_SURV_FLUX.PSD_SFU,
+                                                     startdate, enddate).replace_fillval_by_nan()
+
+            # Get frequency (MHz) bins, since metadata is lost upon conversion to df
+            solo_rpw_tnr_freq = solo_l3_rpw_tnr_surv_flux.axes[1].values / 1e6
+
+            solo_rpw_tnr_psd = solo_l3_rpw_tnr_surv_flux.to_dataframe()
+
+            # put frequencies into column names for easier access
+            solo_rpw_tnr_psd.columns = solo_rpw_tnr_freq
+
+            # # Remove bar artifacts caused by non-NaN values before time jumps
+            for i in range(len(solo_rpw_tnr_psd.index) - 1):
+                if (solo_rpw_tnr_psd.index[i+1] - solo_rpw_tnr_psd.index[i]) > np.timedelta64(5, "m"):
+                    solo_rpw_tnr_psd.iloc[i, :] = np.nan
+
+        except (AttributeError, IndexError, ValueError):
+            print("Unable to obtain SolO/RPW L3 data!")
+            solo_rpw_tnr_psd = []
+            solo_rpw_tnr_freq = []
+
+        data["rpw_hfr"] = solo_rpw_hfr_psd
+        data["rpw_tnr"] = solo_rpw_tnr_psd
+        metadata["rpw_hfr_freq"] = solo_rpw_hfr_freq
+        metadata["rpw_tnr_freq"] = solo_rpw_tnr_freq
+
+        dataset_index += 1
 
     if options.mag.value or options.mag_angles.value or options.polarity.value:
         print(f"Loading MAG... (dataset {dataset_index}/{dataset_num})")
@@ -357,14 +342,15 @@ def make_plot(options):
             df_protons_het = protons_het
 
     if ept_l3:
-        if isinstance(df_ept_org, pd.DataFrame):
-            if resample > 1:
-                df_ept = resample_df(df_ept_org, str(60 * resample) + "s", pos_timestamp=None, cols_unc=[])
+        if options.solo_ept_p.value or options.solo_ept_e.value:
+            if isinstance(df_ept_org, pd.DataFrame):
+                if resample > 1:
+                    df_ept = resample_df(df_ept_org, str(60 * resample) + "s", pos_timestamp=None, cols_unc=[])
+                else:
+                    print("EPT native cadence is 1 min, so no averaging was applied.")
+                    df_ept = df_ept_org
             else:
-                print("EPT native cadence is 1 min, so no averaging was applied.")
                 df_ept = df_ept_org
-        else:
-            df_ept = df_ept_org
 
         if viewing.lower() == 'south':
             view = 'D'
@@ -435,29 +421,30 @@ def make_plot(options):
 
     # # ### Radio
 
-    # if plot_radio:
-    #     vmin, vmax = 500, 1e7
-    #     log_norm = LogNorm(vmin=vmin, vmax=vmax)
+    if options.radio.value:
+        vmin, vmax = 50, 2e6
+        log_norm = LogNorm(vmin=vmin, vmax=vmax)
+        mesh = None
 
-    #     if isinstance(df_rpw_hfr, pd.DataFrame):
-    #         TimeHFR2D, FreqHFR2D = np.meshgrid(df_rpw_hfr.index, df_rpw_hfr.columns, indexing='ij')
-    #         TimeTNR2D, FreqTNR2D = np.meshgrid(df_rpw_tnr.index, df_rpw_tnr.columns, indexing='ij')
+        if isinstance(solo_rpw_tnr_psd, pd.DataFrame):
+            TimeTNR2D, FreqTNR2D = np.meshgrid(solo_rpw_tnr_psd.index, solo_rpw_tnr_psd.columns, indexing='ij')
+            mesh = axs[i].pcolormesh(TimeTNR2D, FreqTNR2D, solo_rpw_tnr_psd.iloc[:-1, :-1], shading='flat', cmap=cmap, norm=log_norm)
 
-    #         # Create colormeshes. Shading option flat and thus the removal of last row and column are there to solve the time jump bar problem, 
-    #         # when resampling isn't used
-    #         mesh = axs[i].pcolormesh(TimeTNR2D, FreqTNR2D, df_rpw_tnr.iloc[:-1,:-1], shading='flat', cmap='jet', norm=log_norm)
-    #         axs[i].pcolormesh(TimeHFR2D, FreqHFR2D, df_rpw_hfr.iloc[:-1,:-1], shading='flat', cmap='jet', norm=log_norm) 
+        if isinstance(solo_rpw_hfr_psd, pd.DataFrame):
+            TimeHFR2D, FreqHFR2D = np.meshgrid(solo_rpw_hfr_psd.index, solo_rpw_hfr_psd.columns, indexing='ij')
+            mesh = axs[i].pcolormesh(TimeHFR2D, FreqHFR2D, solo_rpw_hfr_psd.iloc[:-1, :-1], shading='flat', cmap=cmap, norm=log_norm)
 
-    #         # Add inset axes for colorbar
-    #         axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.05,0,0.03,1), bbox_transform=axs[i].transAxes, borderpad=0.2)
-    #         cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
-    #         cbar.set_label("Intensity (sfu)", rotation=90, labelpad=10, fontsize=font_ylabel)
+        if mesh is not None:
+            # Add inset axes for colorbar
+            axins = inset_axes(axs[i], width="100%", height="100%", loc="center", bbox_to_anchor=(1.01, 0, 0.03, 1), bbox_transform=axs[i].transAxes, borderpad=0.2)
+            cbar = fig.colorbar(mesh, cax=axins, orientation="vertical")
+            cbar.set_label("Intensity [sfu]", rotation=90, labelpad=10, fontsize=font_ylabel)
 
-    #     axs[i].set_yscale('log')
-    #     axs[i].set_ylabel("Frequency (MHz)", fontsize=font_ylabel)
-        
-        
-    #     i += 1
+        # axs[i].set_ylim((1.1e-2, 1.9e1))
+        axs[i].set_yscale('log')
+        axs[i].set_ylabel("Frequency [MHz]", fontsize=font_ylabel)
+
+        i += 1
 
     ### STIX
     if options.stix.value:

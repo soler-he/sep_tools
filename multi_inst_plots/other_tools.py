@@ -360,7 +360,7 @@ def make_fig_axs(options):
         plot_ept_p = options.solo_ept_p.value
         plot_electrons = plot_het_e or plot_ept_e
         plot_protons = plot_het_p or plot_ept_p
-        plot_radio = False # TODO: remove once RPW is included
+        # plot_radio = False # TODO: remove once RPW is included
 
     if options.spacecraft.value == "STEREO":
         plot_het_e = options.ster_het_e.value

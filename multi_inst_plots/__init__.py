@@ -312,10 +312,10 @@ class Options:
                     self.goes_man_select.disabled = False
 
             # TODO: remove once RPW is included
-            if change.owner == self.spacecraft and change.new == "Solar Orbiter":
-                self.radio.disabled = True
-            elif change.owner == self.spacecraft and change.old == "Solar Orbiter":
-                self.radio.disabled = False
+            # if change.owner == self.spacecraft and change.new == "Solar Orbiter":
+            #     self.radio.disabled = True
+            # elif change.owner == self.spacecraft and change.old == "Solar Orbiter":
+            #     self.radio.disabled = False
 
 
 
@@ -328,7 +328,7 @@ class Options:
         self.stix.observe(_disable_checkbox, names="value")
         self.goes.observe(_disable_checkbox, names="value")
         
-        self.spacecraft.observe(_disable_checkbox, names="value") # TODO: remove once RPW is included
+        # self.spacecraft.observe(_disable_checkbox, names="value")  # TODO: remove once RPW is included
 
         self.resample.observe(_no_negative_avg, names="value")
         self.resample_mag.observe(_no_negative_avg, names="value")
