@@ -4,7 +4,7 @@ Interactive user-interface module for selecting between SEPpy-based data loading
 Regression-Onset-Tool notebook.
 """
 
-__author__ = "Christian palmroos"
+__author__ = "Christian Palmroos"
 
 
 import ipywidgets as widgets

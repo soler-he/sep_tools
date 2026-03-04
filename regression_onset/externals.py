@@ -14,6 +14,13 @@ from seppy.tools import calc_av_en_flux_ST_HET, calc_av_en_flux_SEPT, calc_av_en
 
 FIGURE_KEY = "fig"
 
+PSP_ALIAS_LIST = ("psp", "parker", "parker solar probe")
+SOHO_ALIAS_LIST = ("soho")
+SOLO_ALIAS_LIST = ("solo", "solar orbiter", "solarorbiter")
+STA_ALIAS_LIST = ("sta", "stereo-a", "stereoa")
+STB_ALIAS_LIST = ("stb", "stereo-b", "stereob")
+WIND_ALIAS_LIST = ("wind")
+BEPI_ALIAS_LIST = ("bepi", "bepic", "bepicolombo")
 
 def parse_seppy_metadata(event):
     """
@@ -451,12 +458,17 @@ def print_energies(event, return_df=False):
     if event.sensor == "3dp":
         channel_numbers = [int(name.split('_')[1][-1]) for name in channel_names]
 
+    if event.sensor == "sixs-p" and event.data_level == "l3":
+        channel_numbers = [int(name.split('_')[1][-1]) for name in channel_names]
+
     # Remove any duplicates from the numbers array, since some dataframes come with, e.g., 'ch_2' and 'err_ch_2'
     channel_numbers = np.unique(channel_numbers)
     energy_strs = event.get_channel_energy_values("str")
 
     # Assemble a pandas dataframe here for nicer presentation
     column_names = ("Channel", "Energy range")
+    if event.spacecraft=="bepi" and event.data_level=="l3":
+        column_names = ("Channel", "Effective energy")
     column_data = {
         column_names[0]: channel_numbers,
         column_names[1]: energy_strs}
@@ -480,21 +492,25 @@ def _proper_sc_name(name) -> str:
     Returns the proper name instead of the seppy inside name.
     """
 
-    if name=="psp":
+    name_all_lowercase = name.lower()
+
+    if name_all_lowercase in PSP_ALIAS_LIST:
         return "Parker Solar Probe"
-    if name=="soho":
+    if name_all_lowercase in SOHO_ALIAS_LIST:
         return "SOHO"
-    if name=="solo":
+    if name_all_lowercase in SOLO_ALIAS_LIST:
         return "Solar Orbiter"
-    if name=="sta":
+    if name_all_lowercase in STA_ALIAS_LIST:
         return "STEREO-A"
-    if name=="stb":
+    if name_all_lowercase in STB_ALIAS_LIST:
         return "STEREO-B"
-    if name=="wind":
+    if name_all_lowercase in WIND_ALIAS_LIST:
         return "Wind"
+    if name_all_lowercase in BEPI_ALIAS_LIST:
+        return "BepiColombo"
 
     # If none of the identified names:
-    return "Unidentified Spacecraft"
+    return name
 
 def _proper_species_name(name) -> str:
     """

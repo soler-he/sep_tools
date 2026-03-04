@@ -37,6 +37,9 @@ QUICKLOOK_LEGENDSIZE = STANDARD_FONTSIZE-5
 # SEPpy is the first of the source options; the other is 'User defined'
 SEPPY = SOURCE_OPTIONS[0]
 
+# Most channels have an "energy range", but some have an "effective energy" instead
+SEPPY_ENERGY_COLUMN_NAMES = ("Energy range", "Effective energy")
+
 class Reg:
 
     def __init__(self, data:pd.DataFrame, data_source:str, meta_df:pd.DataFrame=None, meta_dict:dict=None):
@@ -49,6 +52,10 @@ class Reg:
         """
 
         self.data = data
+
+        # Check for the df index timezone-awareness:
+        if self.data.index.tz is not None:
+            self.data.index = self.data.index.tz_localize(None)
 
         # Check that the data source is valid
         if data_source not in SOURCE_OPTIONS:
@@ -81,12 +88,19 @@ class Reg:
         """
         Generates a title string for figures from SEPpy meta data.
         """
+        energy_id = SEPPY_ENERGY_COLUMN_NAMES[0]
         # Unpack the metadata
         spacecraft = self.meta_dict["Spacecraft"]
         sensor = self.meta_dict["Sensor"]
         viewing = self.meta_dict["Viewing"]
         species = self.meta_dict["Species"]
-        energy = self.meta_df["Energy range"][channel_index]
+        try:
+            energy = self.meta_df[energy_id][channel_index]
+        # This KeyError here is most probably caused by the energy column being
+        # identified by "Effective energy" instead of "Energy range"
+        except KeyError as e:
+            energy_id = SEPPY_ENERGY_COLUMN_NAMES[1]
+            energy = self.meta_df[energy_id][channel_index]
         # A check for the energy string; it may be an element of the dataframe or the string:
         if len(energy)==1:
             energy = energy.values[0]
@@ -96,6 +110,9 @@ class Reg:
         if spacecraft=="Wind":
             if len(viewing)==1:
                 viewing = f"Sector {viewing}"
+        # A similar check for BepiColombo
+        if spacecraft=="BepiColombo":
+            viewing = f"Side {viewing}"
         title_str = f"{spacecraft} / {sensor}$^{{\\mathrm{{{viewing}}}}}$\n{energy} {species}"
         return title_str
 
@@ -179,7 +196,7 @@ class Reg:
                        color=SELECTION_SHADE_COLOR, alpha=SELECTION_SHADE_ALPHA)
 
 
-    def quicklook(self, channel:str=None, resample:str=None, xlim:list=None, selection:list[str]|str=None) -> None:
+    def quicklook(self, channel:int|str=None, resample:str=None, xlim:list=None, selection:list[str]|str=None) -> None:
         """
         Makes a quicklook plot of one or more channels for a given dataframe.
         Meant to be used in interactive mode, so that the user can apply data selection
@@ -189,7 +206,7 @@ class Reg:
 
         Parameters:
         --------------
-        channel : str, list
+        channel : int or str
         resample : str
         xlim : list
         selection : {list[str] or str} format: %Y-%m-%d %H:%M%S.
@@ -269,7 +286,7 @@ class Reg:
             title = self._title_str(channel_index=channel)
             self.quicklook_ax.set_title(title, fontsize=QUICKLOOK_LEGENDSIZE)
 
-        self.quicklook_fig.tight_layout()
+        # self.quicklook_fig.tight_layout()
         plt.show()
 
 
@@ -523,7 +540,7 @@ class Reg:
 
         f, d = combine_energy_channels(event=seppy_data, channels=channels)
 
-        self.data[len(self.meta_df)] = f
+        self.data[self.meta_df.index+1] = f
         self.meta_df.loc[self.meta_df.iloc[-1].name+1] = d
 
 
