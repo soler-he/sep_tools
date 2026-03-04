@@ -342,14 +342,15 @@ def make_plot(options):
             df_protons_het = protons_het
 
     if ept_l3:
-        if isinstance(df_ept_org, pd.DataFrame):
-            if resample > 1:
-                df_ept = resample_df(df_ept_org, str(60 * resample) + "s", pos_timestamp=None, cols_unc=[])
+        if options.solo_ept_p.value or options.solo_ept_e.value:
+            if isinstance(df_ept_org, pd.DataFrame):
+                if resample > 1:
+                    df_ept = resample_df(df_ept_org, str(60 * resample) + "s", pos_timestamp=None, cols_unc=[])
+                else:
+                    print("EPT native cadence is 1 min, so no averaging was applied.")
+                    df_ept = df_ept_org
             else:
-                print("EPT native cadence is 1 min, so no averaging was applied.")
                 df_ept = df_ept_org
-        else:
-            df_ept = df_ept_org
 
         if viewing.lower() == 'south':
             view = 'D'
