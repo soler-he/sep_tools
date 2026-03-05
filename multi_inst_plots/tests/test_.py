@@ -44,8 +44,9 @@ def test_SEP_Multi_Instrument_Plot_PSP(monkeypatch):
 def test_SEP_Multi_Instrument_Plot_SolO(monkeypatch):
     m.options.path = f"{os.getcwd()}{os.sep}data"
     m.options.spacecraft.value = 'Solar Orbiter'
-    # deactivate STIX for now as it crashes on GitHub
-    m.options.stix.value = False
+    # # deactivate STIX for now as it crashes on GitHub
+    m.options.stix.value = True
+    m.options.stix_ltc.value = True
     # manually select GOES satellite 16 bc. automatic detection sometimes give different results (17 not always shown)
     m.options.goes_man_select.value = True
     monkeypatch.setattr('builtins.input', lambda _: "16")
