@@ -4,6 +4,7 @@ import datetime as dt
 import os
 import sunpy
 import matplotlib.pyplot as plt
+import matplotlib.axes as maxes
 import matplotlib.dates as mdates
 
 from matplotlib.colors import Normalize
@@ -445,3 +446,78 @@ def copy_fig_axs(fig):
 
     return fig_copy, axs_copy
 
+
+def reorder_axes(fig, axes, new_order):
+    # Make a copy of the figure and axes to avoid modifying the original
+    fig, axes = copy_fig_axs(fig)
+
+    fig.canvas.draw()
+
+    # Filter out non-standard axes (e.g. AxesHostAxes used for colorbars etc.)
+    standard_axes = [ax for ax in axes if type(ax) is maxes.Axes]
+    # print(f"Found {len(standard_axes)} standard axes out of {len(axes)} total")
+
+    # Save and remove title from original top axis
+    original_top_ax = standard_axes[0]
+    top_title = original_top_ax.get_title()
+    top_title_kwargs = {
+        'fontsize': original_top_ax.title.get_fontsize(),
+        'fontweight': original_top_ax.title.get_fontweight(),
+        'ha': original_top_ax.title.get_ha(),
+        'va': original_top_ax.title.get_va(),
+    }
+    original_top_ax.set_title('')
+
+    # Save xlabel from original bottom axis BEFORE hiding loop
+    original_bottom_ax = standard_axes[-1]
+    xlabel = original_bottom_ax.get_xlabel()
+    xlabel_kwargs = {
+        'fontsize': original_bottom_ax.xaxis.label.get_fontsize(),
+        'fontweight': original_bottom_ax.xaxis.label.get_fontweight(),
+        'ha': original_bottom_ax.xaxis.label.get_ha(),
+        'va': original_bottom_ax.xaxis.label.get_va(),
+    }
+
+    # Hide x axis elements on ALL standard axes
+    for ax in standard_axes:
+        ax.set_xlabel('')
+        ax.tick_params(axis='x', which='both', bottom=False, labelbottom=False)
+
+    positions = [ax.get_position() for ax in standard_axes]
+    y_start = min(p.y0 for p in positions)
+    spacing = positions[0].y0 - positions[1].y1
+    total_height = sum(p.height for p in positions) + spacing * (len(standard_axes) - 1)
+
+    current_y = y_start + total_height
+    for i in new_order:
+        pos = positions[i]
+        ax = standard_axes[i]
+        current_y -= pos.height
+        ax.set_position([pos.x0, current_y, pos.width, pos.height])
+        current_y -= spacing
+
+    # Add title to new top axis
+    new_top_ax = standard_axes[new_order[0]]
+    if top_title:
+        new_top_ax.set_title(top_title, **top_title_kwargs)
+
+    # Restore x axis on new bottom axis
+    new_bottom_ax = standard_axes[new_order[-1]]
+    new_bottom_ax.tick_params(axis='x', which='both', bottom=True, labelbottom=True)
+    new_bottom_ax.xaxis.minorticks_on()
+    new_bottom_ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=6, maxticks=9))
+    new_bottom_ax.xaxis.set_minor_locator(mdates.AutoDateLocator(minticks=10, maxticks=28))
+    new_bottom_ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M\n%b %d'))
+    new_bottom_ax.xaxis.set_tick_params(rotation=0)
+    new_bottom_ax.set_xlabel(xlabel, **xlabel_kwargs)
+
+    reordered_axes = [standard_axes[i] for i in new_order]
+    non_standard_axes = [ax for ax in axes if type(ax) is not maxes.Axes]
+
+    new_axes_list = reordered_axes + non_standard_axes
+    
+    # Rebuild _axstack._axes dict in new order, preserving original counter values
+    old_axes_dict = fig._axstack._axes
+    fig._axstack._axes = {ax: old_axes_dict[ax] for ax in new_axes_list}
+
+    return fig, reordered_axes
