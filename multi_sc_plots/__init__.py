@@ -906,7 +906,7 @@ class Event:
                 if type(self.channels_p['STEREO-A/SEPT p']) is list and hasattr(self, 'sta_sept_avg_p') and len(self.sta_sept_avg_p) > 0:
                     ax.plot(self.sta_sept_df_p.index, self.sta_sept_avg_p, color=self.plot_colors['STEREO-A/SEPT'], linewidth=linewidth, label=f"STEREO-A/SEPT {self.viewing['STEREO-A/SEPT']} "+self.sept_chstring_p, drawstyle='steps-mid')
                 elif type(self.channels_p['STEREO-A/SEPT p']) is int and hasattr(self, 'sta_sept_df_p') and len(self.sta_sept_df_p) > 0:
-                    ax.plot(self.sta_sept_df_p.index, self.sta_sept_df_p[f"ch_{self.channels_p['STEREO-A/SEPT p']}"], color=self.plot_colors['STEREO-A/SEPT'], linewidth=linewidth, label=f"STEREO-A/SEPT {self.viewing['STEREO-A/SEPT']} {self.sta_sept_dict_p['channels_dict_df_e'].loc[self.channels_p['STEREO-A/SEPT p']]['ch_strings']}", drawstyle='steps-mid')
+                    ax.plot(self.sta_sept_df_p.index, self.sta_sept_df_p[f"ch_{self.channels_p['STEREO-A/SEPT p']}"], color=self.plot_colors['STEREO-A/SEPT'], linewidth=linewidth, label=f"STEREO-A/SEPT {self.viewing['STEREO-A/SEPT']} {self.sta_sept_dict_p['channels_dict_df_p'].loc[self.channels_p['STEREO-A/SEPT p']]['ch_strings']}", drawstyle='steps-mid')
             if 'WIND/3DP p' in plot_instruments:
                 if hasattr(self, 'wind3dp_p_df') and len(self.wind3dp_p_df) > 0:
                     # multiply by 1e6 to get per MeV
