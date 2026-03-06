@@ -90,7 +90,7 @@ class Event:
             custom_notification('No intensity uncertainties available for Wind/3DP.')
 
         if self.spacecraft.lower() in ['soho']:
-            if self.instrument.lower() == 'ERNE-HED':
+            if self.instrument.upper() == 'ERNE-HED':
                 self.viewing = ''
                 self.erne_chstring = ['13-16 MeV', '16-20 MeV', '20-25 MeV', '25-32 MeV', '32-40 MeV', '40-50 MeV', '50-64 MeV', '64-80 MeV', '80-100 MeV', '100-130 MeV']
                 self.df, self.meta = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=self.startdate, enddate=self.enddate, path=data_path, max_conn=1)
