@@ -98,8 +98,8 @@ class Event:
                 soho_counts = self.df[self.df.filter(like='PHC_').columns]
                 for i in range(0, soho_fluxes.shape[1]):
                     soho_unc = np.divide(soho_fluxes[f'PH_{i}'], np.sqrt(np.where(soho_counts[f'PHC_{i}'] > 0, soho_counts[f'PHC_{i}'], np.nan)),  # avoid sqrt of NaN/0
-                                        out=np.zeros_like(soho_fluxes[f'PH_{i}']),
-                                        where=~((soho_counts[f'PHC_{i}'] == 0) & (soho_fluxes[f'PH_{i}'] == 0)))
+                                         out=np.zeros_like(soho_fluxes[f'PH_{i}']),
+                                         where=~((soho_counts[f'PHC_{i}'] == 0) & (soho_fluxes[f'PH_{i}'] == 0)))
                     soho_unc[np.isnan(soho_fluxes[f'PH_{i}'])] = np.nan
                     self.df[f'uncertainty_{i}'] = soho_unc
 
