@@ -80,19 +80,20 @@ def test_Spectra(spacecraft, sensor, view, species, level, spectral_type, resamp
                background_start=background_start, background_end=background_end, resample=resample)
     fig, ax = E.plot_spectrum(savefig=True)
 
-    # 6. Spectral temporal evolution
-    duration = pd.Timedelta(hours=1)
-    interval_start = spec_start
-    interval_end = spec_end
-    num_steps = int((interval_end-interval_start) / duration)
+    if spectral_type == 'integral':
+        # 6. Spectral temporal evolution
+        duration = pd.Timedelta(hours=1)
+        interval_start = spec_start
+        interval_end = spec_end
+        num_steps = int((interval_end-interval_start) / duration)
 
-    for i in np.arange(1, num_steps, 1):
-        time = interval_start + i * duration
-        ax_ts.axvline(time, color='k')
+        for i in np.arange(1, num_steps, 1):
+            time = interval_start + i * duration
+            ax_ts.axvline(time, color='k')
 
-    E.get_spec_slices(interval_start, interval_end, duration, subtract_background=subtract_background, background_start=background_start, background_end=background_end)
-    gif_path = E.gif_filename
-    _ = Image(filename=gif_path)
+        E.get_spec_slices(interval_start, interval_end, duration, subtract_background=subtract_background, background_start=background_start, background_end=background_end)
+        gif_path = E.gif_filename
+        _ = Image(filename=gif_path)
 
     return fig
 
