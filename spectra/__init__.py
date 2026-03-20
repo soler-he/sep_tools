@@ -503,6 +503,15 @@ class Event:
                     except KeyError:
                         pass
 
+        if subtract_background and spec_type == 'integral':
+            ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
+            # bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
+            bg_spec = df_fluxes.iloc[ind_bg].mean()
+            df_fluxes = df_fluxes-bg_spec
+            # TODO: verify the following! keep them as 0.0, nan, or even the original negative values?
+            df_fluxes = df_fluxes.mask(df_fluxes < 0)  # set negative values to NaN after background subtraction, as these can cause problems for averaging (in resampling or spectrum calculation)
+            # df_fluxes = df_fluxes.mask(df_fluxes < 0, 0.0)  # set negative values to 0.0 after background subtraction, as these can cause problems for averaging (in resampling or spectrum calculation)
+ 
         if spec_type == 'integral':  # here we use the original (non-resamled) data
             df_fluxes_ind = df_fluxes.iloc[ind]
             if not df_fluxes_ind.empty:
@@ -541,24 +550,26 @@ class Event:
                 unc_spec = np.zeros(len(self.spec_E))*np.nan
 
             if subtract_background:
-                raise NotImplementedError("Background subtraction for integral spectra is not implemented yet! Please set subtract_background=False for now.")
+                custom_warning('Uncertainties are at the moment not fully accurate for background subtracted integral spectra!')
 
-            if (subtract_background) and (not np.all(np.isnan(I_spec))):    # here we use the original (non-resampled) data
-                ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
-                bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)  # TODO: 1. background mean von jeder einzelnen messung abziehen bevor I_spec berechnet wird!
+            # if (subtract_background) and (not np.all(np.isnan(I_spec))):    # here we use the original (non-resampled) data
+            #     ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
+            #     bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)  # TODO: 1. background mean von jeder einzelnen messung abziehen bevor I_spec berechnet wird!
 
-                self.final_spec = I_spec - bg_spec
+            #     self.final_spec = I_spec - bg_spec
 
-                if self.spacecraft.lower() in ['wind']:
-                    self.final_unc = np.zeros(len(I_spec)) * np.nan  # TODO: implement correct uncerstainties for Wind/3DP
-                else:
-                    # bg_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)  # !!! check if implemented correctly
-                    bg_unc_spec = self.sqrt_sum_squares(df_uncs.iloc[ind_bg])  # TODO: import from seppy.util
-                    # unc_spec = np.nanmax(df_uncs.iloc[ind_bg], axis=0)
-                    self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)  # TODO: bei todo 1 analog wie hier den fehler pro messung berechnen
-            else:
-                self.final_spec = I_spec
-                self.final_unc = unc_spec
+            #     if self.spacecraft.lower() in ['wind']:
+            #         self.final_unc = np.zeros(len(I_spec)) * np.nan  # TODO: implement correct uncerstainties for Wind/3DP
+            #     else:
+            #         # bg_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)  # !!! check if implemented correctly
+            #         bg_unc_spec = self.sqrt_sum_squares(df_uncs.iloc[ind_bg])  # TODO: import from seppy.util
+            #         # unc_spec = np.nanmax(df_uncs.iloc[ind_bg], axis=0)
+            #         self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)  # TODO: bei todo 1 analog wie hier den fehler pro messung berechnen
+            # else:
+            #     self.final_spec = I_spec
+            #     self.final_unc = unc_spec
+            self.final_spec = I_spec
+            self.final_unc = unc_spec
 
         if spec_type == 'peak':  # here we use the resamled data
             if resample is not None:
@@ -616,6 +627,8 @@ class Event:
 
     # TODO: move to seppy.util. Make sure it works correctly: series vs dataframe (axis=0); len(series) includes NaNs, we want something like series.count()
     def sqrt_sum_squares(self, series):
+        # if isinstance(series, pd.DataFrame):
+        #     custom_warning(f"Expected a pd.Series, got pd.DataFrame with shape {series.shape}")
         return np.sqrt(np.nansum(series**2, axis=0)) / len(series)
 
     def plot_spectrum(self, savefig=None, filename='', ylim=None):
