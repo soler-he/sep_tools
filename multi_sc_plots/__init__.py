@@ -386,8 +386,8 @@ class Event:
                     pass
             if 'Parker Solar Probe/EPI-Lo PE e' in self.instruments:
                 try:
-                    epilo_low = self.psp_epilo_energies_e[f'Electron_Chan{self.psp_epilo_channel_e}_Energy'].filter(like=f'_P{self.viewing['Parker Solar Probe/EPI-Lo PE']}').values-self.psp_epilo_energies_e[f'Electron_Chan{self.psp_epilo_channel_e}_Energy_DELTAMINUS'].filter(like=f'_P{self.viewing['Parker Solar Probe/EPI-Lo PE']}').values
-                    epilo_high = self.psp_epilo_energies_e[f'Electron_Chan{self.psp_epilo_channel_e}_Energy'].filter(like=f'_P{self.viewing['Parker Solar Probe/EPI-Lo PE']}').values+self.psp_epilo_energies_e[f'Electron_Chan{self.psp_epilo_channel_e}_Energy_DELTAPLUS'].filter(like=f'_P{self.viewing['Parker Solar Probe/EPI-Lo PE']}').values
+                    epilo_low = self.psp_epilo_energies_e[f'Electron_Chan{self.psp_epilo_channel_e}_Energy'].filter(like=f'_P{self.viewing["Parker Solar Probe/EPI-Lo PE"]}').values-self.psp_epilo_energies_e[f'Electron_Chan{self.psp_epilo_channel_e}_Energy_DELTAMINUS'].filter(like=f'_P{self.viewing["Parker Solar Probe/EPI-Lo PE"]}').values
+                    epilo_high = self.psp_epilo_energies_e[f'Electron_Chan{self.psp_epilo_channel_e}_Energy'].filter(like=f'_P{self.viewing["Parker Solar Probe/EPI-Lo PE"]}').values+self.psp_epilo_energies_e[f'Electron_Chan{self.psp_epilo_channel_e}_Energy_DELTAPLUS'].filter(like=f'_P{self.viewing["Parker Solar Probe/EPI-Lo PE"]}').values
                     epilo_low = epilo_low[~np.isnan(epilo_low)]
                     epilo_high = epilo_high[~np.isnan(epilo_high)]
                     self.energies_e = pd.concat([self.energies_e, pd.DataFrame([f'{epilo_low[i]:.2f} - {epilo_high[i]:.2f} keV' for i in range(len(epilo_low))], columns=['Parker Solar Probe/EPI-Lo PE e'])], axis=1)
