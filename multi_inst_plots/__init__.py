@@ -380,7 +380,7 @@ def load_data():
         return None, None
     
     if options.spacecraft.value is None:
-        print("You must choose a spacecraft first!")
+        raise ValueError("No spacecraft selected! Please go up and select a spacecraft from the dropwdown menu.")
         return None, None
     
     if options.spacecraft.value == "STEREO":
@@ -430,19 +430,18 @@ def energy_channel_selection():
     if options.spacecraft.value == "Parker Solar Probe":
         display(psp.energy_channel_selection(options))
         selection = [options.psp_ch_epilo_pe, options.psp_ch_epilo_ic, options.psp_ch_het_e, options.psp_ch_het_p]
-        
-    if options.spacecraft.value == "Solar Orbiter":
+    elif options.spacecraft.value == "Solar Orbiter":
         display(solo.energy_channel_selection(options))
         selection = [options.solo_ch_ept_e, options.solo_ch_ept_p, options.solo_ch_het_e, options.solo_ch_het_p]
-        
-    if options.spacecraft.value == "L1 (Wind/SOHO)":
+    elif options.spacecraft.value == "L1 (Wind/SOHO)":
         display(l1.energy_channel_selection(options))
         selection = [options.l1_ch_wind_e, options.l1_ch_wind_p, options.l1_ch_ephin_e, options.l1_ch_erne_p]
-
-    if options.spacecraft.value == "STEREO":
+    elif options.spacecraft.value == "STEREO":
         display(stereo.energy_channel_selection(options))
         selection = [options.ster_ch_sept_e, options.ster_ch_sept_p, options.ster_ch_het_e, options.ster_ch_het_p]
-        
+    elif not options.spacecraft.value:
+        raise ValueError("No spacecraft selected! Please go up and select a spacecraft from the dropwdown menu.")
+
     layout = w.Layout(width="auto")
     ch_box = w.HBox(selection, layout=layout)
     display(ch_box)
