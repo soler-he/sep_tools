@@ -13,8 +13,29 @@ on:
     # branches: [ "main" ]
 
 jobs:
-  build:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+    - name: Install ruff
+      run: |
+        uv venv .venv
+        source .venv/bin/activate
+        uv pip install ruff
+    - name: Lint with ruff
+      run: |
+        source .venv/bin/activate
+        # stop the build if there are Python syntax errors or undefined names
+        ruff check . --select=E9,F63,F7,F82 --exclude=.venv
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        ruff check . --select=E,F,C90 --line-length=127 --exclude=.venv --exit-zero
 
+  build:
+    needs: lint
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -34,16 +55,9 @@ jobs:
       run: |
         uv venv .venv --python ${{ matrix.python-version }}
         source .venv/bin/activate
-        uv pip install flake8 nbmake pytest pytest-doctestplus pytest-cov pytest-mpl pytest-xdist pytest-split
+        uv pip install nbmake pytest pytest-doctestplus pytest-cov pytest-mpl pytest-xdist pytest-split
         if [ -f requirements.txt ]; then uv pip install -r requirements.txt; fi
         uv pip freeze > ${{ matrix.python-version }}-${{ matrix.group }}_pip_freeze.txt
-    - name: Lint with flake8
-      run: |
-        source .venv/bin/activate
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=.venv
     - name: Test with pytest
       run: |
         source .venv/bin/activate
