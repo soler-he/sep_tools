@@ -31,10 +31,10 @@ jobs:
         source .venv/bin/activate
         # stop the build if there are Python syntax errors or undefined names
         ruff check . --select=E9,F63,F7,F82 --exclude=.venv
+        # summary first, then run again with exit-zero to show all errors as warnings (and ignore line length)
+        ruff check . --select=E,F,C90 --ignore=E501 --exclude=.venv --statistics --quiet --exit-zero
         # exit-zero treats all errors as warnings. ignore line length (E501)
         ruff check . --select=E,F,C90 --ignore=E501 --exclude=.venv --exit-zero
-        # summary
-        ruff check . --select=E,F,C90 --ignore=E501 --exclude=.venv --statistics --quiet --exit-zero
 
 
   build:
