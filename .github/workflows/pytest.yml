@@ -27,7 +27,7 @@ jobs:
     - name: Set up uv
       uses: astral-sh/setup-uv@v5
       with:
-        enable-caching: true
+        enable-cache: true
     - name: Set up Python ${{ matrix.python-version }}
       run: uv python install ${{ matrix.python-version }}
     - name: Install dependencies
