@@ -13,7 +13,7 @@ from seppy.loader.soho import soho_load
 from seppy.loader.psp import psp_isois_load
 from seppy.loader.stereo import stereo_load
 from seppy.loader.wind import wind3dp_load
-from seppy.util import resample_df, custom_warning, custom_notification
+from seppy.util import resample_df, custom_warning, custom_notification, rms_uncertainty
 import imageio
 
 # omit some warnings
@@ -562,7 +562,7 @@ class Event:
             #         self.final_unc = np.zeros(len(I_spec)) * np.nan  # TODO: implement correct uncerstainties for Wind/3DP
             #     else:
             #         # bg_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)  # !!! check if implemented correctly
-            #         bg_unc_spec = self.sqrt_sum_squares(df_uncs.iloc[ind_bg])  # TODO: import from seppy.util
+            #         bg_unc_spec = rms_uncertainty(df_uncs.iloc[ind_bg])  # TODO: import from seppy.util
             #         # unc_spec = np.nanmax(df_uncs.iloc[ind_bg], axis=0)
             #         self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)  # TODO: bei todo 1 analog wie hier den fehler pro messung berechnen
             # else:
@@ -610,7 +610,7 @@ class Event:
                     self.final_unc = np.zeros(len(I_spec)) * np.nan  # TODO: implement correct uncerstainties for Wind/3DP
                 else:
                     # b g_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)  # !!! check if implemented correctly
-                    bg_unc_spec = self.sqrt_sum_squares(df_uncs.iloc[ind_bg])  # TODO: import from seppy.util
+                    bg_unc_spec = rms_uncertainty(df_uncs.iloc[ind_bg])
                     # unc_spec = np.nanmax(df_uncs.iloc[ind_bg], axis=0)
                     self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)
             else:
@@ -625,11 +625,11 @@ class Event:
 
         self.spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err=self.E_unc, I_err=self.I_unc), index=range(len(self.spec_E)))
 
-    # TODO: move to seppy.util. Make sure it works correctly: series vs dataframe (axis=0); len(series) includes NaNs, we want something like series.count()
-    def sqrt_sum_squares(self, series):
-        # if isinstance(series, pd.DataFrame):
-        #     custom_warning(f"Expected a pd.Series, got pd.DataFrame with shape {series.shape}")
-        return np.sqrt(np.nansum(series**2, axis=0)) / len(series)
+    # # moved to seppy.util. Make sure it works correctly: series vs dataframe (axis=0); len(series) includes NaNs, we want something like series.count()
+    # def sqrt_sum_squares(self, series):
+    #     # if isinstance(series, pd.DataFrame):
+    #     #     custom_warning(f"Expected a pd.Series, got pd.DataFrame with shape {series.shape}")
+    #     return np.sqrt(np.nansum(series**2, axis=0)) / len(series)
 
     def plot_spectrum(self, savefig=None, filename='', ylim=None):
         fig, ax = plt.subplots(1, sharex=True, figsize=(5, 4), dpi=150)
