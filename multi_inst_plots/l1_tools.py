@@ -260,7 +260,14 @@ def load_data(options):
     if options.mag.value == False:
         options.polarity.value = False
 
-    wind_flux_thres = None
+    # Check if thresholds for Wind/3DP data were manually set with values in the options class
+    # thresholds need to be divided by 1e6 since the plotting is also doing this conversion to plot in MeV instead of eV
+    if options.wind_flux_thres_e is not None:
+        print(f"Loading Wind/3DP e data with threshold = {options.wind_flux_thres_e}!")
+        options.wind_flux_thres_e = options.wind_flux_thres_e / 1e6
+    if options.wind_flux_thres_p is not None:
+        print(f"Loading Wind/3DP p data with threshold = {options.wind_flux_thres_p}!")
+        options.wind_flux_thres_p = options.wind_flux_thres_p / 1e6
 
     dataset_num = (options.l1_wind_e.value or options.l1_wind_p.value) + options.radio.value + options.l1_ephin.value \
                     + options.l1_erne.value + (options.mag.value or options.mag_angles.value) \
@@ -278,14 +285,14 @@ def load_data(options):
                             resample=0,
                             multi_index=False,
                             path=path,
-                            threshold=wind_flux_thres)
+                            threshold=options.wind_flux_thres_e)
         pdic_, meta_p = wind3dp_load(dataset="WI_SOSP_3DP",
                             startdate=startdate,
                             enddate=enddate,
                             resample=0,
                             multi_index=False,
                             path=path,
-                            threshold=wind_flux_thres)
+                            threshold=options.wind_flux_thres_p)
 
         data["3dp_e"] = edic_
         data["3dp_p"] = pdic_
