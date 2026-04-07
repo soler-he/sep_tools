@@ -623,7 +623,7 @@ class Event:
                             except KeyError:
                                 pass
                     # unc_spec =       np.nansum(df_uncs.iloc[ind],    axis=0) * integration_sec  # old implementation
-                    unc_spec = np.sqrt(np.nansum(df_uncs.iloc[ind]**2, axis=0) * integration_sec)
+                    unc_spec = np.sqrt(np.nansum(df_uncs.iloc[ind]**2, axis=0)) * integration_sec
             else:  # if dataframe is empty (can happen for slices when bigger datagaps are present)
                 I_spec = np.zeros(len(self.spec_E))*np.nan
                 unc_spec = np.zeros(len(self.spec_E))*np.nan
