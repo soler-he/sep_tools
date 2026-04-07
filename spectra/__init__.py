@@ -408,7 +408,7 @@ class Event:
 
         self.make_spec_gif(base_filename)
 
-    def get_spec(self, spec_start, spec_end, spec_type='integral', subtract_background=True, background_start=None, background_end=None, resample=None):
+    def get_spec(self, spec_start, spec_end, spec_type='integral', subtract_background=True, background_start=None, background_end=None, set_negative_fluxes_after_bg_subtraction='keep_negative', resample=None):
         I_spec = []
         unc_spec = []
         ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
@@ -505,13 +505,14 @@ class Event:
 
         if subtract_background and spec_type == 'integral':
             ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
-            # bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
             bg_spec = df_fluxes.iloc[ind_bg].mean()
-            df_fluxes = df_fluxes-bg_spec
-            # TODO: verify the following! keep them as 0.0, nan, or even the original negative values?
-            df_fluxes = df_fluxes.mask(df_fluxes < 0)  # set negative values to NaN after background subtraction, as these can cause problems for averaging (in resampling or spectrum calculation)
-            # df_fluxes = df_fluxes.mask(df_fluxes < 0, 0.0)  # set negative values to 0.0 after background subtraction, as these can cause problems for averaging (in resampling or spectrum calculation)
- 
+            df_fluxes = df_fluxes - bg_spec
+            if set_negative_fluxes_after_bg_subtraction.lower() == 'nan':
+                df_fluxes = df_fluxes.mask(df_fluxes < 0)
+            elif set_negative_fluxes_after_bg_subtraction.lower() == 'zero':
+                df_fluxes = df_fluxes.mask(df_fluxes < 0, 0.0)
+            elif set_negative_fluxes_after_bg_subtraction.lower() == 'keep_negative':
+                pass
         if spec_type == 'integral':  # here we use the original (non-resamled) data
             df_fluxes_ind = df_fluxes.iloc[ind]
             if not df_fluxes_ind.empty:
