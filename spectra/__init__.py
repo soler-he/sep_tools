@@ -409,6 +409,81 @@ class Event:
         self.make_spec_gif(base_filename)
 
     def get_spec(self, spec_start, spec_end, spec_type='integral', subtract_background=True, background_start=None, background_end=None, set_negative_fluxes_after_bg_subtraction='keep_negative', resample=None):
+        """
+        Compute an energy spectrum over a selected time interval and store the result on the instance.
+        Depending on ``spec_type``, this method either integrates flux values over the interval
+        (``"integral"``) or determines the peak spectrum from the maximum flux in the interval
+        (``"peak"``). Instrument- and spacecraft-specific column names, energy bins, and channel
+        widths are inferred from ``self.df`` and ``self.meta``.
+        Optionally, a background interval can be used for background subtraction. For integral
+        spectra, background subtraction is applied to the flux time series before integration.
+        For peak spectra, the background is estimated from the original time series and subtracted
+        from the peak spectrum afterward.
+        Parameters
+        ----------
+        spec_start : datetime-like
+            Start time of the spectrum interval.
+        spec_end : datetime-like
+            End time of the spectrum interval.
+        spec_type : {'integral', 'peak'}, default 'integral'
+            Type of spectrum to compute:
+            - ``'integral'``: sum flux values over the selected interval and multiply by the
+              characteristic cadence to obtain an integral spectrum.
+            - ``'peak'``: take the maximum flux in each energy channel over the selected interval.
+        subtract_background : bool, default True
+            Whether to subtract a background spectrum estimated from ``background_start`` to
+            ``background_end``.
+        background_start : datetime-like, optional
+            Start time of the background interval. Required when
+            ``subtract_background=True``.
+        background_end : datetime-like, optional
+            End time of the background interval. Required when
+            ``subtract_background=True``.
+        set_negative_fluxes_after_bg_subtraction : {'keep_negative', 'nan', 'zero'}, default 'keep_negative'
+            How to handle negative fluxes after background subtraction for integral spectra:
+            - ``'keep_negative'``: leave negative values unchanged.
+            - ``'nan'``: replace negative values with NaN.
+            - ``'zero'``: replace negative values with 0.0.
+        resample : str or pandas offset alias, optional
+            Resampling rule used only for ``spec_type='peak'``. If given, the time series is
+            resampled before the peak spectrum is determined.
+        Returns
+        -------
+        None
+            Results are stored as instance attributes.
+        Attributes Set
+        --------------
+        spec_E : numpy.ndarray
+            Mean or representative energy of each channel.
+        DE : numpy.ndarray
+            Energy-bin widths.
+        final_spec : numpy.ndarray
+            Computed spectrum after optional background subtraction.
+        final_unc : numpy.ndarray
+            Uncertainty estimate associated with ``final_spec``.
+        I_unc : numpy.ndarray
+            Alias of ``final_unc``.
+        E_unc : numpy.ndarray
+            Half-width energy uncertainties, computed as ``DE / 2``.
+        spec_df : pandas.DataFrame
+            Table containing energy, intensity, and associated uncertainties with columns
+            ``['Energy', 'Intensity', 'E_err', 'I_err']``.
+        subtract_background : bool
+            Copy of the input argument.
+        spec_type : str
+            Copy of the input argument.
+        Notes
+        -----
+        - The method supports multiple spacecraft/instrument combinations and uses different
+          metadata keys and column naming conventions accordingly.
+        - For Wind, uncertainties are currently set to NaN.
+        - For PSP, asymmetric uncertainty columns containing ``'Minus'`` and ``'Plus'`` are
+          excluded where applicable.
+        - If the selected interval contains only data gaps, the resulting spectrum and
+          uncertainties are filled with NaN.
+        - For background-subtracted integral spectra, the uncertainty treatment is currently
+          flagged in the code as not fully accurate. TODO: update when done
+        """
         I_spec = []
         unc_spec = []
         ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
@@ -505,14 +580,17 @@ class Event:
 
         if subtract_background and spec_type == 'integral':
             ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
+            # bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
             bg_spec = df_fluxes.iloc[ind_bg].mean()
-            df_fluxes = df_fluxes - bg_spec
+            df_fluxes = df_fluxes-bg_spec
+            # TODO: verify the following! keep them as 0.0, nan, or even the original negative values?
             if set_negative_fluxes_after_bg_subtraction.lower() == 'nan':
-                df_fluxes = df_fluxes.mask(df_fluxes < 0)
+                df_fluxes = df_fluxes.mask(df_fluxes < 0)  # set negative values to NaN after background subtraction, as these can cause problems for averaging (in resampling or spectrum calculation)
             elif set_negative_fluxes_after_bg_subtraction.lower() == 'zero':
-                df_fluxes = df_fluxes.mask(df_fluxes < 0, 0.0)
+                df_fluxes = df_fluxes.mask(df_fluxes < 0, 0.0)  # set negative values to 0.0 after background subtraction, as these can cause problems for averaging (in resampling or spectrum calculation)
             elif set_negative_fluxes_after_bg_subtraction.lower() == 'keep_negative':
-                pass
+                pass  # keep original negative values after background subtraction, but be aware that these can cause problems for averaging (in resampling or spectrum calculation)
+ 
         if spec_type == 'integral':  # here we use the original (non-resamled) data
             df_fluxes_ind = df_fluxes.iloc[ind]
             if not df_fluxes_ind.empty:
