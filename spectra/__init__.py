@@ -259,6 +259,8 @@ class Event:
                         axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
 
         if subtract_background:
+            if background_start is None or background_end is None:
+                raise ValueError("background_start and background_end must be defined when subtract_background=True")
             axs.axvspan(background_start, background_end, color='pink', alpha=0.2, label='Background Period')
         axs.axvline(spec_start, color='red', linestyle='--', label='Integration Start')
         axs.axvline(spec_end, color='green', linestyle='--', label='Integration End')
