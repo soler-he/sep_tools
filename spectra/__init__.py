@@ -8,13 +8,13 @@ import pandas as pd
 import sunpy
 import warnings
 
+from PIL import Image
 from solo_epd_loader import epd_load
 from seppy.loader.soho import soho_load
 from seppy.loader.psp import psp_isois_load
 from seppy.loader.stereo import stereo_load
 from seppy.loader.wind import wind3dp_load
 from seppy.util import resample_df, custom_warning, custom_notification, propagated_mean_uncertainty
-import imageio
 
 # omit some warnings
 warnings.simplefilter(action='once', category=pd.errors.PerformanceWarning)
@@ -292,13 +292,17 @@ class Event:
     def make_spec_gif(self, base_filename):
         # Get all PNG files (assuming they're named plot_0.png, plot_1.png, etc.)
         png_files = sorted(glob.glob(f'{base_filename}*.png'))
-
-        # write to animated gif; duration (in ms) defines how fast the animation is.
-        with imageio.get_writer(f'{base_filename}_animation.gif', mode='I', duration=100, loop=0) as writer:
-            for filename in png_files:
-                image = imageio.v2.imread(filename)
-                writer.append_data(image)
+        # Define the output GIF filename
         self.gif_filename = f'{base_filename}_animation.gif'
+        # write to animated gif; duration (in ms) defines how fast the animation is.
+        frames = [Image.open(f) for f in png_files]
+        frames[0].save(
+            self.gif_filename,
+            save_all=True,
+            append_images=frames[1:],
+            duration=100,
+            loop=0
+        )
 
     def plot_spec_slices(self, base_filename, spec_start, duration):
         # makes a plot of each spectrum slice based on the already saved csv files
