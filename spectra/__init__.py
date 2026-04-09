@@ -557,9 +557,9 @@ class Event:
             flux_id = f'{species_key}_Flux_'
             unc_id = f'{species_key}_Uncertainty_'
 
-            low_E = np.array(self.meta[f'{species_key}_Bins_Low_Energy'])
-            high_E = low_E + np.array(self.meta[f'{species_key}_Bins_Width'])
-            self.spec_E = np.sqrt(low_E*high_E)
+            self.low_E = np.array(self.meta[f'{species_key}_Bins_Low_Energy'])
+            self.high_E = self.low_E + np.array(self.meta[f'{species_key}_Bins_Width'])
+            self.spec_E = np.sqrt(self.low_E * self.high_E)
             self.DE = self.meta[f'{species_key}_Bins_Width']
 
         if self.spacecraft.lower() in ['stereo a', 'stereo-a', 'stereo b', 'stereo-b']:
@@ -569,6 +569,8 @@ class Event:
                     flux_id = 'Proton_Flux_'
                     unc_id = 'Proton_Sigma_'
                     # fluxes = self.df[cols]
+                    self.low_E = np.array(self.meta['channels_dict_df_p'].lower_E)
+                    self.high_E = np.array(self.meta['channels_dict_df_p'].upper_E)
                     self.spec_E = np.array(self.meta['channels_dict_df_p'].mean_E)
                     self.DE = np.array(self.meta['channels_dict_df_p'].DE)
                     # # num_channels = len(self.df.filter(like='Proton_Flux').columns)
@@ -578,15 +580,21 @@ class Event:
                     flux_id = 'Electron_Flux_'
                     unc_id = 'Electron_Sigma_'
                     # fluxes = self.df[cols]
+                    self.low_E = np.array(self.meta['channels_dict_df_e'].lower_E)
+                    self.high_E = np.array(self.meta['channels_dict_df_e'].upper_E)
                     self.spec_E = np.array(self.meta['channels_dict_df_e'].mean_E)
                     self.DE = np.array(self.meta['channels_dict_df_e'].DE)
                     # num_channels = len(self.df.filter(like='Electron_Flux').columns)
             if self.instrument.lower() == 'sept':
                 unc_id = 'err_ch_'
                 if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
+                    self.low_E = self.meta['channels_dict_df_p']['lower_E'].values
+                    self.high_E = self.meta['channels_dict_df_p']['upper_E'].values
                     self.spec_E = self.meta['channels_dict_df_p']['mean_E'].values
                     self.DE = self.meta['channels_dict_df_p']['DE'].values
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
+                    self.low_E = self.meta['channels_dict_df_e']['lower_E'].values
+                    self.high_E = self.meta['channels_dict_df_e']['upper_E'].values
                     self.spec_E = self.meta['channels_dict_df_e']['mean_E'].values
                     self.DE = self.meta['channels_dict_df_e']['DE'].values
 
@@ -596,6 +604,8 @@ class Event:
                 # fluxes = self.df[cols]
             elif self.viewing.lower().startswith('sector'):
                 flux_id = f'_P{self.viewing[-1]}'  # ty: ignore[index-out-of-bounds]
+            self.low_E = self.meta['channels_dict_df']['lower_E'].values
+            self.high_E = self.meta['channels_dict_df']['upper_E'].values
             self.spec_E = self.meta['channels_dict_df']['mean_E'].values
             self.DE = self.meta['channels_dict_df']['DE'].values
 
@@ -603,6 +613,8 @@ class Event:
             # cols = self.df.filter(like='PH').columns
             flux_id = 'PH_'
             unc_id = 'uncertainty_'
+            self.low_E = self.meta['channels_dict_df_p']['lower_E']
+            self.high_E = self.meta['channels_dict_df_p']['upper_E']
             self.spec_E = self.meta['channels_dict_df_p']['mean_E']
             self.DE = self.meta['channels_dict_df_p']['DE']
             # df_soho_counts = self.df[self.df.filter(like='PHC_').columns]
@@ -613,6 +625,8 @@ class Event:
             if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
                 flux_id = f"{self.viewing}_H_Flux"
                 unc_id = f"{self.viewing}_H_Uncertainty"
+                self.low_E = self.meta['H_ENERGY'] - self.meta['H_ENERGY_DELTAMINUS']
+                self.high_E = self.meta['H_ENERGY'] + self.meta['H_ENERGY_DELTAPLUS']
                 self.spec_E = self.meta['H_ENERGY']
                 self.DE = self.meta['H_ENERGY_DELTAPLUS'] + self.meta['H_ENERGY_DELTAMINUS']
 
