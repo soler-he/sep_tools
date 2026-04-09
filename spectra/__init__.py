@@ -401,11 +401,11 @@ class Event:
             duration_min = (duration.total_seconds()/60)
             filename = f'{foldername}spectrum_slices_start_{start_time}_step_{duration_min}min_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}_{i}'
 
-            self.E_unc = self.DE/2.
-            self.I_unc = self.final_unc
-
-            spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err=self.E_unc, I_err=self.I_unc), index=range(len(self.spec_E)))
-            spec_df.to_csv(filename+'.csv', index=False)
+            # self.E_unc = self.DE/2.
+            # self.I_unc = self.final_unc
+            
+            # spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err=self.E_unc, I_err=self.I_unc), index=range(len(self.spec_E)))
+            self.spec_df.to_csv(filename+'.csv', index=False)
 
         # make  plots for each spec slice using common y-range:
         base_filename = filename = f'{foldername}spectrum_slices_start_{start_time}_step_{duration_min}min_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}_'
