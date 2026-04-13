@@ -611,7 +611,7 @@ class Event:
                 flux_id = 'FLUX'
                 # fluxes = self.df[cols]
             elif self.viewing.lower().startswith('sector'):
-                flux_id = f'_P{self.viewing[-1]}'  # ty: ignore[index-out-of-bounds]
+                flux_id = rf'FLUX_E\d+_P{self.viewing[-1]}'  # ty: ignore[index-out-of-bounds]
             self.low_E = self.meta['channels_dict_df']['lower_E'].values
             self.high_E = self.meta['channels_dict_df']['upper_E'].values
             self.spec_E = self.meta['channels_dict_df']['mean_E'].values
