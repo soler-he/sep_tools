@@ -47,6 +47,7 @@ def tests(session: nox.Session) -> None:
     """Run full test suite locally without splitting."""
     session.install(*DEPENDENCIES)
     session.install("-r", "requirements.txt")
+    session.env["MPLBACKEND"] = "Agg"
     session.run(
         "pytest",
         *COMMON_PYTEST_ARGS,
@@ -61,6 +62,7 @@ def tests_split(session: nox.Session, group: int) -> None:
     """Mirror CI exactly — use to reproduce a specific CI group failure."""
     session.install(*DEPENDENCIES)
     session.install("-r", "requirements.txt")
+    session.env["MPLBACKEND"] = "Agg"
     session.run(
         "pytest",
         *COMMON_PYTEST_ARGS,
