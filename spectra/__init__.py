@@ -25,6 +25,13 @@ warnings.filterwarnings(action='ignore', message="Note that for the Dataframes c
 warnings.filterwarnings(action='once', message="Mean of empty slice", category=RuntimeWarning)
 
 
+def nanargmax_safe(col):
+    """Return the index of the maximum value, or NaN if all values are NaN."""
+    if col.isna().all():
+        return np.nan
+    return np.nanargmax(col)
+
+
 class Event:
 
     def __init__(self):
@@ -403,7 +410,7 @@ class Event:
 
             # self.E_unc = self.DE/2.
             # self.I_unc = self.final_unc
-            
+
             # spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err=self.E_unc, I_err=self.I_unc), index=range(len(self.spec_E)))
             self.spec_df.to_csv(filename+'.csv', index=False)
 
@@ -586,6 +593,7 @@ class Event:
                     self.DE = np.array(self.meta['channels_dict_df_e'].DE)
                     # num_channels = len(self.df.filter(like='Electron_Flux').columns)
             if self.instrument.lower() == 'sept':
+                flux_id = 'ch_'  # this is dangerous bc. it is included in the unc_id as well!
                 unc_id = 'err_ch_'
                 if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
                     self.low_E = self.meta['channels_dict_df_p']['lower_E'].values
@@ -630,10 +638,11 @@ class Event:
                 self.spec_E = self.meta['H_ENERGY']
                 self.DE = self.meta['H_ENERGY_DELTAPLUS'] + self.meta['H_ENERGY_DELTAMINUS']
 
-        if self.instrument.lower() == 'sept':
-            df_fluxes = self.df[self.df.columns.drop([i for i in self.df.columns if 'err' in i])]
-        else:
-            df_fluxes = self.df[self.df.filter(like=flux_id).columns]
+        # if self.instrument.lower() == 'sept':
+        #     df_fluxes = self.df[self.df.columns.drop([i for i in self.df.columns if 'err' in i])]
+        # else:
+        #     df_fluxes = self.df[self.df.filter(like=flux_id).columns]
+        df_fluxes = self.df.filter(regex=f'^{flux_id}')  # this corrsponds to a column.startswith(flux_id), so that it works for SEPT as well where the flux columns are named like 'ch_2', 'ch_3', ... and the unc columns are named like 'err_ch_2', 'err_ch_3', ...
 
         if self.spacecraft.lower() != 'wind':  # all spacecraft except Wind
             df_uncs = self.df[self.df.filter(like=unc_id).columns]
@@ -645,14 +654,15 @@ class Event:
                     except KeyError:
                         pass
 
-        if subtract_background and spec_type == 'integral':
+        if subtract_background:
             ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
-            # bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
-            bg_spec = df_fluxes.iloc[ind_bg].mean()
-            df_fluxes = df_fluxes-bg_spec
-            # negative values after background subtraction are kept intentionally:
-            # they reflect statistical noise around zero and zeroing/masking them
-            # would introduce a positive bias in the integral flux
+            if spec_type == 'integral':
+                # bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
+                bg_spec = df_fluxes.iloc[ind_bg].mean()
+                df_fluxes = df_fluxes-bg_spec
+                # negative values after background subtraction are kept intentionally:
+                # they reflect statistical noise around zero and zeroing/masking them
+                # would introduce a positive bias in the integral flux
 
         if spec_type == 'integral':  # here we use the original (non-resamled) data
             df_fluxes_ind = df_fluxes.iloc[ind]
@@ -667,15 +677,15 @@ class Event:
                     if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:  # TODO: Jan: check note regarding PSP: is this understandable?
                         custom_warning('Note that for PSP there can be large datagaps which do not contain time-stamp data points. These can therefore not be considered in the NaN percentage above.')
 
-                dt = df_fluxes_ind.index.to_series().diff()
-                most_common_dt = dt.mode().iloc[0]
-                integration_sec = most_common_dt.total_seconds()
+                delta_t = df_fluxes_ind.index.to_series().diff()
+                most_common_delta_t = delta_t.mode().iloc[0]
+                integration_sec = most_common_delta_t.total_seconds()
                 # nonan_points_per_channel = df_fluxes_ind.count()
                 # total_integration_time_per_channel = integration_sec * nonan_points_per_channel.values
 
                 if self.spacecraft.lower() == 'wind':
                     I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)*1e6 * integration_sec
-                    unc_spec = np.zeros(len(I_spec))*np.nan  # * integration_sec
+                    unc_spec = np.zeros(len(I_spec))*np.nan
                 else:
                     I_spec = np.nansum(df_fluxes.iloc[ind], axis=0) * integration_sec
 
@@ -684,7 +694,7 @@ class Event:
                     N_event = df_uncs_ind.count().values
 
                     if subtract_background:
-                        ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
+                        # ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
                         df_uncs_bg = df_uncs.iloc[ind_bg]
 
                         # uncertainty of mean background per channel:
@@ -723,30 +733,29 @@ class Event:
                 df_resampled = self.df.copy()
             ind_resampled = np.where((df_resampled.index >= spec_start) & (df_resampled.index <= spec_end))[0]
 
-            if self.instrument.lower() == 'sept':
-                df_fluxes_resampled = df_resampled[df_resampled.columns.drop([i for i in df_resampled.columns if 'err' in i])]
-            else:
-                df_fluxes_resampled = df_resampled[df_resampled.filter(like=flux_id).columns]
+            # if self.instrument.lower() == 'sept':
+            #     df_fluxes_resampled = df_resampled[df_resampled.columns.drop([i for i in df_resampled.columns if 'err' in i])]
+            # else:
+            #     df_fluxes_resampled = df_resampled[df_resampled.filter(like=flux_id).columns]
+            df_fluxes_resampled = df_resampled[df_resampled.filter(regex=f'^{flux_id}').columns]  # this corrsponds to a column.startswith(flux_id), so that it works for SEPT as well where the flux columns are named like 'ch_2', 'ch_3', ... and the unc columns are named like 'err_ch_2', 'err_ch_3', ...
 
-            def nanargmax_safe(col):
-                """Return the index of the maximum value, or NaN if all values are NaN."""
-                if col.isna().all():
-                    return np.nan
-                return np.nanargmax(col)
+            # slice resampled DataFrames to the event time window once to avoid chained .iloc calls (for uncertainties analogously later)
+            df_fluxes_event = df_fluxes_resampled.iloc[ind_resampled]
 
             # find the time index of peak flux per channel
-            peak_idx = df_fluxes_resampled.iloc[ind_resampled].apply(nanargmax_safe, axis=0)
+            peak_idx = df_fluxes_event.apply(nanargmax_safe, axis=0)
 
             # peak flux
             # The int() cast is needed because peak_idx values may be float (due to NaN being a float) when indexing with .iloc.
-            # I_spec = np.array([df_fluxes_resampled.iloc[ind_resampled].iloc[int(peak_idx[i]), i] if not np.isnan(peak_idx[i]) else np.nan for i in range(len(peak_idx))])
-            I_spec = np.array([df_fluxes_resampled.iloc[ind_resampled[int(peak_idx[i])], i] if not np.isnan(peak_idx[i]) else np.nan for i in range(len(peak_idx))])
+            # peak_idx is a Series with column names as index, so use .iloc for integer-based access
+            I_spec = np.array([df_fluxes_event[flux_col].iloc[int(peak_idx[flux_col])] if not np.isnan(peak_idx[flux_col]) else np.nan for flux_col in peak_idx.index])
 
             if self.spacecraft.lower() == 'wind':
                 I_spec = I_spec*1e6  # convert to 1/(cm² s sr MeV)
                 unc_spec = np.zeros(len(I_spec))*np.nan  # no uncertainty data available for Wind/3DP
             else:
                 df_uncs_resampled = df_resampled[df_resampled.filter(like=unc_id).columns]
+
                 # For PSP, remove asymmetric uncertainties like A_H_Uncertainty_Minus_0 & A_H_Uncertainty_Plus_0 for now
                 if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
                     for col in ['Minus', 'Plus']:
@@ -754,11 +763,15 @@ class Event:
                             df_uncs_resampled = df_uncs_resampled[df_uncs_resampled.columns.drop([i for i in df_uncs_resampled.columns if col in i])]
                         except KeyError:
                             pass
+
+                df_uncs_event = df_uncs_resampled.iloc[ind_resampled]
                 # unc_spec = np.nanmax(df_uncs_resampled.iloc[ind_resampled], axis=0)  # old implementation, which could end up at a different time step than the peak flux
                 # look up uncertainty at the same time steps as the peak
-                unc_spec = np.array([df_uncs_resampled.iloc[ind_resampled].iloc[int(peak_idx[i]), i] if not np.isnan(peak_idx[i]) else np.nan for i in range(len(peak_idx))])
+                # unc_spec = np.array([df_uncs_resampled.iloc[ind_resampled].iloc[int(peak_idx[i]), i] if not np.isnan(peak_idx[i]) else np.nan for i in range(len(peak_idx))])
+                unc_spec = np.array([df_uncs_event[flux_col.replace(flux_id, unc_id)].iloc[int(peak_idx[flux_col])] if not np.isnan(peak_idx[flux_col]) else np.nan for flux_col in peak_idx.index])
+
             if subtract_background:    # here we use the original (non-resampled) data
-                ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
+                # ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
                 bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
                 self.final_spec = I_spec - bg_spec
                 if self.spacecraft.lower() in ['wind']:
@@ -778,7 +791,7 @@ class Event:
         self.I_unc = self.final_unc
         self.E_unc = self.DE/2.
         # TODO: implement!
-        # self.E_unc = np.array([self.spec_E - self.low_E,   # left bar magnitude    
+        # self.E_unc = np.array([self.spec_E - self.low_E,   # left bar magnitude
         #                        self.high_E - self.spec_E,  # right bar magnitude
         #                        ])
         self.spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err=self.E_unc, I_err=self.I_unc), index=range(len(self.spec_E)))
