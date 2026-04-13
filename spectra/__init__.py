@@ -737,8 +737,8 @@ class Event:
             # find the time index of peak flux per channel
             peak_idx = df_fluxes_resampled.iloc[ind_resampled].apply(nanargmax_safe, axis=0)
 
-            if os.environ.get("PYTEST_CURRENT_TEST"):
-                print(f"Test running: {os.environ['PYTEST_CURRENT_TEST']}")
+            import sys
+            if "pytest" in sys.modules:
                 print('peak_idx:', peak_idx)
 
             # peak flux
