@@ -776,7 +776,10 @@ class Event:
 
         self.I_unc = self.final_unc
         self.E_unc = self.DE/2.
-
+        # TODO: implement!
+        # self.E_unc = np.array([self.spec_E - self.low_E,   # left bar magnitude    
+        #                        self.high_E - self.spec_E,  # right bar magnitude
+        #                        ])
         self.spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err=self.E_unc, I_err=self.I_unc), index=range(len(self.spec_E)))
 
     # # moved to seppy.util. Make sure it works correctly: series vs dataframe (axis=0); len(series) includes NaNs, we want something like series.count()
