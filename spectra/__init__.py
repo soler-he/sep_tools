@@ -737,6 +737,10 @@ class Event:
             # find the time index of peak flux per channel
             peak_idx = df_fluxes_resampled.iloc[ind_resampled].apply(nanargmax_safe, axis=0)
 
+            if os.environ.get("PYTEST_CURRENT_TEST"):
+                print(f"Test running: {os.environ['PYTEST_CURRENT_TEST']}")
+                print('peak_idx:', peak_idx)
+
             # peak flux
             # The int() cast is needed because peak_idx values may be float (due to NaN being a float) when indexing with .iloc.
             I_spec = np.array([df_fluxes_resampled.iloc[ind_resampled].iloc[int(peak_idx[i]), i] if not np.isnan(peak_idx[i]) else np.nan for i in range(len(peak_idx))])
