@@ -21,28 +21,28 @@ pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-gene
 """
 
 
-@pytest.mark.parametrize("spacecraft, sensor, view, species, level, spectral_type, resample",
-                         [('PSP', 'EPIHI-HET', 'A', 'protons', 'L2', 'peak', '2min'),
-                          ('PSP', 'EPIHI-HET', 'B', 'protons', 'L2', 'integral', None),
-                          ('SOHO', 'ERNE-HED', None, 'protons', 'L2', 'integral', '5min'),
-                          ('SOHO', 'ERNE-HED', None, 'protons', 'L2', 'peak', '2min'),
-                          ('Solar Orbiter', 'HET', 'sun', 'electrons', 'L2', 'integral', '1min'),
-                          ('Solar Orbiter', 'HET', 'sun', 'protons', 'L2', 'peak', '1min'),
-                          ('Solar Orbiter', 'EPT', 'south', 'electrons', 'L2', 'integral', None),
-                          ('Solar Orbiter', 'EPT', 'north', 'ions', 'L2', 'peak', None),
-                          ('STEREO-A', 'HET', None, 'electrons', 'L2', 'integral', '5min'),
-                          ('STEREO-A', 'HET', None, 'protons', 'L2', 'peak', None),
-                          ('STEREO-A', 'SEPT', 'asun', 'electrons', 'L2', 'peak', '5min'),
-                          ('STEREO-A', 'SEPT', 'asun', 'protons', 'L2', 'integral', None),
-                          ('Wind', '3DP', 'omnidirectional', 'electrons', 'L2', 'integral', '5min'),
-                          ('Wind', '3DP', 'sector 1', 'protons', 'L2', 'peak', None)
+@pytest.mark.parametrize("spacecraft, sensor, view, species, level, spectral_type, subtract_background, resample",
+                         [('PSP', 'EPIHI-HET', 'A', 'protons', 'L2', 'peak', True, '2min'),
+                          ('PSP', 'EPIHI-HET', 'B', 'protons', 'L2', 'integral', False, None),
+                          ('SOHO', 'ERNE-HED', None, 'protons', 'L2', 'integral', True, '5min'),
+                          ('SOHO', 'ERNE-HED', None, 'protons', 'L2', 'peak', True, '2min'),
+                          ('Solar Orbiter', 'HET', 'sun', 'electrons', 'L2', 'integral', False, '1min'),
+                          ('Solar Orbiter', 'HET', 'sun', 'protons', 'L2', 'peak', False, '1min'),
+                          ('Solar Orbiter', 'EPT', 'south', 'electrons', 'L2', 'integral', False, None),
+                          ('Solar Orbiter', 'EPT', 'north', 'ions', 'L2', 'peak', True, None),
+                          ('STEREO-A', 'HET', None, 'electrons', 'L2', 'integral', True, '5min'),
+                          ('STEREO-A', 'HET', None, 'protons', 'L2', 'peak', False, None),
+                          ('STEREO-A', 'SEPT', 'asun', 'electrons', 'L2', 'peak', True, '5min'),
+                          ('STEREO-A', 'SEPT', 'asun', 'protons', 'L2', 'integral', True, None),
+                          ('Wind', '3DP', 'omnidirectional', 'electrons', 'L2', 'integral', True, '5min'),
+                          ('Wind', '3DP', 'sector 1', 'protons', 'L2', 'peak', False, None)
                           ])
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
 @pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive, and thus cannot be shown:UserWarning")
 # @pytest.mark.filterwarnings("ignore::UserWarning:seppy")
 # @pytest.mark.filterwarnings("ignore::UserWarning:solo_epd_loader")
 @pytest.mark.filterwarnings("ignore::UserWarning:sunpy")
-def test_Spectra(spacecraft, sensor, view, species, level, spectral_type, resample):
+def test_Spectra(spacecraft, sensor, view, species, level, spectral_type, subtract_background, resample):
     display(w.spacecraft_drop, w.sensor_drop, w.view_drop, w.species_drop, w.level_drop)
 
     startdate = dt.datetime(2021, 10, 28, 8)
@@ -63,7 +63,7 @@ def test_Spectra(spacecraft, sensor, view, species, level, spectral_type, resamp
     spec_start = dt.datetime(2021, 10, 28, 16)
     spec_end = dt.datetime(2021, 10, 29, 0)
 
-    subtract_background = True
+    # subtract_background = True  # defined by function parameter
 
     background_start = dt.datetime(2021, 10, 28, 12)
     background_end = dt.datetime(2021, 10, 28, 15)

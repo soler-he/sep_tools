@@ -13,8 +13,32 @@ on:
     # branches: [ "main" ]
 
 jobs:
-  build:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        enable-cache: true
+    - name: Install ruff
+      run: |
+        uv venv .venv
+        source .venv/bin/activate
+        uv pip install ruff
+    - name: Lint with ruff
+      run: |
+        source .venv/bin/activate
+        # stop the build if there are Python syntax errors or undefined names
+        ruff check . --select=E9,F63,F7,F82 --exclude=.venv
+        # summary first, then run again with exit-zero to show all errors as warnings (and ignore line length)
+        ruff check . --select=E,F,C90 --ignore=E501 --exclude=.venv --statistics --quiet --exit-zero
+        # exit-zero treats all errors as warnings. ignore line length (E501)
+        ruff check . --select=E,F,C90 --ignore=E501 --exclude=.venv --exit-zero
 
+
+  build-linux:
+    needs: lint
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -24,35 +48,86 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v7
       with:
-        python-version: ${{ matrix.python-version }}
+        enable-cache: true
+    - name: Set up Python ${{ matrix.python-version }}
+      run: uv python install ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install flake8 nbmake pytest pytest-doctestplus pytest-cov pytest-mpl pytest-xdist pytest-split
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        pip freeze > ${{ matrix.python-version }}-${{ matrix.group }}_pip_freeze.txt
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        uv venv .venv --python ${{ matrix.python-version }}
+        source .venv/bin/activate
+        uv pip install nbmake pytest pytest-doctestplus pytest-cov pytest-mpl pytest-xdist pytest-split
+        if [ -f requirements.txt ]; then uv pip install -r requirements.txt; fi
+        uv pip freeze > ${{ matrix.python-version }}-${{ matrix.group }}_pip_freeze.txt
     - name: Test with pytest
       run: |
+        source .venv/bin/activate
         pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html --mpl-results-path='/home/runner/work/sep_tools/tests_report/' --cov --cov-report=xml --nbmake -n=auto --nbmake-kernel=python3 --nbmake-timeout=500 --ignore=SEP_Multi-Instrument-Plot.ipynb --ignore=SEP_PyOnset.ipynb --durations=0 --splits 5 --group ${{ matrix.group }} --splitting-algorithm=least_duration
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v6
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-
-    - name: Save pytest-mpl report and pip freeze as artifcat
+    - name: Save pytest-mpl report and pip freeze as artifact
       if: always()
       uses: actions/upload-artifact@v7
       with:
-        name: ${{ matrix.python-version }}-${{ matrix.group }}-pytest-mpl-report-artifact
+        name: ubuntu-${{ matrix.python-version }}-${{ matrix.group }}-pytest-mpl-report-artifact
         path: |
           ${{ matrix.python-version }}-${{ matrix.group }}_pip_freeze.txt
           /home/runner/work/sep_tools/tests_report/
+
+
+  build-windows:
+    needs: lint
+    # Only run on pull requests to avoid doubling job count on every push
+    if: github.event_name == 'pull_request'
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Only test oldest and newest Python versions on Windows
+        python-version: ["3.10", "3.14"]
+        # Only use 2 groups on Windows to limit job count
+        group: [1, 2]
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        enable-cache: true
+    - name: Set up Python ${{ matrix.python-version }}
+      run: uv python install ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        uv venv .venv --python ${{ matrix.python-version }}
+        .venv\Scripts\activate
+        uv pip install nbmake pytest pytest-doctestplus pytest-cov pytest-mpl pytest-xdist pytest-split
+        if (Test-Path requirements.txt) { uv pip install -r requirements.txt }
+        uv pip freeze > ${{ matrix.python-version }}-${{ matrix.group }}_pip_freeze.txt
+      shell: pwsh
+    - name: Test with pytest
+      run: |
+        .venv\Scripts\activate
+        pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative `
+          --mpl-generate-summary=html `
+          --mpl-results-path='D:\a\sep_tools\tests_report\' `
+          --cov --cov-report=xml --nbmake -n=auto --nbmake-kernel=python3 `
+          --nbmake-timeout=500 --ignore=SEP_Multi-Instrument-Plot.ipynb `
+          --ignore=SEP_PyOnset.ipynb --durations=0 `
+          --splits 2 --group ${{ matrix.group }} --splitting-algorithm=least_duration
+      shell: pwsh
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v6
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+    - name: Save pytest-mpl report and pip freeze as artifact
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: windows-${{ matrix.python-version }}-${{ matrix.group }}-pytest-mpl-report-artifact
+        path: |
+          ${{ matrix.python-version }}-${{ matrix.group }}_pip_freeze.txt
+          D:\a\sep_tools\tests_report\

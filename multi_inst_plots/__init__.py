@@ -146,7 +146,10 @@ class Options:
                                               value=tuple(range(0,L1_3DP_P_CH_MAX,1)), rows=10, style=_style)
         self.l1_av_sep = w.FloatText(value=10, step=0.1, description="3DP+EPHIN averaging", style=_style)
         self.l1_av_erne = w.FloatText(value=10, step=0.1, description="ERNE averaging", style=_style)
-        
+
+        self.wind_flux_thres_e = None
+        self.wind_flux_thres_p = None
+
         self.ster_sc = w.Dropdown(description="STEREO A/B", options=["A", "B"], style=_style)
         self.ster_sept_e = w.Checkbox(description="SEPT Electrons", value=True)
         self.ster_sept_p = w.Checkbox(description="SEPT Protons", value=True)

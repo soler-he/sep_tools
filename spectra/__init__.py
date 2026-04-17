@@ -1,4 +1,4 @@
-# import datetime as dt
+import datetime as dt
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,13 +8,13 @@ import pandas as pd
 import sunpy
 import warnings
 
+from PIL import Image
 from solo_epd_loader import epd_load
 from seppy.loader.soho import soho_load
 from seppy.loader.psp import psp_isois_load
 from seppy.loader.stereo import stereo_load
 from seppy.loader.wind import wind3dp_load
-from seppy.util import resample_df, custom_warning, custom_notification
-import imageio
+from seppy.util import resample_df, custom_warning, custom_notification, propagated_mean_uncertainty
 
 # omit some warnings
 warnings.simplefilter(action='once', category=pd.errors.PerformanceWarning)
@@ -23,6 +23,13 @@ warnings.filterwarnings(action='ignore', message='astropy did not recognize unit
 warnings.filterwarnings(action='ignore', message='The variable "HET_', category=sunpy.util.SunpyUserWarning, module='sunpy.io._cdf')
 warnings.filterwarnings(action='ignore', message="Note that for the Dataframes containing the flow direction and SC coordinates timestamp position will not be adjusted by 'pos_timestamp'!", module='solo_epd_loader')
 warnings.filterwarnings(action='once', message="Mean of empty slice", category=RuntimeWarning)
+
+
+def nanargmax_safe(col):
+    """Return the index of the maximum value, or NaN if all values are NaN."""
+    if col.isna().all():
+        return np.nan
+    return np.nanargmax(col)
 
 
 class Event:
@@ -79,12 +86,12 @@ class Event:
             if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
                 if self.viewing == "omnidirectional":
                     dataset = 'WI_SFSP_3DP'
-                elif self.viewing[:6].lower() == 'sector':
+                elif self.viewing.lower().startswith('sector'):
                     dataset = 'WI_SFPD_3DP'
             if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
                 if self.viewing == "omnidirectional":
                     dataset = 'WI_SOSP_3DP'
-                elif self.viewing[:6].lower() == 'sector':
+                elif self.viewing.lower().startswith('sector'):
                     dataset = 'WI_SOPD_3DP'
             self.df, self.meta = wind3dp_load(dataset=dataset, startdate=self.startdate, enddate=self.enddate, path=data_path, multi_index=False)
             custom_notification('No intensity uncertainties available for Wind/3DP.')
@@ -198,10 +205,10 @@ class Event:
                 cols = df_resampled.filter(like='FLUX').columns
                 flux_id = 'FLUX_'
                 view_id = ''
-            elif self.viewing[:6].lower() == 'sector':
-                cols = df_resampled.filter(like=f'_P{self.viewing[-1]}').columns
+            elif self.viewing.lower().startswith('sector'):
+                cols = df_resampled.filter(like=f'_P{self.viewing[-1]}').columns  # ty: ignore[index-out-of-bounds]
                 flux_id = 'FLUX_E'
-                view_id = f'_P{self.viewing[-1]}'
+                view_id = f'_P{self.viewing[-1]}'  # ty: ignore[index-out-of-bounds]
             show_channels = np.arange(len(cols))
 
             # plotting
@@ -259,6 +266,8 @@ class Event:
                         axs.plot(peak_time, peak_val, 'ko', markerfacecolor='none')
 
         if subtract_background:
+            if background_start is None or background_end is None:
+                raise ValueError("background_start and background_end must be defined when subtract_background=True")
             axs.axvspan(background_start, background_end, color='pink', alpha=0.2, label='Background Period')
         axs.axvline(spec_start, color='red', linestyle='--', label='Integration Start')
         axs.axvline(spec_end, color='green', linestyle='--', label='Integration End')
@@ -292,13 +301,17 @@ class Event:
     def make_spec_gif(self, base_filename):
         # Get all PNG files (assuming they're named plot_0.png, plot_1.png, etc.)
         png_files = sorted(glob.glob(f'{base_filename}*.png'))
-
-        # write to animated gif; duration (in ms) defines how fast the animation is.
-        with imageio.get_writer(f'{base_filename}_animation.gif', mode='I', duration=100, loop=0) as writer:
-            for filename in png_files:
-                image = imageio.v2.imread(filename)
-                writer.append_data(image)
+        # Define the output GIF filename
         self.gif_filename = f'{base_filename}_animation.gif'
+        # write to animated gif; duration (in ms) defines how fast the animation is.
+        frames = [Image.open(f) for f in png_files]
+        frames[0].save(
+            self.gif_filename,
+            save_all=True,
+            append_images=frames[1:],
+            duration=100,
+            loop=0
+        )
 
     def plot_spec_slices(self, base_filename, spec_start, duration):
         # makes a plot of each spectrum slice based on the already saved csv files
@@ -395,11 +408,11 @@ class Event:
             duration_min = (duration.total_seconds()/60)
             filename = f'{foldername}spectrum_slices_start_{start_time}_step_{duration_min}min_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}_{i}'
 
-            self.E_unc = self.DE/2.
-            self.I_unc = self.final_unc
+            # self.E_unc = self.DE/2.
+            # self.I_unc = self.final_unc
 
-            spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err=self.E_unc, I_err=self.I_unc), index=range(len(self.spec_E)))
-            spec_df.to_csv(filename+'.csv', index=False)
+            # spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err=self.E_unc, I_err=self.I_unc), index=range(len(self.spec_E)))
+            self.spec_df.to_csv(filename+'.csv', index=False)
 
         # make  plots for each spec slice using common y-range:
         base_filename = filename = f'{foldername}spectrum_slices_start_{start_time}_step_{duration_min}min_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}_'
@@ -408,7 +421,129 @@ class Event:
 
         self.make_spec_gif(base_filename)
 
-    def get_spec(self, spec_start, spec_end, spec_type='integral', subtract_background=True, background_start=None, background_end=None, resample=None):
+    def get_spec(self,
+                 spec_start: dt.datetime | pd.Timestamp | str,
+                 spec_end: dt.datetime | pd.Timestamp | str,
+                 spec_type: str = 'integral',
+                 subtract_background: bool = True,
+                 background_start: dt.datetime | pd.Timestamp | str | None = None,
+                 background_end: dt.datetime | pd.Timestamp | str | None = None,
+                 resample: str | None = None) -> None:
+        """
+        Compute an energy spectrum over a selected time interval and store the result on the instance.
+        Depending on ``spec_type``, this method either integrates flux values over the interval
+        (``"integral"``) or determines the peak spectrum from the maximum flux in the interval
+        (``"peak"``). Instrument- and spacecraft-specific column names, energy bins, and channel
+        widths are inferred from ``self.df`` and ``self.meta``.
+        Optionally, a background interval can be used for background subtraction. For integral
+        spectra, background subtraction is applied to the flux time series before integration.
+        For peak spectra, the background is estimated from the original time series and subtracted
+        from the peak spectrum afterward.
+
+        Parameters
+        ----------
+        spec_start : dt.datetime or pd.Timestamp or str
+            Start time of the spectrum interval.
+        spec_end : dt.datetime or pd.Timestamp or str
+            End time of the spectrum interval.
+        spec_type : {'integral', 'peak'}, default 'integral'
+            Type of spectrum to compute:
+            - ``'integral'``: sum flux values over the selected interval and multiply by the
+              characteristic cadence to obtain an integral spectrum.
+            - ``'peak'``: take the maximum flux in each energy channel over the selected interval.
+        subtract_background : bool, default True
+            Whether to subtract a background spectrum estimated from ``background_start`` to
+            ``background_end``.
+        background_start : dt.datetime or pd.Timestamp or str, optional
+            Start time of the background interval. Required when
+            ``subtract_background=True``.
+        background_end : dt.datetime or pd.Timestamp or str, optional
+            End time of the background interval. Required when
+            ``subtract_background=True``.
+        resample : str or pandas offset alias, optional
+            Resampling rule used only for ``spec_type='peak'``. If given, the time series is
+            resampled before the peak spectrum is determined.
+
+        Returns
+        -------
+        None
+            Results are stored as instance attributes.
+
+        Attributes Set
+        --------------
+        spec_E : numpy.ndarray
+            Mean or representative energy of each channel.
+        DE : numpy.ndarray
+            Energy-bin widths.
+        final_spec : numpy.ndarray
+            Computed spectrum after optional background subtraction.
+        final_unc : numpy.ndarray
+            Uncertainty estimate associated with ``final_spec``.
+        I_unc : numpy.ndarray
+            Alias of ``final_unc``.
+        E_unc : numpy.ndarray
+            Half-width energy uncertainties, computed as ``DE / 2``.
+        spec_df : pandas.DataFrame
+            Table containing energy, intensity, and associated uncertainties with columns
+            ``['Energy', 'Intensity', 'E_err', 'I_err']``.
+        subtract_background : bool
+            Copy of the input argument.
+        spec_type : str
+            Copy of the input argument.
+
+        Notes
+        -----
+        - The method supports multiple spacecraft/instrument combinations and uses different
+          metadata keys and column naming conventions accordingly.
+        - For Wind, uncertainties are currently set to NaN.
+
+          .. todo::
+              Implement correct uncertainties for Wind/3DP.
+
+        - For PSP, asymmetric uncertainty columns containing ``'Minus'`` and ``'Plus'`` are
+          excluded where applicable.
+
+          .. todo::
+              Revisit the exclusion of asymmetric PSP uncertainty columns (``'Minus'`` and
+              ``'Plus'``).
+
+        - If the selected interval contains only data gaps, the resulting spectrum and
+          uncertainties are filled with NaN.
+        - Negative fluxes after background subtraction are kept intentionally: they reflect
+          statistical noise around zero and zeroing/masking them would introduce a positive
+          bias in the integral flux.
+        - For integral spectra without background subtraction, the uncertainty is calculated as:
+
+          .. math::
+
+              \\delta F = \\Delta t \\cdot \\sqrt{\\sum_i \\delta J_i^2}
+
+        - For background-subtracted integral spectra, the same background value is subtracted
+          from every event bin, meaning the background uncertainty is correlated across all
+          event bins. The uncertainty is therefore calculated as:
+
+          .. math::
+
+              \\delta F = \\Delta t \\cdot \\sqrt{\\sum_i \\delta J_i^2 + N_{event}^2 \\cdot \\delta J_{bg}^2}
+
+          where :math:`\\delta J_{bg} = \\frac{1}{N_{bg}} \\sqrt{\\sum_k \\delta J_k^2}` is the
+          uncertainty of the mean background per channel, and :math:`N_{event}` is the number
+          of non-NaN event bins per channel.
+        - For peak spectra, the uncertainty is taken from the same time step as the peak flux,
+          not the time step with the maximum uncertainty.
+        - For background-subtracted peak spectra, the peak uncertainty and background uncertainty
+          are independent and are therefore combined in quadrature:
+
+          .. math::
+
+              \\delta I = \\sqrt{\\delta J_{peak}^2 + \\delta J_{bg}^2}
+        """
+
+        if not isinstance(self.df, pd.DataFrame):
+            raise TypeError(f"Expected self.df to be a pandas DataFrame, but got {type(self.df).__name__}. "
+                            f"Please ensure that the data is loaded correctly before calling get_spec()."
+                            )
+
         I_spec = []
         unc_spec = []
         ind = np.where((self.df.index >= spec_start) & (self.df.index <= spec_end))[0]
@@ -429,9 +564,9 @@ class Event:
             flux_id = f'{species_key}_Flux_'
             unc_id = f'{species_key}_Uncertainty_'
 
-            low_E = np.array(self.meta[f'{species_key}_Bins_Low_Energy'])
-            high_E = low_E + np.array(self.meta[f'{species_key}_Bins_Width'])
-            self.spec_E = np.sqrt(low_E*high_E)
+            self.low_E = np.array(self.meta[f'{species_key}_Bins_Low_Energy'])
+            self.high_E = self.low_E + np.array(self.meta[f'{species_key}_Bins_Width'])
+            self.spec_E = np.sqrt(self.low_E * self.high_E)
             self.DE = self.meta[f'{species_key}_Bins_Width']
 
         if self.spacecraft.lower() in ['stereo a', 'stereo-a', 'stereo b', 'stereo-b']:
@@ -441,6 +576,8 @@ class Event:
                     flux_id = 'Proton_Flux_'
                     unc_id = 'Proton_Sigma_'
                     # fluxes = self.df[cols]
+                    self.low_E = np.array(self.meta['channels_dict_df_p'].lower_E)
+                    self.high_E = np.array(self.meta['channels_dict_df_p'].upper_E)
                     self.spec_E = np.array(self.meta['channels_dict_df_p'].mean_E)
                     self.DE = np.array(self.meta['channels_dict_df_p'].DE)
                     # # num_channels = len(self.df.filter(like='Proton_Flux').columns)
@@ -450,15 +587,22 @@ class Event:
                     flux_id = 'Electron_Flux_'
                     unc_id = 'Electron_Sigma_'
                     # fluxes = self.df[cols]
+                    self.low_E = np.array(self.meta['channels_dict_df_e'].lower_E)
+                    self.high_E = np.array(self.meta['channels_dict_df_e'].upper_E)
                     self.spec_E = np.array(self.meta['channels_dict_df_e'].mean_E)
                     self.DE = np.array(self.meta['channels_dict_df_e'].DE)
                     # num_channels = len(self.df.filter(like='Electron_Flux').columns)
             if self.instrument.lower() == 'sept':
+                flux_id = 'ch_'  # this is dangerous bc. it is included in the unc_id as well!
                 unc_id = 'err_ch_'
                 if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
+                    self.low_E = self.meta['channels_dict_df_p']['lower_E'].values
+                    self.high_E = self.meta['channels_dict_df_p']['upper_E'].values
                     self.spec_E = self.meta['channels_dict_df_p']['mean_E'].values
                     self.DE = self.meta['channels_dict_df_p']['DE'].values
                 if self.species.lower() in ['e', 'ele', 'electron', 'electrons']:
+                    self.low_E = self.meta['channels_dict_df_e']['lower_E'].values
+                    self.high_E = self.meta['channels_dict_df_e']['upper_E'].values
                     self.spec_E = self.meta['channels_dict_df_e']['mean_E'].values
                     self.DE = self.meta['channels_dict_df_e']['DE'].values
 
@@ -466,8 +610,10 @@ class Event:
             if self.viewing == "omnidirectional":
                 flux_id = 'FLUX'
                 # fluxes = self.df[cols]
-            elif self.viewing[:6].lower() == 'sector':
-                flux_id = f'_P{self.viewing[-1]}'
+            elif self.viewing.lower().startswith('sector'):
+                flux_id = rf'FLUX_E\d+_P{self.viewing[-1]}'  # ty: ignore[index-out-of-bounds]
+            self.low_E = self.meta['channels_dict_df']['lower_E'].values
+            self.high_E = self.meta['channels_dict_df']['upper_E'].values
             self.spec_E = self.meta['channels_dict_df']['mean_E'].values
             self.DE = self.meta['channels_dict_df']['DE'].values
 
@@ -475,6 +621,8 @@ class Event:
             # cols = self.df.filter(like='PH').columns
             flux_id = 'PH_'
             unc_id = 'uncertainty_'
+            self.low_E = self.meta['channels_dict_df_p']['lower_E']
+            self.high_E = self.meta['channels_dict_df_p']['upper_E']
             self.spec_E = self.meta['channels_dict_df_p']['mean_E']
             self.DE = self.meta['channels_dict_df_p']['DE']
             # df_soho_counts = self.df[self.df.filter(like='PHC_').columns]
@@ -485,23 +633,36 @@ class Event:
             if self.species.lower() in ['p', 'ion', 'ions', 'protons']:
                 flux_id = f"{self.viewing}_H_Flux"
                 unc_id = f"{self.viewing}_H_Uncertainty"
+                self.low_E = self.meta['H_ENERGY'] - self.meta['H_ENERGY_DELTAMINUS']
+                self.high_E = self.meta['H_ENERGY'] + self.meta['H_ENERGY_DELTAPLUS']
                 self.spec_E = self.meta['H_ENERGY']
                 self.DE = self.meta['H_ENERGY_DELTAPLUS'] + self.meta['H_ENERGY_DELTAMINUS']
 
-        if self.instrument.lower() == 'sept':
-            df_fluxes = self.df[self.df.columns.drop([i for i in self.df.columns if 'err' in i])]
-        else:
-            df_fluxes = self.df[self.df.filter(like=flux_id).columns]
+        # if self.instrument.lower() == 'sept':
+        #     df_fluxes = self.df[self.df.columns.drop([i for i in self.df.columns if 'err' in i])]
+        # else:
+        #     df_fluxes = self.df[self.df.filter(like=flux_id).columns]
+        df_fluxes = self.df.filter(regex=f'^{flux_id}')  # this corrsponds to a column.startswith(flux_id), so that it works for SEPT as well where the flux columns are named like 'ch_2', 'ch_3', ... and the unc columns are named like 'err_ch_2', 'err_ch_3', ...
 
         if self.spacecraft.lower() != 'wind':  # all spacecraft except Wind
             df_uncs = self.df[self.df.filter(like=unc_id).columns]
-            # For PSP, remove asymmetric uncertainties like A_H_Uncertainty_Minus_0 & A_H_Uncertainty_Plus_0 for now
+            # For PSP, remove asymmetric uncertainties like A_H_Uncertainty_Minus_0 & A_H_Uncertainty_Plus_0 for now. TODO: update this?
             if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
                 for col in ['Minus', 'Plus']:
                     try:
                         df_uncs = df_uncs[df_uncs.columns.drop([i for i in df_uncs.columns if col in i])]
                     except KeyError:
                         pass
+
+        if subtract_background:
+            ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
+            if spec_type == 'integral':
+                # bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
+                bg_spec = df_fluxes.iloc[ind_bg].mean()
+                df_fluxes = df_fluxes-bg_spec
+                # negative values after background subtraction are kept intentionally:
+                # they reflect statistical noise around zero and zeroing/masking them
+                # would introduce a positive bias in the integral flux
 
         if spec_type == 'integral':  # here we use the original (non-resamled) data
             df_fluxes_ind = df_fluxes.iloc[ind]
@@ -516,49 +677,49 @@ class Event:
                     if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:  # TODO: Jan: check note regarding PSP: is this understandable?
                         custom_warning('Note that for PSP there can be large datagaps which do not contain time-stamp data points. These can therefore not be considered in the NaN percentage above.')
 
-                dt = df_fluxes_ind.index.to_series().diff()
-                most_common_dt = dt.mode().iloc[0]
-                integration_sec = most_common_dt.total_seconds()
+                delta_t = df_fluxes_ind.index.to_series().diff()
+                most_common_delta_t = delta_t.mode().iloc[0]
+                integration_sec = most_common_delta_t.total_seconds()
                 # nonan_points_per_channel = df_fluxes_ind.count()
                 # total_integration_time_per_channel = integration_sec * nonan_points_per_channel.values
 
                 if self.spacecraft.lower() == 'wind':
                     I_spec = np.nansum(df_fluxes.iloc[ind], axis=0)*1e6 * integration_sec
-                    unc_spec = np.zeros(len(I_spec))*np.nan  # * integration_sec
+                    unc_spec = np.zeros(len(I_spec))*np.nan
                 else:
                     I_spec = np.nansum(df_fluxes.iloc[ind], axis=0) * integration_sec
-                    # For PSP, remove asymmetric uncertainties like A_H_Uncertainty_Minus_0 & A_H_Uncertainty_Plus_0 for now
-                    if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
-                        for col in ['Minus', 'Plus']:
-                            try:
-                                df_uncs = df_uncs[df_uncs.columns.drop([i for i in df_uncs.columns if col in i])]
-                            except KeyError:
-                                pass
-                    # unc_spec =       np.nansum(df_uncs.iloc[ind],    axis=0) * integration_sec  # old implementation
-                    unc_spec = np.sqrt(np.nansum(df_uncs.iloc[ind]**2, axis=0) * integration_sec)
+
+                    df_uncs_ind = df_uncs.iloc[ind]
+                    # N_event is per-channel and NaN-aware, consistent with np.nansum above
+                    N_event = df_uncs_ind.count().values
+
+                    if subtract_background:
+                        # ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
+                        df_uncs_bg = df_uncs.iloc[ind_bg]
+
+                        # uncertainty of mean background per channel:
+                        # delta_J_bg = (1/N_bg) * sqrt(sum(delta_J_k^2))
+                        delta_J_bg = propagated_mean_uncertainty(df_uncs_bg).values
+
+                        # integral flux uncertainty with correlated background:
+                        # delta_F = dt * N_event * sqrt(rms(delta_J_i)^2 + delta_J_bg^2)
+                        # propagated_mean_uncertainty computes the uncertainty of a mean: sqrt(sum(delta_J_i^2)) / N_event.
+                        # For the integral flux uncertainty we need the RSS sqrt(sum(delta_J_i^2)) instead,
+                        # so we multiply back by N_event to undo the division.
+                        unc_spec = N_event * np.sqrt(propagated_mean_uncertainty(df_uncs_ind).values**2 + delta_J_bg**2) * integration_sec
+                    else:
+                        # delta_F = dt * sqrt(sum(delta_J_i^2))
+                        # propagated_mean_uncertainty computes the uncertainty of a mean: sqrt(sum(delta_J_i^2)) / N_event.
+                        # For the integral flux uncertainty we need the RSS sqrt(sum(delta_J_i^2)) instead,
+                        # so we multiply back by N_event to undo the division.
+                        unc_spec = propagated_mean_uncertainty(df_uncs_ind).values * N_event * integration_sec
+
             else:  # if dataframe is empty (can happen for slices when bigger datagaps are present)
                 I_spec = np.zeros(len(self.spec_E))*np.nan
                 unc_spec = np.zeros(len(self.spec_E))*np.nan
 
-            if subtract_background:
-                raise NotImplementedError("Background subtraction for integral spectra is not implemented yet! Please set subtract_background=False for now.")
-
-            if (subtract_background) and (not np.all(np.isnan(I_spec))):    # here we use the original (non-resampled) data
-                ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
-                bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)  # TODO: 1. background mean von jeder einzelnen messung abziehen bevor I_spec berechnet wird!
-
-                self.final_spec = I_spec - bg_spec
-
-                if self.spacecraft.lower() in ['wind']:
-                    self.final_unc = np.zeros(len(I_spec)) * np.nan  # TODO: implement correct uncerstainties for Wind/3DP
-                else:
-                    # bg_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)  # !!! check if implemented correctly
-                    bg_unc_spec = self.sqrt_sum_squares(df_uncs.iloc[ind_bg])  # TODO: import from seppy.util
-                    # unc_spec = np.nanmax(df_uncs.iloc[ind_bg], axis=0)
-                    self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)  # TODO: bei todo 1 analog wie hier den fehler pro messung berechnen
-            else:
-                self.final_spec = I_spec
-                self.final_unc = unc_spec
+            self.final_spec = I_spec
+            self.final_unc = unc_spec
 
         if spec_type == 'peak':  # here we use the resamled data
             if resample is not None:
@@ -572,17 +733,29 @@ class Event:
                 df_resampled = self.df.copy()
             ind_resampled = np.where((df_resampled.index >= spec_start) & (df_resampled.index <= spec_end))[0]
 
-            if self.instrument.lower() == 'sept':
-                df_fluxes_resampled = df_resampled[df_resampled.columns.drop([i for i in df_resampled.columns if 'err' in i])]
-            else:
-                df_fluxes_resampled = df_resampled[df_resampled.filter(like=flux_id).columns]
-            I_spec = np.nanmax(df_fluxes_resampled.iloc[ind_resampled], axis=0)
+            # if self.instrument.lower() == 'sept':
+            #     df_fluxes_resampled = df_resampled[df_resampled.columns.drop([i for i in df_resampled.columns if 'err' in i])]
+            # else:
+            #     df_fluxes_resampled = df_resampled[df_resampled.filter(like=flux_id).columns]
+            df_fluxes_resampled = df_resampled[df_resampled.filter(regex=f'^{flux_id}').columns]  # this corrsponds to a column.startswith(flux_id), so that it works for SEPT as well where the flux columns are named like 'ch_2', 'ch_3', ... and the unc columns are named like 'err_ch_2', 'err_ch_3', ...
+
+            # slice resampled DataFrames to the event time window once to avoid chained .iloc calls (for uncertainties analogously later)
+            df_fluxes_event = df_fluxes_resampled.iloc[ind_resampled]
+
+            # find the time index of peak flux per channel
+            peak_idx = df_fluxes_event.apply(nanargmax_safe, axis=0)
+
+            # peak flux
+            # The int() cast is needed because peak_idx values may be float (due to NaN being a float) when indexing with .iloc.
+            # peak_idx is a Series with column names as index, so use .iloc for integer-based access
+            I_spec = np.array([df_fluxes_event[flux_col].iloc[int(peak_idx[flux_col])] if not np.isnan(peak_idx[flux_col]) else np.nan for flux_col in peak_idx.index])
 
             if self.spacecraft.lower() == 'wind':
-                I_spec = np.nanmax(df_fluxes_resampled.iloc[ind_resampled], axis=0)*1e6
-                unc_spec = np.zeros(len(I_spec))*np.nan
+                I_spec = I_spec*1e6  # convert to 1/(cm² s sr MeV)
+                unc_spec = np.zeros(len(I_spec))*np.nan  # no uncertainty data available for Wind/3DP
             else:
                 df_uncs_resampled = df_resampled[df_resampled.filter(like=unc_id).columns]
+
                 # For PSP, remove asymmetric uncertainties like A_H_Uncertainty_Minus_0 & A_H_Uncertainty_Plus_0 for now
                 if self.spacecraft.lower() in ['parker', 'parker solar probe', 'psp']:
                     for col in ['Minus', 'Plus']:
@@ -590,16 +763,22 @@ class Event:
                             df_uncs_resampled = df_uncs_resampled[df_uncs_resampled.columns.drop([i for i in df_uncs_resampled.columns if col in i])]
                         except KeyError:
                             pass
-                unc_spec = np.nanmax(df_uncs_resampled.iloc[ind_resampled], axis=0)
+
+                df_uncs_event = df_uncs_resampled.iloc[ind_resampled]
+                # unc_spec = np.nanmax(df_uncs_resampled.iloc[ind_resampled], axis=0)  # old implementation, which could end up at a different time step than the peak flux
+                # look up uncertainty at the same time steps as the peak
+                # unc_spec = np.array([df_uncs_resampled.iloc[ind_resampled].iloc[int(peak_idx[i]), i] if not np.isnan(peak_idx[i]) else np.nan for i in range(len(peak_idx))])
+                unc_spec = np.array([df_uncs_event[flux_col.replace(flux_id, unc_id)].iloc[int(peak_idx[flux_col])] if not np.isnan(peak_idx[flux_col]) else np.nan for flux_col in peak_idx.index])
+
             if subtract_background:    # here we use the original (non-resampled) data
-                ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
+                # ind_bg = np.where((self.df.index >= background_start) & (self.df.index <= background_end))[0]
                 bg_spec = np.nanmean(df_fluxes.iloc[ind_bg], axis=0)
                 self.final_spec = I_spec - bg_spec
                 if self.spacecraft.lower() in ['wind']:
                     self.final_unc = np.zeros(len(I_spec)) * np.nan  # TODO: implement correct uncerstainties for Wind/3DP
                 else:
-                    # b g_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)  # !!! check if implemented correctly
-                    bg_unc_spec = self.sqrt_sum_squares(df_uncs.iloc[ind_bg])  # TODO: import from seppy.util
+                    # bg_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)  # !!! check if implemented correctly
+                    bg_unc_spec = propagated_mean_uncertainty(df_uncs.iloc[ind_bg])
                     # unc_spec = np.nanmax(df_uncs.iloc[ind_bg], axis=0)
                     self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)
             else:
@@ -611,12 +790,17 @@ class Event:
 
         self.I_unc = self.final_unc
         self.E_unc = self.DE/2.
-
+        # TODO: implement!
+        # self.E_unc = np.array([self.spec_E - self.low_E,   # left bar magnitude
+        #                        self.high_E - self.spec_E,  # right bar magnitude
+        #                        ])
         self.spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err=self.E_unc, I_err=self.I_unc), index=range(len(self.spec_E)))
 
-    # TODO: move to seppy.util. Make sure it works correctly: series vs dataframe (axis=0); len(series) includes NaNs, we want something like series.count()
-    def sqrt_sum_squares(self, series):
-        return np.sqrt(np.nansum(series**2, axis=0)) / len(series)
+    # # moved to seppy.util. Make sure it works correctly: series vs dataframe (axis=0); len(series) includes NaNs, we want something like series.count()
+    # def sqrt_sum_squares(self, series):
+    #     # if isinstance(series, pd.DataFrame):
+    #     #     custom_warning(f"Expected a pd.Series, got pd.DataFrame with shape {series.shape}")
+    #     return np.sqrt(np.nansum(series**2, axis=0)) / len(series)
 
     def plot_spectrum(self, savefig=None, filename='', ylim=None):
         fig, ax = plt.subplots(1, sharex=True, figsize=(5, 4), dpi=150)
