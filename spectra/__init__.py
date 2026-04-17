@@ -298,13 +298,11 @@ class Event:
         plt.show()
         return fig, axs
 
-    def make_spec_gif(self, base_filename):
-        # Get all PNG files (assuming they're named plot_0.png, plot_1.png, etc.)
-        png_files = sorted(glob.glob(f'{base_filename}*.png'))
+    def make_spec_gif(self, filenames):
         # Define the output GIF filename
-        self.gif_filename = f'{base_filename}_animation.gif'
+        self.gif_filename = f'{os.path.commonprefix(filenames)}_animation.gif'
         # write to animated gif; duration (in ms) defines how fast the animation is.
-        frames = [Image.open(f) for f in png_files]
+        frames = [Image.open(f + '.png') for f in filenames]
         frames[0].save(
             self.gif_filename,
             save_all=True,
@@ -313,17 +311,16 @@ class Event:
             loop=0
         )
 
-    def plot_spec_slices(self, base_filename, spec_start, duration):
+    def plot_spec_slices(self, filenames, spec_start, duration):
         # makes a plot of each spectrum slice based on the already saved csv files
         # taking all csv files, we determine a global y-range used in all plots
 
-        csv_files = sorted(glob.glob(f'{base_filename}*.csv'))
         global_min = None
         global_max = None
         data_frames = []
 
-        for file in csv_files:
-            df = pd.read_csv(file)
+        for file in filenames:
+            df = pd.read_csv(file + '.csv')
             intensity = df['Intensity'].astype(float)
             if self.spacecraft == 'Wind':
                 # i_err = np.zeros(len(intensity))
@@ -357,7 +354,7 @@ class Event:
         # print(global_min, global_max)
         print(f'Global y-range: {global_min:.2f} to {global_max:.2f}')
         # Plot each file with shared y-limits
-        for idx, (df, file) in enumerate(zip(data_frames, csv_files)):
+        for idx, (df, file) in enumerate(zip(data_frames, filenames)):
             t1 = spec_start + idx * duration
             t2 = spec_start + (idx+1) * duration
 
@@ -387,8 +384,7 @@ class Event:
             ax.text(0.95, 0.95, f'{t1}-{t2}', ha='right', transform=ax.transAxes)
             ax.legend(loc=3)
 
-            filename = f'{base_filename}_{idx}.png'
-            plt.savefig(filename)
+            plt.savefig(file + '.png')
             plt.close('all')
 
     def get_spec_slices(self, spec_start, spec_end, duration, subtract_background=True, background_start=None, background_end=None):
@@ -403,12 +399,14 @@ class Event:
         print(base_filename)
 
         num_steps = int((spec_end-spec_start) / duration)
+        filenames = []
         for i in np.arange(0, num_steps, 1):
             t1 = spec_start + i * duration
             t2 = spec_start + (i+1) * duration
             self.get_spec(t1, t2, spec_type='integral', subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end)
             filename = f'{base_filename}{i}'
+            filenames.append(filename)
 
             # self.E_unc = self.DE/2.
             # self.I_unc = self.final_unc
@@ -417,9 +415,9 @@ class Event:
             self.spec_df.to_csv(filename+'.csv', index=False)
 
         # make  plots for each spec slice using common y-range:
-        self.plot_spec_slices(base_filename, spec_start, duration)
+        self.plot_spec_slices(filenames, spec_start, duration)
 
-        self.make_spec_gif(base_filename)
+        self.make_spec_gif(filenames)
 
     def get_spec(self,
                  spec_start: dt.datetime | pd.Timestamp | str,
