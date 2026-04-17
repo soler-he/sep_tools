@@ -396,17 +396,19 @@ class Event:
         # then makes plots for all spectra using a common y-range
         # then makes an animated gif out of all spectra plots
 
+        foldername = f'output_spectra{os.sep}'
+        start_time = spec_start.strftime('%Y-%m-%d_%H-%M-%S')
+        duration_min = (duration.total_seconds()/60)
+        base_filename = f'{foldername}spectrum_slices_start_{start_time}_step_{duration_min}min_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}_'
+        print(base_filename)
+
         num_steps = int((spec_end-spec_start) / duration)
         for i in np.arange(0, num_steps, 1):
             t1 = spec_start + i * duration
             t2 = spec_start + (i+1) * duration
             self.get_spec(t1, t2, spec_type='integral', subtract_background=subtract_background,
                           background_start=background_start, background_end=background_end)
-
-            foldername = f'output_spectra{os.sep}'
-            start_time = str(spec_start).replace(" ", "_")
-            duration_min = (duration.total_seconds()/60)
-            filename = f'{foldername}spectrum_slices_start_{start_time}_step_{duration_min}min_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}_{i}'
+            filename = f'{base_filename}{i}'
 
             # self.E_unc = self.DE/2.
             # self.I_unc = self.final_unc
@@ -415,8 +417,6 @@ class Event:
             self.spec_df.to_csv(filename+'.csv', index=False)
 
         # make  plots for each spec slice using common y-range:
-        base_filename = filename = f'{foldername}spectrum_slices_start_{start_time}_step_{duration_min}min_{self.spacecraft.upper()}_{self.instrument.upper()}_{self.viewing}_{self.species}_'
-        print(base_filename)
         self.plot_spec_slices(base_filename, spec_start, duration)
 
         self.make_spec_gif(base_filename)
