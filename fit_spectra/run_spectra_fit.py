@@ -71,6 +71,13 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
 
     fit_var_path = folder_path+'/'+file_name+'_'+name_string+'_fit-result-variables_'+which_fit+'.csv'
 
+    # TODO: update!
+    # The spectra tool returns not anymore a single error column for energy, but two columns: E_err_minus and E_err_plus.
+    # Until this if fully implemented here, we calculate the old E_err here as it has been done before in the spectra tool.
+    # This is not ideal, but provides a working code for now.
+    if 'E_err_minus' in data and 'E_err_plus' in data:
+        data['E_err'] = (data['E_err_plus'] + data['E_err_minus'])/2.
+
     all_data = data
 
     dataframe_to_fit = data
@@ -80,28 +87,30 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
         args = sf.exclude_channels(data, channels_to_exclude) #returns two dataframes #1 has the good data (to fit) #2 has the excluded channels
         dataframe_to_fit = args[0]
         dataframe_to_exclude = args[1]
-       
 
     x_data = dataframe_to_fit['Energy'] # energy for spectra
-    y_data   = dataframe_to_fit['Intensity']
-      
+    y_data = dataframe_to_fit['Intensity']
+
     x_err = None
     y_err = None
 
+    if 'E_err' in data:
+        x_err = data['E_err']
+        if x_err.isnull().all():
+            x_err = None
+    if 'I_err' in data:
+        y_err = data['I_err'] 
+
     if 'E_err' in dataframe_to_fit:
-        x_err  = dataframe_to_fit['E_err']
+        x_err = dataframe_to_fit['E_err']
+        #checking if uncertainties for energy and intensity are NaNs
+        if x_err.isnull().all():
+            x_err = None
     
     if 'I_err' in dataframe_to_fit:
-        y_err    = dataframe_to_fit['I_err'] 
-
-    #checking if uncertainties for energy and intensity are NaNs
-    if x_err.isnull().all():
-        x_err = None
-        
-    if y_err.isnull().all():
-        y_err = None
-       
-    
+        y_err = dataframe_to_fit['I_err'] 
+        if y_err.isnull().all():
+            y_err = None
 
     f, ax = plt.subplots(1, figsize=(6, 5), dpi = 300)
     
