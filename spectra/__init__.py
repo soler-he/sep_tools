@@ -359,7 +359,7 @@ class Event:
             t2 = spec_start + (idx+1) * duration
 
             fig, ax = plt.subplots(1, sharex=True, figsize=(5, 4), dpi=150)
-            ax.errorbar(df['Energy'], df['Intensity'], yerr=df['I_err'], xerr=df['E_err'], fmt='o', markersize=8,
+            ax.errorbar(df['Energy'], df['Intensity'], yerr=df['I_err'], xerr=[df['E_err_minus'], df['E_err_plus']], fmt='o', markersize=8,
                         label=self.species, elinewidth=2, capsize=5, capthick=2, ecolor='lightgray')
 
             spec_type_str = 'integral spectrum'
@@ -471,6 +471,10 @@ class Event:
         --------------
         spec_E : numpy.ndarray
             Mean or representative energy of each channel.
+        low_E : numpy.ndarray
+            Lower bound of each energy channel.
+        high_E : numpy.ndarray
+            Upper bound of each energy channel.
         DE : numpy.ndarray
             Energy-bin widths.
         final_spec : numpy.ndarray
@@ -479,11 +483,17 @@ class Event:
             Uncertainty estimate associated with ``final_spec``.
         I_unc : numpy.ndarray
             Alias of ``final_unc``.
-        E_unc : numpy.ndarray
-            Half-width energy uncertainties, computed as ``DE / 2``.
+        E_unc_minus : numpy.ndarray
+            Left (lower) energy bar magnitudes, computed as ``spec_E - low_E``.
+        E_unc_plus : numpy.ndarray
+            Right (upper) energy bar magnitudes, computed as ``high_E - spec_E``.
         spec_df : pandas.DataFrame
             Table containing energy, intensity, and associated uncertainties with columns
-            ``['Energy', 'Intensity', 'E_err', 'I_err']``.
+            ``['Energy', 'Intensity', 'E_err_minus', 'E_err_plus', 'I_err']``.
+            ``'E_err_minus'`` and ``'E_err_plus'`` give the lower and upper half-widths of
+            each energy bin respectively. Because we have geometric energy bins, the 
+            energy uncertainty is asymmetric and the error bars are not centered on the
+            mean energy.
         subtract_background : bool
             Copy of the input argument.
         spec_type : str
@@ -787,12 +797,12 @@ class Event:
         self.spec_type = spec_type
 
         self.I_unc = self.final_unc
-        self.E_unc = self.DE/2.
-        # TODO: implement!
-        # self.E_unc = np.array([self.spec_E - self.low_E,   # left bar magnitude
-        #                        self.high_E - self.spec_E,  # right bar magnitude
-        #                        ])
-        self.spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err=self.E_unc, I_err=self.I_unc), index=range(len(self.spec_E)))
+        # self.E_unc = self.DE/2.
+        self.E_unc_minus = np.array(self.spec_E - self.low_E)  # left bar magnitude
+        self.E_unc_plus = np.array(self.high_E - self.spec_E)   # right bar magnitude
+        # old E_unc can be derived with: E_unc = (E_unc_plus + E_unc_minus)/2.
+        # self.spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err=self.E_unc, I_err=self.I_unc), index=range(len(self.spec_E)))
+        self.spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err_minus=self.E_unc_minus, E_err_plus=self.E_unc_plus, I_err=self.I_unc), index=range(len(self.spec_E)))
 
     # # moved to seppy.util. Make sure it works correctly: series vs dataframe (axis=0); len(series) includes NaNs, we want something like series.count()
     # def sqrt_sum_squares(self, series):
@@ -802,7 +812,7 @@ class Event:
 
     def plot_spectrum(self, savefig=None, filename='', ylim=None):
         fig, ax = plt.subplots(1, sharex=True, figsize=(5, 4), dpi=150)
-        ax.errorbar(self.spec_E, self.final_spec, xerr=self.E_unc, yerr=self.final_unc, fmt='o', markersize=8,
+        ax.errorbar(self.spec_E, self.final_spec, xerr=[self.E_unc_minus, self.E_unc_plus], yerr=self.final_unc, fmt='o', markersize=8,
                     label=self.species, elinewidth=2, capsize=5, capthick=2, ecolor='lightgray')
 
         if self.spec_type == 'integral':

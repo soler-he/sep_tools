@@ -88,44 +88,48 @@ def print_results(file_with_fit_results):
 
 
 def plot_spectrum(data):
-	x_data = data['Energy'] # energy for spectra
-	y_data   = data['Intensity']
+	x_data = data['Energy']  # energy for spectra
+	y_data = data['Intensity']
 	x_err = None
 	y_err = None
 
+	# TODO: update!
+	# The spectra tool returns not anymore a single error column for energy, but two columns: E_err_minus and E_err_plus.
+	# Until this if fully implemented here, we calculate the old E_err here as it has been done before in the spectra tool.
+	# This is not ideal, but provides a working code for now.
+	if 'E_err_minus' in data and 'E_err_plus' in data:
+		data['E_err'] = (data['E_err_plus'] + data['E_err_minus'])/2.
+
 	if 'E_err' in data:
-		x_err  = data['E_err']
+		x_err = data['E_err']
+		if x_err.isnull().all():
+			x_err = None
 	if 'I_err' in data:
-		y_err    = data['I_err'] 
-	if x_err.isnull().all():
-		x_err = None
-	if y_err.isnull().all():
-	    y_err = None
-		
-	f, ax = plt.subplots(1, figsize=(5, 4), dpi = 300)
-		
-	ax.errorbar(x_data, y_data, xerr = x_err, yerr=y_err, marker='o', markersize= 3 , linestyle='', color='red', alpha = 0.5, label='data points', zorder = -1)
-    
+		y_err = data['I_err'] 
+		if y_err.isnull().all():
+			y_err = None
+
+	f, ax = plt.subplots(1, figsize=(5, 4), dpi=300)
+
+	ax.errorbar(x_data, y_data, xerr=x_err, yerr=y_err, marker='o', markersize=3 , linestyle='', color='red', alpha=0.5, label='data points', zorder=-1)
+
 	x_range_min = min(data['Energy'])
 	x_range_max = max(data['Energy'])
 
 	ax.set_xlim(x_range_min-(x_range_min/2), x_range_max+(x_range_max/2))
-	locmin = pltt.LogLocator(base=10.0,subs=(0.2,0.4,0.6,0.8),numticks=12)
-        
+	locmin = pltt.LogLocator(base=10.0, subs=(0.2, 0.4, 0.6, 0.8), numticks=12)
+
 	ax.yaxis.set_minor_locator(locmin)
 	ax.yaxis.set_minor_formatter(pltt.NullFormatter())
 
 	ax.set_xscale('log')
 	ax.set_yscale('log')
 
-	#plt.legend('',  prop={'size': 7})
+	# plt.legend('',  prop={'size': 7})
 	plt.ylabel('Intensity')
 	plt.xlabel('Energy')
-	#plt.title('Example spectrum')
-    
-	#if save:
+	# plt.title('Example spectrum')
+
+	# if save:
 	#   plt.savefig(folder_path+'/'+file_name+'_'+name_string+'_fit-plot_'+which_fit+'.png', dpi=300)
 	plt.show()
-
-
-	
