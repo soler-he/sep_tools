@@ -359,7 +359,7 @@ class Event:
             t2 = spec_start + (idx+1) * duration
 
             fig, ax = plt.subplots(1, sharex=True, figsize=(5, 4), dpi=150)
-            ax.errorbar(df['Energy'], df['Intensity'], yerr=df['I_err'], xerr=df['E_err'], fmt='o', markersize=8,
+            ax.errorbar(df['Energy'], df['Intensity'], yerr=df['I_err'], xerr=[df['E_err_minus'], df['E_err_plus']], fmt='o', markersize=8,
                         label=self.species, elinewidth=2, capsize=5, capthick=2, ecolor='lightgray')
 
             spec_type_str = 'integral spectrum'
@@ -787,12 +787,12 @@ class Event:
         self.spec_type = spec_type
 
         self.I_unc = self.final_unc
-        self.E_unc = self.DE/2.
-        # TODO: implement!
-        # self.E_unc = np.array([self.spec_E - self.low_E,   # left bar magnitude
-        #                        self.high_E - self.spec_E,  # right bar magnitude
-        #                        ])
-        self.spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err=self.E_unc, I_err=self.I_unc), index=range(len(self.spec_E)))
+        # self.E_unc = self.DE/2.
+        self.E_unc_minus = np.array(self.spec_E - self.low_E)  # left bar magnitude
+        self.E_unc_plus = np.array(self.high_E - self.spec_E)   # right bar magnitude
+        # old E_unc can be derived with: E_unc = (E_unc_plus + E_unc_minus)/2.
+        # self.spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err=self.E_unc, I_err=self.I_unc), index=range(len(self.spec_E)))
+        self.spec_df = pd.DataFrame(dict(Energy=self.spec_E, Intensity=self.final_spec, E_err_minus=self.E_unc_minus, E_err_plus=self.E_unc_plus, I_err=self.I_unc), index=range(len(self.spec_E)))
 
     # # moved to seppy.util. Make sure it works correctly: series vs dataframe (axis=0); len(series) includes NaNs, we want something like series.count()
     # def sqrt_sum_squares(self, series):
@@ -802,7 +802,7 @@ class Event:
 
     def plot_spectrum(self, savefig=None, filename='', ylim=None):
         fig, ax = plt.subplots(1, sharex=True, figsize=(5, 4), dpi=150)
-        ax.errorbar(self.spec_E, self.final_spec, xerr=self.E_unc, yerr=self.final_unc, fmt='o', markersize=8,
+        ax.errorbar(self.spec_E, self.final_spec, xerr=[self.E_unc_minus, self.E_unc_plus], yerr=self.final_unc, fmt='o', markersize=8,
                     label=self.species, elinewidth=2, capsize=5, capthick=2, ecolor='lightgray')
 
         if self.spec_type == 'integral':
