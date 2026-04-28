@@ -183,6 +183,9 @@ class Event:
         self.psp_epilo_channel_e = 'F'
         self.psp_epilo_channel_p = 'P'  # 'P' or 'T'
 
+        self.wind_flux_thres_e = None  # 1e3/1e6  # None
+        self.wind_flux_thres_p = None  # 1e3/1e6  # None
+
     def instrument_selection(self):
         e_checkboxes = dict(zip(self.e_instruments, [w.Checkbox(value=True, description=option[:-1], indent=False) for option in self.e_instruments]))
         p_checkboxes = dict(zip(self.p_instruments, [w.Checkbox(value=True, description=option[:-1], indent=False) for option in self.p_instruments]))
@@ -236,21 +239,31 @@ class Event:
             if type(self.viewing[key]) is str and self.viewing[key].lower() in ['antisun', 'anti-sun']:
                 self.viewing[key] = 'asun'
 
-        wind_3dp_threshold = None  # 1e3/1e6  # None
         psp_epilo_threshold_e = None  # 1e2  # None
         psp_epilo_threshold_p = None  # 1e2  # None
 
         self.psp_3600 = False  # don't change this!
 
+        # Check if thresholds for Wind/3DP data were manually set with values in the class
+        # thresholds need to be divided by 1e6 since the plotting is also doing this conversion to plot in MeV instead of eV
+        if self.wind_flux_thres_e is not None:
+            print(f"Loading Wind/3DP e data with threshold = {self.wind_flux_thres_e}!")
+            self.wind_flux_thres_e = self.wind_flux_thres_e / 1e6
+        if self.wind_flux_thres_p is not None:
+            print(f"Loading Wind/3DP p data with threshold = {self.wind_flux_thres_p}!")
+            self.wind_flux_thres_p = self.wind_flux_thres_p / 1e6
+
+
+
         ##################################################################
 
         if 'WIND/3DP e' in self.instruments:
             # # print('loading wind/3dp e omni')
-            self.wind3dp_e_df_org, self.wind3dp_e_meta = wind3dp_load(dataset="WI_SFSP_3DP", startdate=self.startdate, enddate=self.enddate, resample=None, multi_index=False, path=wind_path, threshold=wind_3dp_threshold)
+            self.wind3dp_e_df_org, self.wind3dp_e_meta = wind3dp_load(dataset="WI_SFSP_3DP", startdate=self.startdate, enddate=self.enddate, resample=None, multi_index=False, path=wind_path, threshold=self.wind_flux_thres_e)
 
         if 'WIND/3DP p' in self.instruments:
             # print('loading wind/3dp p omni')
-            self.wind3dp_p_df_org, self.wind3dp_p_meta = wind3dp_load(dataset="WI_SOSP_3DP", startdate=self.startdate, enddate=self.enddate, resample=None, multi_index=False, path=wind_path)
+            self.wind3dp_p_df_org, self.wind3dp_p_meta = wind3dp_load(dataset="WI_SOSP_3DP", startdate=self.startdate, enddate=self.enddate, resample=None, multi_index=False, path=wind_path, threshold=self.wind_flux_thres_p)
 
         if 'STEREO-A/HET e' in self.instruments or 'STEREO-A/HET p' in self.instruments:
             # print('loading stereo/het')
