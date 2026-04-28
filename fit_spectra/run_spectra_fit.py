@@ -94,16 +94,9 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
     x_err = None
     y_err = None
 
-    if 'E_err' in data:
-        x_err = data['E_err']
-        if x_err.isnull().all():
-            x_err = None
-    if 'I_err' in data:
-        y_err = data['I_err'] 
-
     if 'E_err' in dataframe_to_fit:
         x_err = dataframe_to_fit['E_err']
-        #checking if uncertainties for energy and intensity are NaNs
+        # checking if uncertainties for energy and intensity are NaNs
         if x_err.isnull().all():
             x_err = None
     
