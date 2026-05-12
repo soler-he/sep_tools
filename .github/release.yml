@@ -1,0 +1,38 @@
+# .github/release.yml
+
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - dependencies
+    authors:
+      - dependabot
+      - pre-commit-ci
+      - github-actions
+
+  categories:
+    - title: Bugfixes 🛠
+      labels:
+        - bug
+    - title: New Features 🎉
+      labels:
+        - enhancement
+    - title: "📖 Documentation"
+      labels:
+        - documentation
+    - title: "🧪 Tests"
+      labels:
+        - test
+    - title: "🔧 Maintenance"
+      labels:
+        - chore
+        - refactor
+        - maintenance
+        - ci
+        - build
+    - title: "⬆️ Dependency Updates"
+      labels:
+        - dependencies
+    - title: "🧩 Other Changes"
+      labels:
+        - "*"
