@@ -7,7 +7,9 @@ changelog:
       - dependencies
     authors:
       - dependabot
+      - dependabot[bot]
       - pre-commit-ci
+      - pre-commit-ci[bot]
       - github-actions
 
   categories:
