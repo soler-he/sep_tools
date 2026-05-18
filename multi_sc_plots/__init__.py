@@ -178,7 +178,7 @@ class Event:
         self.viewing['Solar Orbiter/EPT'] = 'sun'
         self.viewing['Solar Orbiter/HET'] = 'sun'
         self.viewing['STEREO-A/SEPT'] = 'sun'
-        # self.viewing['WIND/3DP'] = 'omni'
+        self.viewing['WIND/3DP'] = 'omni'
 
         self.psp_epilo_channel_e = 'F'
         self.psp_epilo_channel_p = 'P'  # 'P' or 'T'
@@ -190,14 +190,45 @@ class Event:
         e_checkboxes = dict(zip(self.e_instruments, [w.Checkbox(value=True, description=option[:-1], indent=False) for option in self.e_instruments]))
         p_checkboxes = dict(zip(self.p_instruments, [w.Checkbox(value=True, description=option[:-1], indent=False) for option in self.p_instruments]))
 
-        grid = w.GridspecLayout(max(len(self.e_instruments), len(self.p_instruments))+1, 2, width='50%')
+        # --- Select/Deselect All buttons ---
+        e_toggle = w.ToggleButton(value=True, description='Deselect All', button_style='', icon='times')
+        p_toggle = w.ToggleButton(value=True, description='Deselect All', button_style='', icon='times')
+
+        def make_toggle_handler(checkboxes, toggle_button):
+            # pass a copy to avoid being affected by later e_checkboxes.update(p_checkboxes)
+            checkboxes = checkboxes.copy()
+            def handler(change):
+                all_selected = change['new']
+                for cb in checkboxes.values():
+                    cb.value = all_selected
+                if all_selected:
+                    toggle_button.description = 'Deselect All'
+                    toggle_button.icon = 'times'
+                else:
+                    toggle_button.description = 'Select All'
+                    toggle_button.icon = 'check'
+            return handler
+
+        e_toggle.observe(make_toggle_handler(e_checkboxes, e_toggle), names='value')
+        p_toggle.observe(make_toggle_handler(p_checkboxes, p_toggle), names='value')
+
+        # --- Layout ---
+        n_rows = max(len(self.e_instruments), len(self.p_instruments)) + 2  # +1 header, +1 button row at bottom
+
+        grid = w.GridspecLayout(n_rows, 2, width='50%')
 
         grid[0, 0] = w.HTML(value="<b>Electrons:</b>")
         grid[0, 1] = w.HTML(value="<b>Protons/Ions:</b>")
+
         for i, option in enumerate(self.e_instruments):
             grid[i+1, 0] = e_checkboxes[option]
         for i, option in enumerate(self.p_instruments):
             grid[i+1, 1] = p_checkboxes[option]
+
+        # buttons in last row
+        grid[n_rows-1, 0] = e_toggle
+        grid[n_rows-1, 1] = p_toggle
+
         display(grid)
 
         e_checkboxes.update(p_checkboxes)
@@ -258,12 +289,20 @@ class Event:
         ##################################################################
 
         if 'WIND/3DP e' in self.instruments:
-            # # print('loading wind/3dp e omni')
-            self.wind3dp_e_df_org, self.wind3dp_e_meta = wind3dp_load(dataset="WI_SFSP_3DP", startdate=self.startdate, enddate=self.enddate, resample=None, multi_index=False, path=wind_path, threshold=self.wind_flux_thres_e)
+            if self.viewing['WIND/3DP'].lower().startswith('omni'):
+                dataset_wind_e = 'WI_SFSP_3DP'
+            elif self.viewing['WIND/3DP'].lower().startswith('sector'):
+                dataset_wind_e = 'WI_SFPD_3DP'
+            # print('loading wind/3dp e')
+            self.wind3dp_e_df_org, self.wind3dp_e_meta = wind3dp_load(dataset=dataset_wind_e, startdate=self.startdate, enddate=self.enddate, resample=None, multi_index=False, path=wind_path, threshold=self.wind_flux_thres_e)
 
         if 'WIND/3DP p' in self.instruments:
-            # print('loading wind/3dp p omni')
-            self.wind3dp_p_df_org, self.wind3dp_p_meta = wind3dp_load(dataset="WI_SOSP_3DP", startdate=self.startdate, enddate=self.enddate, resample=None, multi_index=False, path=wind_path, threshold=self.wind_flux_thres_p)
+            if self.viewing['WIND/3DP'].lower().startswith('omni'):
+                dataset_wind_p = 'WI_SOSP_3DP'
+            elif self.viewing['WIND/3DP'].lower().startswith('sector'):
+                dataset_wind_p = 'WI_SOPD_3DP'
+            # print('loading wind/3dp p')
+            self.wind3dp_p_df_org, self.wind3dp_p_meta = wind3dp_load(dataset=dataset_wind_p, startdate=self.startdate, enddate=self.enddate, resample=None, multi_index=False, path=wind_path, threshold=self.wind_flux_thres_p)
 
         if 'STEREO-A/HET e' in self.instruments or 'STEREO-A/HET p' in self.instruments:
             # print('loading stereo/het')
@@ -783,6 +822,13 @@ class Event:
                     self.wind3dp_p_df = resample_df(self.wind3dp_p_df_org, wind_3dp_resample, cols_unc=[])
                 else:
                     self.wind3dp_p_df = self.wind3dp_p_df_org
+
+        if self.viewing['WIND/3DP'].lower().startswith('omni'):
+            wind_flux_id = 'FLUX_'
+            wind_view_id = ''
+        elif self.viewing['WIND/3DP'].lower().startswith('sector'):
+            wind_flux_id = 'FLUX_E'
+            wind_view_id = f"_P{self.viewing['WIND/3DP'][-1]}"
         ##########################################################################################
 
         panels = 0
@@ -855,7 +901,8 @@ class Event:
             if 'WIND/3DP e' in plot_instruments:
                 if hasattr(self, 'wind3dp_e_df') and len(self.wind3dp_e_df) > 0:
                     # multiply by 1e6 to get per MeV
-                    ax.plot(self.wind3dp_e_df.index, self.wind3dp_e_df[f"FLUX_{self.channels_e['WIND/3DP e']}"]*1e6, color=self.plot_colors['WIND/3DP'], linewidth=linewidth, label='Wind/3DP omni '+self.wind3dp_e_meta['channels_dict_df']['Bins_Text'].iloc[self.channels_e['WIND/3DP e']], drawstyle='steps-mid')
+                    # ax.plot(self.wind3dp_e_df.index, self.wind3dp_e_df[f"FLUX_{self.channels_e['WIND/3DP e']}"]*1e6, color=self.plot_colors['WIND/3DP'], linewidth=linewidth, label='Wind/3DP omni '+self.wind3dp_e_meta['channels_dict_df']['Bins_Text'].iloc[self.channels_e['WIND/3DP e']], drawstyle='steps-mid')
+                    ax.plot(self.wind3dp_e_df.index, self.wind3dp_e_df[f"{wind_flux_id}{self.channels_e['WIND/3DP e']}{wind_view_id}"]*1e6, color=self.plot_colors['WIND/3DP'], linewidth=linewidth, label='Wind/3DP '+self.viewing["WIND/3DP"]+' '+self.wind3dp_e_meta['channels_dict_df']['Bins_Text'].iloc[self.channels_e['WIND/3DP e']], drawstyle='steps-mid')
 
             ax.set_yscale('log')
             ax.set_ylabel(intensity_label)
@@ -924,7 +971,8 @@ class Event:
                 if hasattr(self, 'wind3dp_p_df') and len(self.wind3dp_p_df) > 0:
                     # multiply by 1e6 to get per MeV
                     # ax.plot(self.wind3dp_p_df.index, self.wind3dp_p_df[f'FLUX_{self.channels_p['WIND/3DP p']}']*1e6, color=self.plot_colors['WIND/3DP'], linewidth=linewidth, label='Wind 3DP omni '+str(round(wind3dp_p_df[f'ENERGY_{self.channels_p['WIND/3DP p']}'].mean()/1000., 2)) + ' keV', drawstyle='steps-mid')
-                    ax.plot(self.wind3dp_p_df.index, self.wind3dp_p_df[f"FLUX_{self.channels_p['WIND/3DP p']}"]*1e6, color=self.plot_colors['WIND/3DP'], linewidth=linewidth, label='Wind 3DP omni '+self.wind3dp_p_meta['channels_dict_df']['Bins_Text'].iloc[self.channels_p['WIND/3DP p']], drawstyle='steps-mid')
+                    # ax.plot(self.wind3dp_p_df.index, self.wind3dp_p_df[f"FLUX_{self.channels_p['WIND/3DP p']}"]*1e6, color=self.plot_colors['WIND/3DP'], linewidth=linewidth, label='Wind 3DP omni '+self.wind3dp_p_meta['channels_dict_df']['Bins_Text'].iloc[self.channels_p['WIND/3DP p']], drawstyle='steps-mid')
+                    ax.plot(self.wind3dp_p_df.index, self.wind3dp_p_df[f"{wind_flux_id}{self.channels_p['WIND/3DP p']}{wind_view_id}"]*1e6, color=self.plot_colors['WIND/3DP'], linewidth=linewidth, label='Wind 3DP '+self.viewing["WIND/3DP"]+' '+self.wind3dp_p_meta['channels_dict_df']['Bins_Text'].iloc[self.channels_p['WIND/3DP p']], drawstyle='steps-mid')
 
             ax.set_yscale('log')
             ax.set_ylabel(intensity_label)
