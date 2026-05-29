@@ -205,7 +205,20 @@ def anisotropy_legendre_fit(y,x,y_err = None):
         res = model.fit(y, params, x=x,weights=weights)
         results.append(res)
         bics.append(res.bic)
-        anis.append(res.params["b"].value/res.params["a"].value)
+        #
+        # The following caused a division by zero crash since lmfit 1.3.4
+        # because it internaly started using floats instead of np.floats (which
+        # allowed division by zero to return inf instead of crashing). Fixed by
+        # setting anisotropy to NaN when a=0.0 (mind that before it technically
+        # ended up as np.inf).
+        # anis.append(res.params["b"].value/res.params["a"].value)  # old code
+        a_val = res.params["a"].value
+        b_val = res.params["b"].value
+        if a_val == 0.0:
+            anis.append(np.nan)
+        else:
+            anis.append(b_val / a_val)
+        #
         degree += 1
     idx = np.nanargmin(bics)
     return results[idx], anis[idx]
