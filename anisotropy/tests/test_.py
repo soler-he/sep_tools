@@ -68,37 +68,38 @@ def test_SEP_PADs_and_Anisotropy_Wind_3DP_full_fit():
     spacecraft_instrument.value = 'Wind 3DP'
     #
     species = "e"
-    channels = 3  # no channel averaging implemented for 3DP!
-    averaging = "2min"  # data averaging
+    channels = 3
+    averaging = None  # "1min"  # time averaging. Set to None for no averaging (i.e., original resolution)
     #
-    start_time = pd.to_datetime('2021-10-31 16:00:00')
-    end_time = pd.to_datetime('2021-11-01 18:00:00')
-    event = run_SEPevent(data_path, spacecraft_instrument.value, start_time, end_time, species=species, channels=channels, averaging=averaging)
-    fig, axes = event.overview_plot()
-
-    # chose a background window. Setting these to None will set default window [start_time, start_time + 5 hours]
-    bg_start = pd.to_datetime('2021-10-31 23:00:00')  # None
-    bg_end = pd.to_datetime('2021-11-01 01:30:00')  # None
+    start_time = pd.to_datetime('2021-10-28 00:00:00')
+    end_time = pd.to_datetime('2021-10-30 00:00:00')
+    #
+    event = run_SEPevent(data_path, spacecraft_instrument.value, start_time, end_time, species, channels=channels, averaging=averaging)
+    fig1, axes1 = event.overview_plot()
+    #
+    # chose a background window. Setting these to None will set default window [start_time, start_time + 5 hours] 
+    bg_start = pd.to_datetime('2021-10-28 08:00:00')  
+    bg_end =  pd.to_datetime('2021-10-28 15:00:00')  # None
     #
     # chose an end time for the background subtraction:
     # if None then background subraction stops 3 hours after the end of the background window (bg_end)
-    corr_window_end = None  # pd.to_datetime('2021-11-01 18:00:00')
+    corr_window_end = None  # pd.to_datetime('2021-11-01 18:00:00') 
     #
     # resets background window and event.corr_window_end which is used to check that the background is not above the observations near the event start
     event.set_background_window(bg_start, bg_end, corr_window_end)
     #
     # averaging (in minutes) used for the background analysis
-    bg_av_min = 10
+    bg_av_min = 10  
     #
     event.background_analysis_all(minutes=bg_av_min)
-    fig, axes = event.overview_plot_bgsub()
+    fig2, axes2 = event.overview_plot_bgsub()
     #
-    ani_method = 'fit'  # 'weighted_sum', 'weighted_sum_bootstrap', or 'fit'; 'weighted_sum_bootstrap' not available for Wind
+    ani_method = 'fit'  # 'weighted_sum', 'weighted_sum_bootstrap', or 'fit'; #'weighted_sum_bootstrap' should not be used for Wind (bootstrapping not implemented)!
     #
     event.calculate_anisotropy(ani_method=ani_method)
-    fig, axes = event.anisotropy_plot(ani_method=ani_method)
-
-    return fig
+    fig3, axes3 = event.anisotropy_plot(ani_method=ani_method)
+    #
+    return fig3
 
 
 @pytest.mark.mpl_image_compare(remove_text=False, deterministic=True)
