@@ -479,6 +479,11 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
     hc_dict = {}
 
     # Gather solar wind speeds
+    default_vsw = 400 # in km/s
+    default_time_range = pd.date_range(start=start, end=end, freq=resampling)
+    vsw_df_default = pd.DataFrame({'time':default_time_range, 'vsw':[default_vsw]*len(default_time_range)})
+    vsw_df_default.set_index('time', inplace=True)
+    
     if len(vsw_list) == 0: # empty list
         amda_tree = spz.inventories.data_tree.amda
         cda_tree = spz.inventories.data_tree.cda
@@ -489,6 +494,9 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
             vswdf = spz.get_data(vswd, start, end, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
             vsw_df = vswdf.resample(resampling).mean()
             vsw_df.rename(columns={'|vp_mom|':'vsw'}, inplace=True)
+            vsw_df = vsw_df.bfill().ffill() # backfill, then forwardfill
+            if len(vsw_df) <= 1: #if nothing comes through then put the default df in place
+                vsw_df = vsw_df_default
             hc_dict['PSP'] = vsw_df
 
         if 'SOHO' in observers:
@@ -496,6 +504,9 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
             vswdf = spz.get_data(vswd, start, end).replace_fillval_by_nan().to_dataframe()
             vsw_df = vswdf.resample(resampling).mean()
             vsw_df.rename(columns={'Proton V':'vsw'}, inplace=True)
+            vsw_df = vsw_df.bfill().ffill()
+            if len(vsw_df) <= 1: #if nothing comes through then put the default df in place
+                vsw_df = vsw_df_default
             hc_dict['SOHO'] = vsw_df
 
         if 'Solar Orbiter' in observers:
@@ -503,6 +514,14 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
             vswdf = spz.get_data(vswd, start, end, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
             vsw_df = vswdf.resample(resampling).mean()
             vsw_df.rename(columns={'|v_rtn|':'vsw'}, inplace=True)
+            print('SOLO vsw df: ')
+            print(vsw_df)
+            vsw_df = vsw_df.bfill().ffill()
+            if len(vsw_df) <= 1: #if nothing comes through then put the default df in place
+                vsw_df = vsw_df_default
+            print('After: ')
+            print(vsw_df)
+            jax=input()
             hc_dict['Solar Orbiter'] = vsw_df
 
         if 'STEREO A' in observers:
@@ -510,6 +529,9 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
             vswdf = spz.get_data(vswd, start, end, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
             vsw_df = vswdf.resample(resampling).mean()
             vsw_df.rename(columns={'|v|':'vsw'}, inplace=True)
+            vsw_df = vsw_df.bfill().ffill()
+            if len(vsw_df) <= 1: #if nothing comes through then put the default df in place
+                vsw_df = vsw_df_default
             hc_dict['STEREO A'] = vsw_df
 
         if 'Wind' in observers:
@@ -517,7 +539,13 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
             vswdf = spz.get_data(vswd, start, end, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
             vsw_df = vswdf.resample(resampling).mean()
             vsw_df.rename(columns={'|v|':'vsw'}, inplace=True)
+            vsw_df = vsw_df.bfill().ffill()
+            if len(vsw_df) <= 1: #if nothing comes through then put the default df in place
+                vsw_df = vsw_df_default
             hc_dict['Wind'] = vsw_df
+
+        print(hc_dict)
+        jax=input("Heres the whole obs vsw dict")
 
     else:
         # Given values for vsw, assign to each observer
@@ -546,7 +574,11 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
         loc_df.index = pd.to_datetime(loc_data.obstime, format="%Y-%m-%dT%H:%M:%S.%f")
 
         # Concatenate both dfs
+        print(vsw_df)
+        jax=input('DL coord data, hows the vsw?')
         df = pd.concat([vsw_df, loc_df], axis=1, join='outer') # along time index; keep all rows
+        print(df)
+        jax=input('after merge:')
 
         # Update the dict
         hc_dict[obs] = df
@@ -634,7 +666,7 @@ def solarmach_loop(observers, dates, data_path, resampling, source_loc, vsw_list
             #jax=input('How are the feet? ')
             foot_long_error.append( foot_calc[1] )
 
-            # Also store the separation between the source and obs footprint longitude
+            # Also store the separation between the source and obs footpoint longitude
             if "Longitudinal separation between body's magnetic footpoint and reference_long" not in tmp_df.columns:
                 print(tmp_df)
                 print(tmp_df.columns)
@@ -1463,7 +1495,7 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
     tseries_ax = fig.add_subplot(grid[0,1:], sharey=gauss_ax)
 
     gauss_ax.set_ylabel('Intensity')
-    gauss_ax.set_xlabel('Footprint Longitude')
+    gauss_ax.set_xlabel('Footpoint Longitude')
     tseries_ax.set_xlabel('Time & Date')
 
     # Add a text box with the energy and species
@@ -1577,7 +1609,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
     tseries_ax = fig.add_subplot(grid[0,1:], sharey=gauss_ax)
 
     gauss_ax.set_ylabel('Intensity')
-    gauss_ax.set_xlabel('Footprint Longitude')
+    gauss_ax.set_xlabel('Footpoint Longitude')
     tseries_ax.set_xlabel('Time & Date')
 
     # Add a text box with the energy and species
@@ -1660,7 +1692,7 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
     ax.add_artist(box_obj1)
 
     ax.set_ylabel(f'Intensity (s sr cm{SQUARED_TEXT} MeV){NEGPOWER_TEXT}', fontsize=9)
-    ax.set_xlabel(f'Footprint Longitude ({DEGREE_TEXT})', fontsize=9)
+    ax.set_xlabel(f'Footpoint Longitude ({DEGREE_TEXT})', fontsize=9)
 
     ylimits = [1e5, 1e-5]
     xlimits = [reference-90, reference+90]
