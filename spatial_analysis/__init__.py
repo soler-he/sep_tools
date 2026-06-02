@@ -107,6 +107,7 @@ class SpatialEvent:
         self.channel_labels = {}
         self.energy_range_label = ""
         self.resampling = ""
+        self.plot_foot_sep_limits = False # True if farside event then this plots the separation values
 
         if 'flare_loc' in kwargs.keys():
             self.flare_loc = kwargs['flare_loc']
@@ -177,12 +178,13 @@ class SpatialEvent:
         if np.isnan(self.reference):
             self._get_reference_point()
         
-        self.sm_data = horizons_speasy_location_loader(observers = self.spacecraft_list,
-                                                       dates = [self.start, self.end],
-                                                       data_path = self.out_path,
-                                                       resampling = self.resampling,
-                                                       source_loc = self.reference,
-                                                       vsw_list = self.vsw_list)
+        self.sm_data, self.plot_foot_sep_limits = horizons_speasy_location_loader(
+            observers = self.spacecraft_list,
+            dates = [self.start, self.end],
+            data_path = self.out_path,
+            resampling = self.resampling,
+            source_loc = self.reference,
+            vsw_list = self.vsw_list)
 
         # Merge the sc data to the sm data
         if len(self.sc_data_ic) != 0:
@@ -208,7 +210,7 @@ class SpatialEvent:
         self.spacecraft_list = list(channels.keys())
 
         full_energy_range = [np.nan, np.nan]
-        for sc in (self.spacecraft_list):
+        for sc in tqdm(self.spacecraft_list):
             self.sc_data[sc], self.channel_labels[sc] = load_sc_data(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling)
 
             # Collecting the full energy range
@@ -389,7 +391,7 @@ class SpatialEvent:
                 print("Please run '*.load_spacecraft_data() first.")
             else:
                 self._get_peak_fits(scdata, window_length=window_length)
-                plot_peak_intensity(scdata, self.out_path, self.start, self.peak_data, self.energy_range_label)
+                plot_peak_intensity(scdata, self.out_path, self.start, self.peak_data, self.energy_range_label, self.flare_loc, self.plot_foot_sep_limits)
 
     def _get_reference_point(self):
         """Function to find a reference point for the Gaussian calculations.
@@ -410,7 +412,10 @@ class SpatialEvent:
         if len(self.peak_data) == 0:
             self._get_peak_fits()
         
-        self.sc_data_rs['Gauss'] = fit_gauss_curves_to_data(self.sc_data_rs, self.out_path, self.reference, self.flare_loc, self.peak_data, self.energy_range_label)
+        self.sc_data_rs['Gauss'] = fit_gauss_curves_to_data(self.sc_data_rs, self.out_path,
+                                                            self.reference, self.flare_loc,
+                                                            self.peak_data, self.energy_range_label,
+                                                            self.plot_foot_sep_limits)
         
         print(f"Calculations for Gaussian curves complete.")
 
@@ -449,7 +454,9 @@ class SpatialEvent:
             calculated."""
 
             # Add check for timestep data type
-        plot_one_timestep_curve(self.sc_data_rs, self.out_path, timestep, self.channel_labels, self.flare_loc, self.reference, self.energy_range_label)
+        fig, ax = plot_one_timestep_curve(self.sc_data_rs, self.out_path, timestep, self.channel_labels, self.flare_loc, self.reference, self.energy_range_label, self.plot_foot_sep_limits)
+
+        return fig, ax
 
 
 
@@ -481,8 +488,8 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
     # Gather solar wind speeds
     default_vsw = 400 # in km/s
     default_time_range = pd.date_range(start=start, end=end, freq=resampling)
-    vsw_df_default = pd.DataFrame({'time':default_time_range, 'vsw':[default_vsw]*len(default_time_range)})
-    vsw_df_default.set_index('time', inplace=True)
+    vsw_df_default = pd.DataFrame({'vsw':[default_vsw]*len(default_time_range)},
+                                  index=default_time_range)
     
     if len(vsw_list) == 0: # empty list
         amda_tree = spz.inventories.data_tree.amda
@@ -514,14 +521,9 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
             vswdf = spz.get_data(vswd, start, end, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
             vsw_df = vswdf.resample(resampling).mean()
             vsw_df.rename(columns={'|v_rtn|':'vsw'}, inplace=True)
-            print('SOLO vsw df: ')
-            print(vsw_df)
             vsw_df = vsw_df.bfill().ffill()
             if len(vsw_df) <= 1: #if nothing comes through then put the default df in place
                 vsw_df = vsw_df_default
-            print('After: ')
-            print(vsw_df)
-            jax=input()
             hc_dict['Solar Orbiter'] = vsw_df
 
         if 'STEREO A' in observers:
@@ -544,8 +546,7 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
                 vsw_df = vsw_df_default
             hc_dict['Wind'] = vsw_df
 
-        print(hc_dict)
-        jax=input("Heres the whole obs vsw dict")
+
 
     else:
         # Given values for vsw, assign to each observer
@@ -574,20 +575,16 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
         loc_df.index = pd.to_datetime(loc_data.obstime, format="%Y-%m-%dT%H:%M:%S.%f")
 
         # Concatenate both dfs
-        print(vsw_df)
-        jax=input('DL coord data, hows the vsw?')
         df = pd.concat([vsw_df, loc_df], axis=1, join='outer') # along time index; keep all rows
-        print(df)
-        jax=input('after merge:')
 
         # Update the dict
         hc_dict[obs] = df
 
     # Calculate footpoint data with errors
+    beyond_limits = False
     for obs in observers:
-        print(obs)
+        
         hdf1 = hc_dict[obs]
-        print(hdf1)
 
         ftlng_arr, fl_err_arr, sep_arr = ([] for i in range(3))
         for tt in hdf1.index:
@@ -597,7 +594,13 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
                                                towards=True, err_calc=True)
             ftlng_arr.append(footlng[0]) # footpoint longitude
             fl_err_arr.append(footlng[1]) # footpoint longitude error
-            sep_arr.append(footlng[0]-source_loc) # footpoint distance to flare
+
+            footlng_separation, excd_limits = find_obs_separation_values(footlng[0], source_loc) # Checks if the value needs to loop
+            sep_arr.append(footlng_separation)
+            #sep_arr.append(footlng[0]-source_loc) # footpoint distance to flare
+            if excd_limits:
+                beyond_limits = True
+            
 
         hdf1['foot_long'] = ftlng_arr
         hdf1['foot_long_error'] = fl_err_arr
@@ -607,13 +610,29 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
 
     # Return df with double headers
     df2 = pd.concat(hc_dict, axis=1, join='outer')
-    print(df2)
+
 
     # Save to csv for easy access later
     df2.to_csv(data_path+filename, na_rep='nan')
             
+    # if beyond_limits=True then the footpoint separations had to wrap around and we should plot the
+    #  footpoint separation not the straightforward longitude.
+    # if beyond_limits=False then the event is probably facing the earth and we dont have to
+    #  worry about wrapping the separation values or plotting the separation, we can simply plot the
+    #   footpoint longitudes.
+    return df2, beyond_limits
 
-    return df2
+# Adjusting footpoint separation values to loop around the +-180 mark
+def find_obs_separation_values(obs_footlong, source_long):
+    beyond_limits = False
+    sep = obs_footlong - source_long
+    if abs(sep) >= 180:
+        beyond_limits = True
+        dist_to_180_flare = 180 - abs(source_long)
+        dist_to_180_obs = 180 - abs(obs_footlong)
+        sep = dist_to_180_flare + dist_to_180_obs
+
+    return sep, beyond_limits
 
     
 # Solar-MACH looping function out of use. Kept for archiving purposes.
@@ -656,14 +675,14 @@ def solarmach_loop(observers, dates, data_path, resampling, source_loc, vsw_list
 
             foot_calc = move_along_parker_spiral(
                 r_dist=tmp_df['Heliocentric distance (AU)'][obs], 
-                loc=[float(tmp_df['Stonyhurst longitude (°)'][obs]),  # JAX: what if carrington?
+                loc=[float(tmp_df['Stonyhurst longitude (°)'][obs]),
                      float(tmp_df['Stonyhurst latitude (°)'][obs])],
                 vsw=tmp_df['Vsw'][obs], towards=True, err_calc=True)
 
             foot_long.append( tmp_df['Magnetic footpoint longitude (Stonyhurst)'][obs] )
             #print('Calculated foot: ', foot_calc)
             #print('Given foot: ', tmp_df['Magnetic footpoint longitude (Stonyhurst)'][obs])
-            #jax=input('How are the feet? ')
+
             foot_long_error.append( foot_calc[1] )
 
             # Also store the separation between the source and obs footpoint longitude
@@ -1135,12 +1154,13 @@ def radial_scaling_calculation(df0, scaling_values):
                     unc_fail = True
             if unc_fail: # JAX TO be notified if problem occurs
                 print("There's a problem with the limits")
-                print("OG flux: ", df.loc[t, 'Flux'])
-                print("OG rad: ", df.loc[t, 'r_dist'])
-                print("Scaled Flux: ", f_rscld)
-                print("Unc plus: ", unc_limit_plus)
-                print("Unc minus: ", unc_limit_minus)
-                jax = input('Continue? ')
+                jax=input("Please contact JT Lang.")
+                # print("OG flux: ", df.loc[t, 'Flux'])
+                # print("OG rad: ", df.loc[t, 'r_dist'])
+                # print("Scaled Flux: ", f_rscld)
+                # print("Unc plus: ", unc_limit_plus)
+                # print("Unc minus: ", unc_limit_minus)
+                # jax = input('Continue? ')
                 chosen_unc_limit = np.nan
     
             ## Find the calculated scaled uncertainty
@@ -1293,7 +1313,7 @@ def odr_gauss_fit(dict_1timestep, prev_results={'A': np.nan, 'X0': np.nan, 'sigm
             'A err': float(out.sd_beta[0]), 'X0 err': float(out.sd_beta[1]), 'sigma err': float(out.sd_beta[2]),
             'res': float(out.res_var)}
 
-def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data, energy_range_label):
+def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data, energy_range_label, plot_foot_sep_limits):
     """Read in the full df, calculate the curve at each timestep, save the results to new columns."""
     # Create a folder to save the gaussian timestep figures in
     try:
@@ -1341,7 +1361,7 @@ def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data
 
         # Plot the fit for this timestep
         if not np.isnan(x).any() and not np.isnan(gauss_results['X0']):
-            plot_curve_and_timeseries(gauss_results, timestep_dict, sc_dict, data_path+f'Gauss_fits{os.sep}', i, reference, flare_loc, energy_range_label)
+            plot_curve_and_timeseries(gauss_results, timestep_dict, sc_dict, data_path+f'Gauss_fits{os.sep}', i, reference, flare_loc, energy_range_label, plot_foot_sep_limits)
 
         prev_gauss = gauss_results
 
@@ -1457,7 +1477,7 @@ def find_peak_intensity(sc_dict, data_path, date, window_length=10):
     peak_window_end = date + dt.timedelta(hours=window_length)
 
     # Iterate through each spacecraft df and save the intensity and datetime of the peak
-    peak_y, peak_yerr, peak_x, peak_xerr, peak_time, peak_sc = ([] for i in range(6))
+    peak_y, peak_yerr, peak_x, peak_xerr, peak_time, peak_sc, peak_xreal = ([] for i in range(7))
     for sc, sc_df in sc_dict.items():
         peak_index = sc_df.loc[date:peak_window_end, 'Flux'].idxmax()
 
@@ -1465,7 +1485,8 @@ def find_peak_intensity(sc_dict, data_path, date, window_length=10):
         peak_sc.append(sc)
         peak_y.append(float(np.log10(sc_df.loc[peak_index, 'Flux'])))
         peak_yerr.append(float(np.log10(sc_df.loc[peak_index, 'Uncertainty'])))
-        peak_x.append(float(sc_df.loc[peak_index, 'foot_long']))
+        peak_x.append(float(sc_df.loc[peak_index, 'long_sep']))
+        peak_xreal.append(float(sc_df.loc[peak_index, 'foot_long']))
         peak_xerr.append(float(sc_df.loc[peak_index, 'foot_long_error']))
 
     # Fit the Gaussian curve to the data
@@ -1474,7 +1495,8 @@ def find_peak_intensity(sc_dict, data_path, date, window_length=10):
                       'y': peak_y,
                       'yerr': peak_yerr,
                       'x': peak_x,
-                      'xerr': peak_xerr}
+                      'xerr': peak_xerr,
+                      'xreal': peak_xreal}
     peak_fit_results = odr_gauss_fit(peak_data_dict)
     # The function finds an initial estimate for the parameters so we don't need to pass one
 
@@ -1482,7 +1504,7 @@ def find_peak_intensity(sc_dict, data_path, date, window_length=10):
 
     return peak_data_results
 
-def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_range_label):
+def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_range_label, flare_loc, plot_foot_sep_limits):
     """Plotting the results of the find_peak_intensity function."""
 
     # Plot
@@ -1494,9 +1516,18 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
     gauss_ax = fig.add_subplot(grid[0,0])
     tseries_ax = fig.add_subplot(grid[0,1:], sharey=gauss_ax)
 
-    gauss_ax.set_ylabel('Intensity')
-    gauss_ax.set_xlabel('Footpoint Longitude')
-    tseries_ax.set_xlabel('Time & Date')
+    gauss_ax.set_ylabel('Intensity', fontsize=9)
+    if plot_foot_sep_limits:
+        gauss_ax.set_xlabel(f'Footpoint Separation ({DEGREE_TEXT})', fontsize=9)
+        x_col_label = 'long_sep'
+        peak_xlabel = 'x'
+        flarelong = 0
+    else:
+        gauss_ax.set_xlabel(f'Footpoint Longitude ({DEGREE_TEXT})', fontsize=9)
+        x_col_label = 'foot_long'
+        peak_xlabel = 'xreal'
+        flarelong = flare_loc[0]
+    tseries_ax.set_xlabel('Time & Date', fontsize=9)
 
     # Add a text box with the energy and species
     box_obj = AnchoredText(f'Peak Fits\n{energy_range_label} Protons',
@@ -1511,12 +1542,14 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
         mrkr = marker_settings[sc]
         ylimits[0] = np.nanmin( [ np.nanmin(sc_dict[sc]['Flux']), ylimits[0] ] )
         ylimits[1] = np.nanmax( [ np.nanmax(sc_dict[sc]['Flux']), ylimits[1] ] )
-        xlimits[0] = np.nanmin( [ np.nanmin(sc_dict[sc]['foot_long']), xlimits[0] ] )
-        xlimits[1] = np.nanmax( [ np.nanmax(sc_dict[sc]['foot_long']), xlimits[1] ] )
+        xlimits[0] = np.nanmin( [ np.nanmin(sc_dict[sc][x_col_label]), xlimits[0] ] )
+        xlimits[1] = np.nanmax( [ np.nanmax(sc_dict[sc][x_col_label]), xlimits[1] ] )
 
         # Plot the markers in both plots to indicate the point values being used
-        gauss_ax.errorbar(peak_data_results['x'][n], 10**(peak_data_results['y'][n]),
-                          xerr=peak_data_results['xerr'][n], yerr=10**(peak_data_results['yerr'][n]),
+        gauss_ax.errorbar(peak_data_results[peak_xlabel][n],
+                          10**(peak_data_results['y'][n]),
+                          xerr=peak_data_results['xerr'][n],
+                          yerr=10**(peak_data_results['yerr'][n]),
                           color=mrkr['color'], ecolor=mrkr['color'],
                           marker=mrkr['marker'])
 
@@ -1527,22 +1560,28 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
         # Plot the full time series
         tseries_ax.semilogy(sc_dict[sc]['Flux'], color=mrkr['color'])
 
-    tseries_ax.legend(loc='best', fontsize=8)
+    tseries_ax.legend(loc='upper center', bbox_to_anchor=(0.5,1.2), ncols=2, fontsize=8)
 
     # Plot the Gaussian Curve
     x_curve = np.linspace(-360, 360, 300)
-    y_curve = 10**(log_gauss_function(x_curve, peak_data_results['A'], peak_data_results['X0'], peak_data_results['sigma']))
+    y_curve = 10**(log_gauss_function(x_curve, peak_data_results['A'], peak_data_results['X0']+flarelong, peak_data_results['sigma']))
 
     gauss_ax.semilogy(x_curve, y_curve, color='k')
-    gauss_ax.axvline(x=peak_data_results['X0'], color='goldenrod', linewidth=1.2, alpha=0.8)
+    gauss_ax.axvline(x=peak_data_results['X0']+flarelong, color='goldenrod', linewidth=1.2, alpha=0.8)
     gauss_ax.hlines(y=0.6065*(10**peak_data_results['A']),
-                    xmin=(peak_data_results['X0']-peak_data_results['sigma']),
-                    xmax=(peak_data_results['X0']+peak_data_results['sigma']),
+                    xmin=(peak_data_results['X0']+flarelong-peak_data_results['sigma']),
+                    xmax=(peak_data_results['X0']+flarelong+peak_data_results['sigma']),
                     color='turquoise', linewidth=1.2, alpha=0.8)
 
     # Provide error range
-    yerr_curve = log_gauss_error_range_calc(x_curve, y_curve, peak_data_results)
+    yerr_curve = log_gauss_error_range_calc(x_curve, y_curve, peak_data_results, flarelong)
     gauss_ax.fill_between(x_curve, y_curve-yerr_curve, y_curve+yerr_curve, alpha=0.7, color='peachpuff')
+
+    # Add vertical line for flare if given
+    if not pd.isna(flare_loc[0]):
+        gauss_ax.axvline(x=flarelong, color='k', linestyle='dashed',
+                         linewidth=0.5, alpha=0.9,
+                         label=f"Reference at {flare_loc[0]}{DEGREE_TEXT}")
 
     # Add the text
     gauss_text = f"Center = {peak_data_results['X0']:.1f}{DEGREE_TEXT}\n"
@@ -1564,10 +1603,10 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
     plt.show()
 
 
-def log_gauss_error_range_calc(x_arr, y_arr, peak_fit):
+def log_gauss_error_range_calc(x_arr, y_arr, peak_fit, flarelong):
     """Calculate the uncertainty of the Gaussian result for each timestep."""
     a = peak_fit['A']
-    x0 = peak_fit['X0']
+    x0 = peak_fit['X0'] + flarelong
     sigma = peak_fit['sigma']
     a_err = peak_fit['A err']
     x0_err = peak_fit['X0 err']
@@ -1586,19 +1625,8 @@ def log_gauss_error_range_calc(x_arr, y_arr, peak_fit):
     return y_err
 
 
-def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep, reference, flare_loc, energy_range_label):
+def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep, reference, flare_loc, energy_range_label, plot_foot_sep_limits):
     """Plotting two subplots, left the fitted gaussian curve, right the time series."""
-
-    ylimits = [1e5, 1e-5]
-    xlimits = [0, 0]
-    for sc, sdf in full_df.items():
-        if sc == 'Gauss':
-            continue
-        ylimits[0] = np.nanmin([np.nanmin(full_df[sc]['Flux']), ylimits[0]])
-        ylimits[1] = np.nanmax([np.nanmax(full_df[sc]['Flux']), ylimits[1]])
-
-        xlimits[0] = np.nanmin([np.nanmin(full_df[sc]['foot_long']), xlimits[0] ])
-        xlimits[1] = np.nanmax([np.nanmax(full_df[sc]['foot_long']), xlimits[1] ])
 
     fig = plt.figure(figsize=[10,3], dpi=250)
     plt.axis('off')
@@ -1609,8 +1637,30 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
     tseries_ax = fig.add_subplot(grid[0,1:], sharey=gauss_ax)
 
     gauss_ax.set_ylabel('Intensity')
-    gauss_ax.set_xlabel('Footpoint Longitude')
     tseries_ax.set_xlabel('Time & Date')
+
+    if plot_foot_sep_limits:
+        gauss_ax.set_xlabel(f'Footpoint Separation ({DEGREE_TEXT})', fontsize=9)
+        x_col_label = 'long_sep'
+        flarelong = 0
+        gauss_xlabel = 'x'
+    else:
+        gauss_ax.set_xlabel(f'Footpoint Longitude ({DEGREE_TEXT})', fontsize=9)
+        x_col_label = 'foot_long'
+        flarelong = flare_loc[0]
+        gauss_xlabel = 'xreal'
+
+    ylimits = [1e5, 1e-5]
+    xlimits = [0, 0]
+    for sc, sdf in full_df.items():
+        if sc == 'Gauss':
+            continue
+        ylimits[0] = np.nanmin([np.nanmin(full_df[sc]['Flux']), ylimits[0]])
+        ylimits[1] = np.nanmax([np.nanmax(full_df[sc]['Flux']), ylimits[1]])
+
+        xlimits[0] = np.nanmin([np.nanmin(full_df[sc][x_col_label]), xlimits[0] ])
+        xlimits[1] = np.nanmax([np.nanmax(full_df[sc][x_col_label]), xlimits[1] ])
+
 
     # Add a text box with the energy and species
     box_obj = AnchoredText(f'{energy_range_label} Protons\n'+timestep.strftime("%H:%M %d %b %Y"),
@@ -1623,10 +1673,10 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
 
     # Add a vertical line in the gaussian curve to indicate the flares initial position (if provided)
     if not pd.isna(flare_loc[0]):
-        gauss_ax.axvline(x=flare_loc[0], color='k', linestyle='dashed', linewidth=0.5, alpha=0.9, label=f'Reference at {flare_loc[0]}{DEGREE_TEXT}')
+        gauss_ax.axvline(x=flarelong, color='k', linestyle='dashed', linewidth=0.5, alpha=0.9, label=f'Reference at {flare_loc[0]}{DEGREE_TEXT}')
 
     # Add the Gauss results text
-    gauss_values['X0'] = gauss_values['X0']+reference
+    gauss_values['X0'] = gauss_values['X0']+flarelong
     gauss_text = f"Center: {gauss_values['X0']:.2f}{DEGREE_TEXT}\n"
     gauss_text = f"{gauss_text}Width: {gauss_values['sigma']:.2f}{DEGREE_TEXT}"
     box_obj = AnchoredText(gauss_text, frameon=True, loc='upper left', pad=0.5, prop={'size':9})
@@ -1639,7 +1689,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
     gauss_ax.semilogy(x_curve, y_curve, color='k')
     
     # Add the error region
-    y_err_curve = log_gauss_error_range_calc(x_curve, y_curve, gauss_values)
+    y_err_curve = log_gauss_error_range_calc(x_curve, y_curve, gauss_values, flarelong)
     gauss_ax.fill_between(x_curve, y_curve-y_err_curve, y_curve+y_err_curve,
         alpha=0.7, color='peachpuff')
 
@@ -1657,7 +1707,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
 
     for n in range(len(sc_df['sc'])):
         markers = marker_settings[sc_df['sc'][n]]
-        gauss_ax.semilogy(sc_df['xreal'][n], 10**(sc_df['y'][n]), label=sc_df['sc'][n],
+        gauss_ax.semilogy(sc_df[gauss_xlabel][n], 10**(sc_df['y'][n]), label=sc_df['sc'][n],
                           marker=markers['marker'], color=markers['color'])
 
         # Plot the timeseries data
@@ -1679,7 +1729,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
     plt.close("all")
 
 
-def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_loc, reference, energy_range_label, **kwargs):
+def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_loc, reference, energy_range_label, foot_sep_limits_bool, **kwargs):
     """Plots only the curve at the given timestep."""
     fig, ax = plt.subplots(1,1, figsize=[3,3], dpi=300)
 
@@ -1692,7 +1742,14 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
     ax.add_artist(box_obj1)
 
     ax.set_ylabel(f'Intensity (s sr cm{SQUARED_TEXT} MeV){NEGPOWER_TEXT}', fontsize=9)
-    ax.set_xlabel(f'Footpoint Longitude ({DEGREE_TEXT})', fontsize=9)
+    if foot_sep_limits_bool:
+        ax.set_xlabel(f'Footpoint Separation ({DEGREE_TEXT})', fontsize=9)
+        x_col_label = 'long_sep'
+        flarelong = 0
+    else:
+        ax.set_xlabel(f'Footpoint Longitude ({DEGREE_TEXT})', fontsize=9)
+        x_col_label = 'foot_long'
+        flarelong = flare_loc[0]
 
     ylimits = [1e5, 1e-5]
     xlimits = [reference-90, reference+90]
@@ -1702,26 +1759,30 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
         if sc=='Gauss':
             continue
         mrkr = marker_settings[sc]
-        ax.semilogy(sdf.loc[timestep, 'foot_long'], sdf.loc[timestep, 'Flux'], 
+        # print(timestep)
+        # print(x_col_label)
+        # print(sdf)
+        ax.semilogy(sdf.loc[timestep, x_col_label], sdf.loc[timestep, 'Flux'],
                     label=mrkr['label'], color=mrkr['color'], marker=mrkr['marker'])
 
         ylimits[0] = np.nanmin([ylimits[0], np.nanmin(sdf.loc[timestep,'Flux'])])
         ylimits[1] = np.nanmax([ylimits[1], np.nanmax(sdf.loc[timestep,'Flux'])])
-        xlimits[0] = np.nanmin([xlimits[0], np.nanmin(sdf.loc[timestep,'foot_long'])])
-        xlimits[1] = np.nanmax([xlimits[1], np.nanmax(sdf.loc[timestep,'foot_long'])])
+        xlimits[0] = np.nanmin([xlimits[0], np.nanmin(sdf.loc[timestep, x_col_label])])
+        xlimits[1] = np.nanmax([xlimits[1], np.nanmax(sdf.loc[timestep, x_col_label])])
 
     # Plot the curve
     gauss_values = sc_dict['Gauss'].loc[timestep].to_dict()
-    gauss_values['X0'] = gauss_values['X0']+reference
+    gauss_values['X0'] = gauss_values['X0']+flarelong
+
     x_curve = np.linspace(-360,360, 250)
     y_curve = 10 ** log_gauss_function(x_curve, 
                                         gauss_values['A'],
-                                        gauss_values['X0'], 
+                                        gauss_values['X0'],
                                         gauss_values['sigma'])
     ax.semilogy(x_curve, y_curve, color='k')
+
     # Add the error region
-    
-    y_err_curve = log_gauss_error_range_calc(x_curve, y_curve, gauss_values)
+    y_err_curve = log_gauss_error_range_calc(x_curve, y_curve, gauss_values, flarelong)
     ax.fill_between(x_curve, y_curve-y_err_curve, y_curve+y_err_curve,
         alpha=0.7, color='peachpuff')
 
@@ -1742,7 +1803,7 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
 
     # Add vertical line for flare if given
     if not pd.isna(flare_loc[0]):
-        ax.axvline(x=flare_loc[0], color='k', linestyle='dashed',
+        ax.axvline(x=flarelong, color='k', linestyle='dashed',
                     linewidth=0.5, alpha=0.9, 
                     label=f"Reference at {flare_loc[0]}{DEGREE_TEXT}")
 
@@ -1754,10 +1815,14 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
     ax.set_ylim(ylimits[0]*0.2, ylimits[1]*12)
     ax.set_xlim(xlimits[0]-20, xlimits[1]+20)
 
+    #print(ax.get_xticks())
+
     plt.savefig(data_path+f'Spatial_Gauss_{timestep.strftime("%d%b%Y_%Hh%M")}.png')
     plt.show()
 
+    fig_copy, ax_copy = copy_fig_axs(fig)
 
+    return fig_copy, ax_copy
 
 
 
