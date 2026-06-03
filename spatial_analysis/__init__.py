@@ -6,7 +6,7 @@ from copy import deepcopy
 
 from scipy.optimize import curve_fit, OptimizeWarning
 from scipy import odr # Depreciated
-from odrpack import odr_fit
+#from odrpack import odr_fit
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -68,6 +68,12 @@ SIGMA_TEXT = r'$\sigma$'
 PM_SYMB = r"$\pm$"
 SQUARED_TEXT = r"$^{2}$"
 NEGPOWER_TEXT = r"$^{-1}$"
+
+####### ODRPACK NOT AVAILABLE IN HUB YET
+use_old_odr_method = True
+if not use_old_odr_method:
+    from odrpack import odr_fit
+
 
 
 ################################################
@@ -1259,7 +1265,14 @@ def log_gauss_function(x, logA, x0, sigma):
     return logA - ( (x - x0)**2 ) / ( 2 * np.log(10) * sigma**2 )
 
 
-def log_gauss_function_beta(x, beta_params):
+def log_gauss_function_beta_odrpack(x, beta_params):
+    """The same as log_gauss_function but 'curve_fit' and 'odr' require a different
+    ordering of the parameters."""
+    a, x0, sigma = beta_params
+    result = log_gauss_function(x, a, x0, sigma)
+    return result
+
+def log_gauss_function_beta(beta_params, x):
     """The same as log_gauss_function but 'curve_fit' and 'odr' require a different
     ordering of the parameters."""
     a, x0, sigma = beta_params
@@ -1302,59 +1315,69 @@ def odr_gauss_fit(dict_1timestep, prev_results={'A': np.nan, 'X0': np.nan, 'sigm
     # print("The prev results are: ")
     # print(prev_results)
     # jax=input('yah')
-    if np.isnan(df['yerr']).any(): # If there are any nans then it might break
-        out = odr_fit(log_gauss_function_beta, # function
-                      df['x'], df['y'], # x and y arrays
-                      prev_results, # estimated parameters
-                      weight_x=((df['xerr'])**(-2) ) ) # uncertainty values
-    else:
-        out = odr_fit(log_gauss_function_beta, # function
-                      df['x'], df['y'], # x and y arrays
-                      [prev_results['A'], prev_results['X0'], prev_results['sigma']], # estimated parameters
-                      weight_x=( (df['xerr'])**(-2) ), # uncertainty values
-                      weight_y=( (df['yerr'])**(-2) ) )
-    # print(out)
-    # print(out.beta[0])
-    ########################################
-    ## DEPRECIATED CODE. Kept for historical purposes.
-    # odr_model = odr.Model(log_gauss_function_beta)
-    # if np.isnan(df['yerr']).any(): # If there are any nan's then it won't calculate properly
-    #     odr_data = odr.RealData(x=df['x'], y=df['y'], sx=df['xerr'])
-    # else:
-    #     odr_data = odr.RealData(x=df['x'], y=df['y'], sx=df['xerr'], sy=df['yerr'])
-    #
-    # odr_setup = odr.ODR(odr_data, odr_model, beta0=[prev_results['A'], prev_results['X0'], prev_results['sigma']])
-    # out = odr_setup.run()
-
-    # Confirm that ODR found a fitted curve
-    # stopreason = []
-    # for reasons in out.stopreason:
-    #     if 'convergence' in reasons:
-    #         if (abs(out.beta[1]) > 270) or (abs(out.beta[2]) > 180): # X0 > 360 or sigma >180
-    #             stopreason.append('fail')
-    #         else:
-    #             stopreason.append('pass')
-    #     else:
-    #         stopreason.append('fail')
-    #
-    # if 'pass' not in stopreason:
-    #     return {'A': np.nan, 'X0': np.nan, 'sigma': np.nan,
-    #             'A err': np.nan, 'X0 err': np.nan, 'sigma err': np.nan, 'res':np.nan}
-    ########################################
-    if 'convergence' in out.stopreason:
-        if (abs(out.beta[1]) > 270) or (abs(out.beta[2]) > 180): #center is out of bounds; width is too large
+    if not use_old_odr_method: # Using new odrpack function
+        print('Using odrpack, good?')
+        if np.isnan(df['yerr']).any(): # If there are any nans then it might break
+            out = odr_fit(log_gauss_function_beta_odrpack, # function
+                        df['x'], df['y'], # x and y arrays
+                        prev_results, # estimated parameters
+                        weight_x=((df['xerr'])**(-2) ) ) # uncertainty values
+        else:
+            out = odr_fit(log_gauss_function_beta_odrpack, # function
+                        df['x'], df['y'], # x and y arrays
+                        [prev_results['A'], prev_results['X0'], prev_results['sigma']], # estimated parameters
+                        weight_x=( (df['xerr'])**(-2) ), # uncertainty values
+                        weight_y=( (df['yerr'])**(-2) ) )
+        # print(out)
+        # print(out.beta[0])
+        if 'convergence' in out.stopreason:
+            if (abs(out.beta[1]) > 270) or (abs(out.beta[2]) > 180): #center is out of bounds; width is too large
+                out_dict = {'A': np.nan, 'X0': np.nan, 'sigma': np.nan,
+                            'A err': np.nan, 'X0 err': np.nan, 'sigma err': np.nan,
+                            'res':np.nan}
+            else:
+                out_dict = {'A': float(out.beta[0]), 'X0': float(out.beta[1]),
+                            'sigma': float(out.beta[2]), 'A err': float(out.sd_beta[0]),
+                            'X0 err': float(out.sd_beta[1]), 'sigma err': float(out.sd_beta[2]),
+                            'res': float(out.res_var)}
+        else:
             out_dict = {'A': np.nan, 'X0': np.nan, 'sigma': np.nan,
                         'A err': np.nan, 'X0 err': np.nan, 'sigma err': np.nan,
                         'res':np.nan}
+    ########################################
+    ## DEPRECIATED CODE. Kept for historical purposes.
+    else:
+        #jax=input('Using scipy.odr, good?')
+        odr_model = odr.Model(log_gauss_function_beta)
+        if np.isnan(df['yerr']).any(): # If there are any nan's then it won't calculate properly
+            odr_data = odr.RealData(x=df['x'], y=df['y'], sx=df['xerr'])
+        else:
+            odr_data = odr.RealData(x=df['x'], y=df['y'], sx=df['xerr'], sy=df['yerr'])
+
+        odr_setup = odr.ODR(odr_data, odr_model, beta0=[prev_results['A'], prev_results['X0'], prev_results['sigma']])
+        out = odr_setup.run()
+
+        # Confirm that ODR found a fitted curve
+        stopreason = []
+        for reasons in out.stopreason:
+            if 'convergence' in reasons:
+                if (abs(out.beta[1]) > 270) or (abs(out.beta[2]) > 180): # X0 > 360 or sigma >180
+                    stopreason.append('fail')
+                else:
+                    stopreason.append('pass')
+            else:
+                stopreason.append('fail')
+
+        if 'pass' not in stopreason:
+            out_dict = {'A': np.nan, 'X0': np.nan, 'sigma': np.nan,
+                    'A err': np.nan, 'X0 err': np.nan, 'sigma err': np.nan, 'res':np.nan}
         else:
             out_dict = {'A': float(out.beta[0]), 'X0': float(out.beta[1]),
                         'sigma': float(out.beta[2]), 'A err': float(out.sd_beta[0]),
                         'X0 err': float(out.sd_beta[1]), 'sigma err': float(out.sd_beta[2]),
                         'res': float(out.res_var)}
-    else:
-        out_dict = {'A': np.nan, 'X0': np.nan, 'sigma': np.nan,
-                    'A err': np.nan, 'X0 err': np.nan, 'sigma err': np.nan,
-                    'res':np.nan}
+    ########################################
+
 
     return out_dict
 
