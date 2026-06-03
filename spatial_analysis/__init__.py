@@ -5,7 +5,8 @@ import pandas as pd
 from copy import deepcopy
 
 from scipy.optimize import curve_fit, OptimizeWarning
-from scipy import odr
+from scipy import odr # Depreciated
+#from odrpack import odr_fit
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -67,6 +68,12 @@ SIGMA_TEXT = r'$\sigma$'
 PM_SYMB = r"$\pm$"
 SQUARED_TEXT = r"$^{2}$"
 NEGPOWER_TEXT = r"$^{-1}$"
+
+####### ODRPACK NOT AVAILABLE IN HUB YET
+use_old_odr_method = True
+if not use_old_odr_method:
+    from odrpack import odr_fit
+
 
 
 ################################################
@@ -475,7 +482,13 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
             sm_loop = pd.read_csv(data_path+filename, 
                                   index_col=0, header=[0,1],
                                   parse_dates=True, na_values='nan')
-            return sm_loop
+
+            beyond_limits = False
+            for sc, col in sm_loop.columns:
+                if col == 'plot_separation_long':
+                    if 'yes' in sm_loop[(sc,col)]:
+                        beyond_limits = True
+            return sm_loop, beyond_limits
 
     # Set up the start and end times
     ## Use 2 hours before given flare start time for background if needed
@@ -586,7 +599,7 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
         
         hdf1 = hc_dict[obs]
 
-        ftlng_arr, fl_err_arr, sep_arr = ([] for i in range(3))
+        ftlng_arr, fl_err_arr, sep_arr, swapd_coord_sides = ([] for i in range(4))
         for tt in hdf1.index:
             footlng = move_along_parker_spiral(hdf1.loc[tt,'r_dist'],
                                                [hdf1.loc[tt,'long'], hdf1.loc[tt,'lat']],
@@ -600,11 +613,15 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
             #sep_arr.append(footlng[0]-source_loc) # footpoint distance to flare
             if excd_limits:
                 beyond_limits = True
+                swapd_coord_sides.append('yes')
+            else:
+                swapd_coord_sides.append('no')
             
 
         hdf1['foot_long'] = ftlng_arr
         hdf1['foot_long_error'] = fl_err_arr
         hdf1['long_sep'] = sep_arr
+        hdf1['plot_separation_long'] = swapd_coord_sides
 
         hc_dict[obs] = hdf1
 
@@ -1248,6 +1265,13 @@ def log_gauss_function(x, logA, x0, sigma):
     return logA - ( (x - x0)**2 ) / ( 2 * np.log(10) * sigma**2 )
 
 
+def log_gauss_function_beta_odrpack(x, beta_params):
+    """The same as log_gauss_function but 'curve_fit' and 'odr' require a different
+    ordering of the parameters."""
+    a, x0, sigma = beta_params
+    result = log_gauss_function(x, a, x0, sigma)
+    return result
+
 def log_gauss_function_beta(beta_params, x):
     """The same as log_gauss_function but 'curve_fit' and 'odr' require a different
     ordering of the parameters."""
@@ -1261,10 +1285,11 @@ def odr_gauss_fit(dict_1timestep, prev_results={'A': np.nan, 'X0': np.nan, 'sigm
     Input: one timesteps worth of values, and the results of the previous timesteps fit."""
 
     df = pd.DataFrame(dict_1timestep)
+    # print(df)
 
     # Remove zero and nan values
     for i, row in df.iterrows():
-        if (row['y'] == 0.0) or (np.isnan(row['y'])):
+        if (row['y'] == 0.0) or (np.isnan(row['y'])) or (row['x'] == 0.0) or (np.isnan(row['x'])):
             df.drop([i], inplace=True) # Drops the whole row
 
     # Must have at least 3 data points to calculate
@@ -1279,39 +1304,84 @@ def odr_gauss_fit(dict_1timestep, prev_results={'A': np.nan, 'X0': np.nan, 'sigm
         try:
             popt, pcov = curve_fit(log_gauss_function, df['x'], df['y'],
                                   p0=[max(df['y']), df['x'][ df['y'].idxmax() ], 20]) # max amplitude, position of the max amplitude, width
+            # print('the scipy results are: ')
+            # print(popt)
             prev_results = {'A': float(popt[0]), 'X0': float(popt[1]), 'sigma': float(popt[2])}
         except:
-            print("No updated Gaussian parameters were found")
-            prev_results = {'A': np.nan, 'X0': np.nan, 'sigma': np.nan}
+            # print("No updated Gaussian parameters were found")
+            prev_results = {'A': max(df['y']), 'X0': df['x'][ df['y'].idxmax() ], 'sigma': 20}
 
-    # Set up the ODR functions
-    odr_model = odr.Model(log_gauss_function_beta)
-    if np.isnan(df['yerr']).any(): # If there are any nan's then it won't calculate properly
-        odr_data = odr.RealData(x=df['x'], y=df['y'], sx=df['xerr'])
-    else:
-        odr_data = odr.RealData(x=df['x'], y=df['y'], sx=df['xerr'], sy=df['yerr'])
-
-    odr_setup = odr.ODR(odr_data, odr_model, beta0=[prev_results['A'], prev_results['X0'], prev_results['sigma']])
-    out = odr_setup.run()
-
-    # Confirm that ODR found a fitted curve
-    stopreason = []
-    for reasons in out.stopreason:
-        if 'convergence' in reasons:
-            if (abs(out.beta[1]) > 270) or (abs(out.beta[2]) > 180): # X0 > 360 or sigma >180
-                stopreason.append('fail')
-            else:
-                stopreason.append('pass')
+    # Run the ODR functions
+    # print("The prev results are: ")
+    # print(prev_results)
+    # jax=input('yah')
+    if not use_old_odr_method: # Using new odrpack function
+        print('Using odrpack, good?')
+        if np.isnan(df['yerr']).any(): # If there are any nans then it might break
+            out = odr_fit(log_gauss_function_beta_odrpack, # function
+                        df['x'], df['y'], # x and y arrays
+                        prev_results, # estimated parameters
+                        weight_x=((df['xerr'])**(-2) ) ) # uncertainty values
         else:
-            stopreason.append('fail')
+            out = odr_fit(log_gauss_function_beta_odrpack, # function
+                        df['x'], df['y'], # x and y arrays
+                        [prev_results['A'], prev_results['X0'], prev_results['sigma']], # estimated parameters
+                        weight_x=( (df['xerr'])**(-2) ), # uncertainty values
+                        weight_y=( (df['yerr'])**(-2) ) )
+        # print(out)
+        # print(out.beta[0])
+        if 'convergence' in out.stopreason:
+            if (abs(out.beta[1]) > 270) or (abs(out.beta[2]) > 180): #center is out of bounds; width is too large
+                out_dict = {'A': np.nan, 'X0': np.nan, 'sigma': np.nan,
+                            'A err': np.nan, 'X0 err': np.nan, 'sigma err': np.nan,
+                            'res':np.nan}
+            else:
+                out_dict = {'A': float(out.beta[0]), 'X0': float(out.beta[1]),
+                            'sigma': float(out.beta[2]), 'A err': float(out.sd_beta[0]),
+                            'X0 err': float(out.sd_beta[1]), 'sigma err': float(out.sd_beta[2]),
+                            'res': float(out.res_var)}
+        else:
+            out_dict = {'A': np.nan, 'X0': np.nan, 'sigma': np.nan,
+                        'A err': np.nan, 'X0 err': np.nan, 'sigma err': np.nan,
+                        'res':np.nan}
+    ########################################
+    ## DEPRECIATED CODE. Kept for historical purposes.
+    else:
+        #jax=input('Using scipy.odr, good?')
+        odr_model = odr.Model(log_gauss_function_beta)
+        if np.isnan(df['yerr']).any(): # If there are any nan's then it won't calculate properly
+            odr_data = odr.RealData(x=df['x'], y=df['y'], sx=df['xerr'])
+        else:
+            odr_data = odr.RealData(x=df['x'], y=df['y'], sx=df['xerr'], sy=df['yerr'])
 
-    if 'pass' not in stopreason:
-        return {'A': np.nan, 'X0': np.nan, 'sigma': np.nan,
-                'A err': np.nan, 'X0 err': np.nan, 'sigma err': np.nan, 'res':np.nan}
+        odr_setup = odr.ODR(odr_data, odr_model, beta0=[prev_results['A'], prev_results['X0'], prev_results['sigma']])
+        out = odr_setup.run()
 
-    return {'A': float(out.beta[0]), 'X0': float(out.beta[1]), 'sigma': float(out.beta[2]),
-            'A err': float(out.sd_beta[0]), 'X0 err': float(out.sd_beta[1]), 'sigma err': float(out.sd_beta[2]),
-            'res': float(out.res_var)}
+        # Confirm that ODR found a fitted curve
+        stopreason = []
+        for reasons in out.stopreason:
+            if 'convergence' in reasons:
+                if (abs(out.beta[1]) > 270) or (abs(out.beta[2]) > 180): # X0 > 360 or sigma >180
+                    stopreason.append('fail')
+                else:
+                    stopreason.append('pass')
+            else:
+                stopreason.append('fail')
+
+        if 'pass' not in stopreason:
+            out_dict = {'A': np.nan, 'X0': np.nan, 'sigma': np.nan,
+                    'A err': np.nan, 'X0 err': np.nan, 'sigma err': np.nan, 'res':np.nan}
+        else:
+            out_dict = {'A': float(out.beta[0]), 'X0': float(out.beta[1]),
+                        'sigma': float(out.beta[2]), 'A err': float(out.sd_beta[0]),
+                        'X0 err': float(out.sd_beta[1]), 'sigma err': float(out.sd_beta[2]),
+                        'res': float(out.res_var)}
+    ########################################
+
+
+    return out_dict
+
+
 
 def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data, energy_range_label, plot_foot_sep_limits):
     """Read in the full df, calculate the curve at each timestep, save the results to new columns."""
@@ -1499,6 +1569,7 @@ def find_peak_intensity(sc_dict, data_path, date, window_length=10):
                       'xreal': peak_xreal}
     peak_fit_results = odr_gauss_fit(peak_data_dict)
     # The function finds an initial estimate for the parameters so we don't need to pass one
+    # print(peak_fit_results)
 
     peak_data_results = peak_data_dict | peak_fit_results #combine the results to the given values.
 
@@ -1559,6 +1630,10 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
 
         # Plot the full time series
         tseries_ax.semilogy(sc_dict[sc]['Flux'], color=mrkr['color'])
+        tseries_ax.fill_between(x=sc_dict[sc].index,
+                                y1=sc_dict[sc]['Flux'] - sc_dict[sc]['Uncertainty'],
+                                y2=sc_dict[sc]['Flux'] + sc_dict[sc]['Uncertainty'],
+                                alpha=0.3, color=mrkr['color'])
 
     tseries_ax.legend(loc='upper center', bbox_to_anchor=(0.5,1.2), ncols=2, fontsize=8)
 
@@ -1584,7 +1659,7 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
                          label=f"Reference at {flare_loc[0]}{DEGREE_TEXT}")
 
     # Add the text
-    gauss_text = f"Center = {peak_data_results['X0']:.1f}{DEGREE_TEXT}\n"
+    gauss_text = f"Center = {peak_data_results['X0']+flarelong:.1f}{DEGREE_TEXT}\n"
     gauss_text = f"{gauss_text}Width = {peak_data_results['sigma']:.1f}{DEGREE_TEXT}"
     box_obj = AnchoredText(gauss_text, frameon=True, loc='upper left', pad=0.5, prop={'size':8})
     plt.setp(box_obj.patch, facecolor='aliceblue', alpha=0.8)
@@ -1707,12 +1782,22 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
 
     for n in range(len(sc_df['sc'])):
         markers = marker_settings[sc_df['sc'][n]]
-        gauss_ax.semilogy(sc_df[gauss_xlabel][n], 10**(sc_df['y'][n]), label=sc_df['sc'][n],
-                          marker=markers['marker'], color=markers['color'])
+        # gauss_ax.semilogy(sc_df[gauss_xlabel][n], 10**(sc_df['y'][n]), label=sc_df['sc'][n],
+        #                   marker=markers['marker'], color=markers['color'])
+        gauss_ax.errorbar(sc_df[gauss_xlabel][n],
+                          10**(sc_df['y'][n]),
+                          xerr=sc_df['xerr'][n],
+                          yerr=10**(sc_df['yerr'][n]),
+                          label=sc_df['sc'][n], marker=markers['marker'],
+                          color=markers['color'], ecolor=markers['color'])
 
         # Plot the timeseries data
         tseries_ax.semilogy(full_df[sc_df['sc'][n]]['Flux'],
                             color=markers['color'], label=sc_df['sc'][n])
+        tseries_ax.fill_between(x=full_df[sc_df['sc'][n]].index,
+                                y1=full_df[sc_df['sc'][n]]['Flux'] - full_df[sc_df['sc'][n]]['Uncertainty'],
+                                y2=full_df[sc_df['sc'][n]]['Flux'] + full_df[sc_df['sc'][n]]['Uncertainty'],
+                            color=markers['color'], alpha=0.3)
     gauss_ax.legend(bbox_to_anchor=(0.2, 1.03, 1.0, 0.1), loc='upper left', ncols=6, fontsize=6)
 
     gauss_ax.set_xlim(xlimits[0]-20, xlimits[1]+20)
@@ -1762,8 +1847,14 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
         # print(timestep)
         # print(x_col_label)
         # print(sdf)
-        ax.semilogy(sdf.loc[timestep, x_col_label], sdf.loc[timestep, 'Flux'],
-                    label=mrkr['label'], color=mrkr['color'], marker=mrkr['marker'])
+        # ax.semilogy(sdf.loc[timestep, x_col_label], sdf.loc[timestep, 'Flux'],
+        #             label=mrkr['label'], color=mrkr['color'], marker=mrkr['marker'])
+        ax.errorbar(sdf.loc[timestep, x_col_label],
+                    sdf.loc[timestep, 'Flux'],
+                    xerr=sdf.loc[timestep, 'foot_long_error'],
+                    yerr=sdf.loc[timestep, 'Uncertainty'],
+                    label=mrkr['label'], marker=mrkr['marker'],
+                    color=mrkr['color'], ecolor=mrkr['color'])
 
         ylimits[0] = np.nanmin([ylimits[0], np.nanmin(sdf.loc[timestep,'Flux'])])
         ylimits[1] = np.nanmax([ylimits[1], np.nanmax(sdf.loc[timestep,'Flux'])])
