@@ -1768,8 +1768,8 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
         gauss_ax.axvline(x=flarelong, color='k', linestyle='dashed', linewidth=0.5, alpha=0.9, label=f'Reference at {flare_loc[0]}{DEGREE_TEXT}')
 
     # Add the Gauss results text
-    gauss_values['X0'] = gauss_values['X0']+flarelong
-    gauss_text = f"Center: {gauss_values['X0']:.2f}{DEGREE_TEXT}\n"
+    #gauss_values['X0'] = gauss_values['X0']+flarelong
+    gauss_text = f"Center: {gauss_values['X0']+flarelong:.2f}{DEGREE_TEXT}\n"
     gauss_text = f"{gauss_text}Width: {gauss_values['sigma']:.2f}{DEGREE_TEXT}"
     box_obj = AnchoredText(gauss_text, frameon=True, loc='upper left', pad=0.5, prop={'size':9})
     plt.setp(box_obj.patch, facecolor='grey', alpha=0.9)
@@ -1777,7 +1777,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
 
     # Calculate and plot the curve
     x_curve = np.linspace(-360,360,200)
-    y_curve = 10 ** log_gauss_function(x_curve, gauss_values['A'], gauss_values['X0'], gauss_values['sigma'])
+    y_curve = 10 ** log_gauss_function(x_curve, gauss_values['A'], gauss_values['X0']+flarelong, gauss_values['sigma'])
     gauss_ax.semilogy(x_curve, y_curve, color='k')
     
     # Add the error region
@@ -1788,10 +1788,10 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
 
 
     # Show the different elements of the curve (ie the center and width)
-    gauss_ax.axvline(x=gauss_values['X0'], color='goldenrod', alpha=0.8)
+    gauss_ax.axvline(x=gauss_values['X0']+flarelong, color='goldenrod', alpha=0.8)
     gauss_ax.hlines(y=0.6065*(10**gauss_values['A']),
-                    xmin=(gauss_values['X0']-gauss_values['sigma']),
-                    xmax=(gauss_values['X0']+gauss_values['sigma']),
+                    xmin=(gauss_values['X0']+flarelong-gauss_values['sigma']),
+                    xmax=(gauss_values['X0']+flarelong+gauss_values['sigma']),
                     color='turquoise', alpha=0.8, linewidth=1.2)
 
 
@@ -1880,12 +1880,12 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
 
     # Plot the curve
     gauss_values = sc_dict['Gauss'].loc[timestep].to_dict()
-    gauss_values['X0'] = gauss_values['X0']+flarelong
+    #gauss_values['X0'] = gauss_values['X0']+flarelong
 
     x_curve = np.linspace(-360,360, 250)
     y_curve = 10 ** log_gauss_function(x_curve, 
                                         gauss_values['A'],
-                                        gauss_values['X0'],
+                                        gauss_values['X0']+flarelong,
                                         gauss_values['sigma'])
     ax.semilogy(x_curve, y_curve, color='k')
 
@@ -1895,10 +1895,10 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
         alpha=0.7, color='peachpuff')
 
     # Show the curves elements
-    ax.axvline(x=gauss_values['X0'], color='goldenrod', alpha=0.8)
+    ax.axvline(x=gauss_values['X0']+flarelong, color='goldenrod', alpha=0.8)
     ax.hlines(y=0.6065*(10**gauss_values['A']),
-                xmin=(gauss_values['X0']-gauss_values['sigma']),
-                xmax=(gauss_values['X0']+gauss_values['sigma']),
+                xmin=(gauss_values['X0']+flarelong-gauss_values['sigma']),
+                xmax=(gauss_values['X0']+flarelong+gauss_values['sigma']),
                 color='turquoise', alpha=0.8, linewidth=1.2, zorder=0)
 
     gauss_text = f"Center: {gauss_values['X0']:.2f}{DEGREE_TEXT}\n"
