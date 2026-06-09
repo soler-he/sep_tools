@@ -516,16 +516,28 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
             vsw_df.rename(columns={'|vp_mom|':'vsw'}, inplace=True)
             vsw_df = vsw_df.bfill().ffill() # backfill, then forwardfill
             if len(vsw_df) <= 1: #if nothing comes through then put the default df in place
+                print(f'PSP solar wind speed data unavailable. Using default Vsw of {default_vsw} km/s instead.')
                 vsw_df = vsw_df_default
             hc_dict['PSP'] = vsw_df
 
         if 'SOHO' in observers:
             vswd = cda_tree.SOHO.CELIAS_PM.SOHO_CELIAS_PM_5MIN.V_p
-            vswdf = spz.get_data(vswd, start, end).replace_fillval_by_nan().to_dataframe()
-            vsw_df = vswdf.resample(resampling).mean()
-            vsw_df.rename(columns={'Proton V':'vsw'}, inplace=True)
+            try:
+                vswdf = spz.get_data(vswd, start, end)#.replace_fillval_by_nan().to_dataframe()
+                vswdf1 = vswdf.to_dataframe()
+                vswdf1.rename(columns={'Proton V':'vsw'}, inplace=True)
+            except AttributeError: #if vswdf == None: # Produces nothing when outside of provided time range (currently: 1996 - 2023)
+                print('SOHO Vsw data unavailable. Using ACE data instead.')
+                ace_vsw = cda_tree.ACE.SWE.AC_K1_SWE.Vp
+                vswdf = spz.get_data(ace_vsw, start, end)
+                vswdf1 = vswdf.to_dataframe()
+                vswdf1.rename(columns={'component_0':'vsw'}, inplace=True)
+
+
+            vsw_df = vswdf1.resample(resampling).mean()
             vsw_df = vsw_df.bfill().ffill()
             if len(vsw_df) <= 1: #if nothing comes through then put the default df in place
+                print(f'SOHO and ACE solar wind speed data unavailable. Using default Vsw of {default_vsw} km/s instead.')
                 vsw_df = vsw_df_default
             hc_dict['SOHO'] = vsw_df
 
@@ -536,6 +548,7 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
             vsw_df.rename(columns={'|v_rtn|':'vsw'}, inplace=True)
             vsw_df = vsw_df.bfill().ffill()
             if len(vsw_df) <= 1: #if nothing comes through then put the default df in place
+                print(f'Solar Orbiter solar wind speed data unavailable. Using default Vsw of {default_vsw} km/s instead.')
                 vsw_df = vsw_df_default
             hc_dict['Solar Orbiter'] = vsw_df
 
@@ -546,6 +559,7 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
             vsw_df.rename(columns={'|v|':'vsw'}, inplace=True)
             vsw_df = vsw_df.bfill().ffill()
             if len(vsw_df) <= 1: #if nothing comes through then put the default df in place
+                print(f'STEREO A solar wind speed data unavailable. Using default Vsw of {default_vsw} km/s instead.')
                 vsw_df = vsw_df_default
             hc_dict['STEREO A'] = vsw_df
 
@@ -556,6 +570,7 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
             vsw_df.rename(columns={'|v|':'vsw'}, inplace=True)
             vsw_df = vsw_df.bfill().ffill()
             if len(vsw_df) <= 1: #if nothing comes through then put the default df in place
+                print(f'Wind solar wind speed data unavailable. Using default Vsw of {default_vsw} km/s instead.')
                 vsw_df = vsw_df_default
             hc_dict['Wind'] = vsw_df
 
@@ -589,6 +604,7 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
 
         # Concatenate both dfs
         df = pd.concat([vsw_df, loc_df], axis=1, join='outer') # along time index; keep all rows
+        df['vsw'] = df['vsw'].bfill().ffill()
 
         # Update the dict
         hc_dict[obs] = df
@@ -1293,7 +1309,7 @@ def odr_gauss_fit(dict_1timestep, prev_results={'A': np.nan, 'X0': np.nan, 'sigm
             df.drop([i], inplace=True) # Drops the whole row
 
     # Must have at least 3 data points to calculate
-    if len(df['y']) < 3:
+    if len(df['y']) <= 3:
         return {'A': np.nan, 'X0': np.nan, 'sigma': np.nan}
 
     # Check for previous timestep results (if none then calculate)
@@ -1649,6 +1665,7 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
                     color='turquoise', linewidth=1.2, alpha=0.8)
 
     # Provide error range
+
     yerr_curve = log_gauss_error_range_calc(x_curve, y_curve, peak_data_results, flarelong)
     gauss_ax.fill_between(x_curve, y_curve-yerr_curve, y_curve+yerr_curve, alpha=0.7, color='peachpuff')
 
@@ -1751,8 +1768,8 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
         gauss_ax.axvline(x=flarelong, color='k', linestyle='dashed', linewidth=0.5, alpha=0.9, label=f'Reference at {flare_loc[0]}{DEGREE_TEXT}')
 
     # Add the Gauss results text
-    gauss_values['X0'] = gauss_values['X0']+flarelong
-    gauss_text = f"Center: {gauss_values['X0']:.2f}{DEGREE_TEXT}\n"
+    #gauss_values['X0'] = gauss_values['X0']+flarelong
+    gauss_text = f"Center: {gauss_values['X0']+flarelong:.2f}{DEGREE_TEXT}\n"
     gauss_text = f"{gauss_text}Width: {gauss_values['sigma']:.2f}{DEGREE_TEXT}"
     box_obj = AnchoredText(gauss_text, frameon=True, loc='upper left', pad=0.5, prop={'size':9})
     plt.setp(box_obj.patch, facecolor='grey', alpha=0.9)
@@ -1760,7 +1777,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
 
     # Calculate and plot the curve
     x_curve = np.linspace(-360,360,200)
-    y_curve = 10 ** log_gauss_function(x_curve, gauss_values['A'], gauss_values['X0'], gauss_values['sigma'])
+    y_curve = 10 ** log_gauss_function(x_curve, gauss_values['A'], gauss_values['X0']+flarelong, gauss_values['sigma'])
     gauss_ax.semilogy(x_curve, y_curve, color='k')
     
     # Add the error region
@@ -1771,10 +1788,10 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
 
 
     # Show the different elements of the curve (ie the center and width)
-    gauss_ax.axvline(x=gauss_values['X0'], color='goldenrod', alpha=0.8)
+    gauss_ax.axvline(x=gauss_values['X0']+flarelong, color='goldenrod', alpha=0.8)
     gauss_ax.hlines(y=0.6065*(10**gauss_values['A']),
-                    xmin=(gauss_values['X0']-gauss_values['sigma']),
-                    xmax=(gauss_values['X0']+gauss_values['sigma']),
+                    xmin=(gauss_values['X0']+flarelong-gauss_values['sigma']),
+                    xmax=(gauss_values['X0']+flarelong+gauss_values['sigma']),
                     color='turquoise', alpha=0.8, linewidth=1.2)
 
 
@@ -1863,12 +1880,12 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
 
     # Plot the curve
     gauss_values = sc_dict['Gauss'].loc[timestep].to_dict()
-    gauss_values['X0'] = gauss_values['X0']+flarelong
+    #gauss_values['X0'] = gauss_values['X0']+flarelong
 
     x_curve = np.linspace(-360,360, 250)
     y_curve = 10 ** log_gauss_function(x_curve, 
                                         gauss_values['A'],
-                                        gauss_values['X0'],
+                                        gauss_values['X0']+flarelong,
                                         gauss_values['sigma'])
     ax.semilogy(x_curve, y_curve, color='k')
 
@@ -1878,10 +1895,10 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
         alpha=0.7, color='peachpuff')
 
     # Show the curves elements
-    ax.axvline(x=gauss_values['X0'], color='goldenrod', alpha=0.8)
+    ax.axvline(x=gauss_values['X0']+flarelong, color='goldenrod', alpha=0.8)
     ax.hlines(y=0.6065*(10**gauss_values['A']),
-                xmin=(gauss_values['X0']-gauss_values['sigma']),
-                xmax=(gauss_values['X0']+gauss_values['sigma']),
+                xmin=(gauss_values['X0']+flarelong-gauss_values['sigma']),
+                xmax=(gauss_values['X0']+flarelong+gauss_values['sigma']),
                 color='turquoise', alpha=0.8, linewidth=1.2, zorder=0)
 
     gauss_text = f"Center: {gauss_values['X0']:.2f}{DEGREE_TEXT}\n"
