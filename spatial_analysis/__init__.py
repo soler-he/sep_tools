@@ -779,16 +779,22 @@ def move_along_parker_spiral(r_dist, loc, vsw, towards, err_calc):
             newloc_t = float(np.degrees(newloc_tmp))
 
             # Make sure it falls within the Stonyhurst restrictions
-            if newloc_t > 180:
-                newloc_t = newloc_t - 360
-            elif newloc_t < -180:
-                newloc_t = newloc_t + 360
+            # if newloc_t > 180:
+            #     newloc_t = newloc_t - 360
+            # elif newloc_t < -180:
+            #     newloc_t = newloc_t + 360
 
             # Add to the array
             new_loc_arr.append(newloc_t)
 
         # Find the nominal and uncertainty values
         new_loc_unc = np.std(new_loc_arr, mean=new_loc_arr[0])
+
+        # Make sure it falls within the Stonyhurst restrictions
+        if new_loc_arr[0] > 180:
+            new_loc_arr[0] = new_loc_arr[0] - 360
+        elif new_loc_arr[0] < -180:
+            new_loc_arr[0] = new_loc_arr[0] + 360
         new_loc = [new_loc_arr[0], float(new_loc_unc)]
     else:
         if towards:
