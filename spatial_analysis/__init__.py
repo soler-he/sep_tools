@@ -398,7 +398,7 @@ class SpatialEvent:
                 print("Please run '*.load_spacecraft_data() first.")
             else:
                 self._get_peak_fits(scdata, window_length=window_length)
-                plot_peak_intensity(scdata, self.out_path, self.start, self.peak_data, self.energy_range_label, self.flare_loc, self.plot_foot_sep_limits)
+                plot_peak_intensity(scdata, self.out_path, self.start, self.peak_data, self.energy_range_label, self.reference, self.flare_loc, self.plot_foot_sep_limits)
 
     def _get_reference_point(self):
         """Function to find a reference point for the Gaussian calculations.
@@ -1591,7 +1591,7 @@ def find_peak_intensity(sc_dict, data_path, date, window_length=10):
 
     return peak_data_results
 
-def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_range_label, flare_loc, plot_foot_sep_limits):
+def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_range_label, reference, flare_loc, plot_foot_sep_limits):
     """Plotting the results of the find_peak_intensity function."""
 
     # Plot
@@ -1613,7 +1613,7 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
         gauss_ax.set_xlabel(f'Footpoint Longitude ({DEGREE_TEXT})', fontsize=9)
         x_col_label = 'foot_long'
         peak_xlabel = 'xreal'
-        flarelong = flare_loc[0]
+        flarelong = reference
     tseries_ax.set_xlabel('Time & Date', fontsize=9)
 
     # Add a text box with the energy and species
@@ -1739,7 +1739,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
     else:
         gauss_ax.set_xlabel(f'Footpoint Longitude ({DEGREE_TEXT})', fontsize=9)
         x_col_label = 'foot_long'
-        flarelong = flare_loc[0]
+        flarelong = reference
         gauss_xlabel = 'xreal'
 
     ylimits = [1e5, 1e-5]
@@ -1851,7 +1851,7 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
     else:
         ax.set_xlabel(f'Footpoint Longitude ({DEGREE_TEXT})', fontsize=9)
         x_col_label = 'foot_long'
-        flarelong = flare_loc[0]
+        flarelong = reference
 
     ylimits = [1e5, 1e-5]
     xlimits = [reference-90, reference+90]
