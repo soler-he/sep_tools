@@ -74,7 +74,7 @@ use_old_odr_method = True
 if not use_old_odr_method:
     from odrpack import odr_fit
 
-
+print("USING UPDATED VERSION.")
 
 ################################################
 ## Event Class
@@ -269,21 +269,37 @@ class SpatialEvent:
         """Given a window by the user, the function calculates the average, reduces the
         intensity by this average, and results in a background reduced dataset."""
         if perform_process:
-            if not isinstance(background_window, list) or \
-                not isinstance(background_window[0], dt.datetime) or \
+            if isinstance(background_window, list):
+                if not isinstance(background_window[0], dt.datetime) or \
                     not isinstance(background_window[1], dt.datetime) or \
                         len(background_window) != 2:
-                print("Incorrect value type given to 'background_window'.")
-            else:
-                if len(background_window) == 0: # In case nothing is passed
+                            print("Incorrect value type given to 'background_window'. Using default window of 2 hours before to 1 hour after given start time.")
+                            background_window = [self.start - dt.timedelta(hours=2),
+                                                 self.start + dt.timedelta(hours=1)]
+                elif len(background_window) == 0: # In case nothing is passed
                     background_window = [self.start - dt.timedelta(hours=2),
-                                        self.start + dt.timedelta(hours=1)]
-
+                                         self.start + dt.timedelta(hours=1)]
 
                 for sc in self.spacecraft_list:
                     self.sc_data_bg[sc] = background_subtracting(self.sc_data.get(sc), background_window)
-                    
-                print("Background subtraction function complete.")
+            elif isinstance(background_window, dict):
+                for sc in self.spacecraft_list:
+                    if not isinstance(background_window[sc], list) or \
+                        not isinstance(background_window[sc][0], dt.datetime) or \
+                            not isinstance(background_window[sc][1], dt.datetime):
+                                print(f"Incorrect value type given to {sc} 'background_window'. Using default window of 2 hours before to 1 hour after given start time.")
+                                background_window[sc] = [self.start - dt.timedelta(hours=2),
+                                                         self.start + dt.timedelta(hours=1)]
+                    else:
+                        self.sc_data_bg[sc] = background_subtracting(self.sc_data.get(sc), background_window[sc])
+            else:
+                print("background_window has been provided in the incorrect format. Using default window of 2 hours before to 1 hour after given start time for all observers.")
+                background_window = [self.start - dt.timedelta(hours=2),
+                                     self.start + dt.timedelta(hours=1)]
+                for sc in self.spacecraft_list:
+                    self.sc_data_bg[sc] = background_subtracting(self.sc_data.get(sc), background_window)
+
+            print("Background subtraction function complete.")
         else:
             for sc in self.spacecraft_list:
                 self.sc_data_bg[sc] = (self.sc_data.get(sc)).copy(deep=True) # Just copy it over and move on
@@ -347,10 +363,18 @@ class SpatialEvent:
         bg_zone = []
         if 'background_window' in kwargs:
             bg_zone = kwargs['background_window']
-            if not isinstance(bg_zone, list) or \
-               len(bg_zone) not in [0, 2] or \
-               not isinstance(bg_zone[0], dt.datetime) or \
-               not isinstance(bg_zone[1], dt.datetime):
+            if isinstance(bg_zone, list):
+                if len(bg_zone) not in [0, 2] or \
+                    not isinstance(bg_zone[0], dt.datetime) or \
+                        not isinstance(bg_zone[1], dt.datetime):
+                            print("Incorrect value type given to 'background_window'.")
+                            bg_zone = []
+            elif isinstance(bg_zone, dict):
+                for sc in self.spacecraft_list:
+                    if not isinstance(bg_zone[sc], list) or not isinstance(bg_zone[sc][0], dt.datetime) or not isinstance(bg_zone[sc][1], dt.datetime):
+                        print("Incorrect value type given to 'background_window'.")
+                        bg_zone = []
+            else:
                 print("Incorrect value type given to 'background_window'.")
                 bg_zone = []
 
@@ -1522,9 +1546,23 @@ def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, background
             ax[n].axvline(x=dates[0], color='k', linestyle='dashed', linewidth=0.5)
 
         # Show the background window
-        if len(background_window) > 1:
+        if isinstance(background_window, dict):
+            ax[n].axvspan(background_window[sc][0], background_window[sc][1],
+                          alpha=0.2, color='grey')
+            if background_window[sc][0].date == background_window[sc][1].date:
+                bg_txt = f"Background window:\n{background_window[sc][0].strftime('%H:%M')} - {background_window[sc][1].strftime('%H:%M %d %b, %Y')}"
+            else:
+                bg_txt = f"Background window:\n{background_window[sc][0].strftime('%H:%M %d %b, %Y')} - {background_window[sc][1].strftime('%H:%M %d %b, %Y')}"
+            box_obj = AnchoredText(bg_txt, frameon=True, loc='lower right',
+                                   pad=0.5, prop={'size':6})
+            plt.setp(box_obj.patch, facecolor='grey', alpha=0.9)
+            ax[n].add_artist(box_obj)
+        elif isinstance(background_window, list) and len(background_window) > 1:
             ax[n].axvspan(background_window[0], background_window[1], alpha=0.2, color='grey')
-            bg_txt = f'Background window:\n{background_window[0].strftime("%H:%M")} - {background_window[0].strftime("%H:%M %d %b, %Y")}'
+            if background_window[0].date == background_window[1].date:
+                bg_txt = f'Background window:\n{background_window[0].strftime("%H:%M")} - {background_window[1].strftime("%H:%M %d %b, %Y")}'
+            else:
+                bg_txt = f'Background window:\n{background_window[0].strftime("%H:%M %d %b, %Y")} - {background_window[1].strftime("%H:%M %d %b, %Y")}'
             box_obj = AnchoredText(bg_txt, frameon=True, loc='lower right',
                                    pad=0.5, prop={'size':7})
             plt.setp(box_obj.patch, facecolor='grey', alpha=0.9)
