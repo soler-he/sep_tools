@@ -74,7 +74,7 @@ use_old_odr_method = True
 if not use_old_odr_method:
     from odrpack import odr_fit
 
-print("USING UPDATED VERSION.")
+
 
 ################################################
 ## Event Class
