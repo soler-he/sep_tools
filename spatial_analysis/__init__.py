@@ -269,21 +269,37 @@ class SpatialEvent:
         """Given a window by the user, the function calculates the average, reduces the
         intensity by this average, and results in a background reduced dataset."""
         if perform_process:
-            if not isinstance(background_window, list) or \
-                not isinstance(background_window[0], dt.datetime) or \
+            if isinstance(background_window, list):
+                if not isinstance(background_window[0], dt.datetime) or \
                     not isinstance(background_window[1], dt.datetime) or \
                         len(background_window) != 2:
-                print("Incorrect value type given to 'background_window'.")
-            else:
-                if len(background_window) == 0: # In case nothing is passed
+                            print("Incorrect value type given to 'background_window'. Using default window of 2 hours before to 1 hour after given start time.")
+                            background_window = [self.start - dt.timedelta(hours=2),
+                                                 self.start + dt.timedelta(hours=1)]
+                elif len(background_window) == 0: # In case nothing is passed
                     background_window = [self.start - dt.timedelta(hours=2),
-                                        self.start + dt.timedelta(hours=1)]
-
+                                         self.start + dt.timedelta(hours=1)]
 
                 for sc in self.spacecraft_list:
                     self.sc_data_bg[sc] = background_subtracting(self.sc_data.get(sc), background_window)
-                    
-                print("Background subtraction function complete.")
+            elif isinstance(background_window, dict):
+                for sc in self.spacecraft_list:
+                    if not isinstance(background_window[sc], list) or \
+                        not isinstance(background_window[sc][0], dt.datetime) or \
+                            not isinstance(background_window[sc][1], dt.datetime):
+                                print(f"Incorrect value type given to {sc} 'background_window'. Using default window of 2 hours before to 1 hour after given start time.")
+                                background_window[sc] = [self.start - dt.timedelta(hours=2),
+                                                         self.start + dt.timedelta(hours=1)]
+                    else:
+                        self.sc_data_bg[sc] = background_subtracting(self.sc_data.get(sc), background_window[sc])
+            else:
+                print("background_window has been provided in the incorrect format. Using default window of 2 hours before to 1 hour after given start time for all observers.")
+                background_window = [self.start - dt.timedelta(hours=2),
+                                     self.start + dt.timedelta(hours=1)]
+                for sc in self.spacecraft_list:
+                    self.sc_data_bg[sc] = background_subtracting(self.sc_data.get(sc), background_window)
+
+            print("Background subtraction function complete.")
         else:
             for sc in self.spacecraft_list:
                 self.sc_data_bg[sc] = (self.sc_data.get(sc)).copy(deep=True) # Just copy it over and move on
@@ -347,10 +363,18 @@ class SpatialEvent:
         bg_zone = []
         if 'background_window' in kwargs:
             bg_zone = kwargs['background_window']
-            if not isinstance(bg_zone, list) or \
-               len(bg_zone) not in [0, 2] or \
-               not isinstance(bg_zone[0], dt.datetime) or \
-               not isinstance(bg_zone[1], dt.datetime):
+            if isinstance(bg_zone, list):
+                if len(bg_zone) not in [0, 2] or \
+                    not isinstance(bg_zone[0], dt.datetime) or \
+                        not isinstance(bg_zone[1], dt.datetime):
+                            print("Incorrect value type given to 'background_window'.")
+                            bg_zone = []
+            elif isinstance(bg_zone, dict):
+                for sc in self.spacecraft_list:
+                    if not isinstance(bg_zone[sc], list) or not isinstance(bg_zone[sc][0], dt.datetime) or not isinstance(bg_zone[sc][1], dt.datetime):
+                        print("Incorrect value type given to 'background_window'.")
+                        bg_zone = []
+            else:
                 print("Incorrect value type given to 'background_window'.")
                 bg_zone = []
 
@@ -398,7 +422,7 @@ class SpatialEvent:
                 print("Please run '*.load_spacecraft_data() first.")
             else:
                 self._get_peak_fits(scdata, window_length=window_length)
-                plot_peak_intensity(scdata, self.out_path, self.start, self.peak_data, self.energy_range_label, self.flare_loc, self.plot_foot_sep_limits)
+                plot_peak_intensity(scdata, self.out_path, self.start, self.peak_data, self.energy_range_label, self.reference, self.flare_loc, self.plot_foot_sep_limits)
 
     def _get_reference_point(self):
         """Function to find a reference point for the Gaussian calculations.
@@ -779,16 +803,22 @@ def move_along_parker_spiral(r_dist, loc, vsw, towards, err_calc):
             newloc_t = float(np.degrees(newloc_tmp))
 
             # Make sure it falls within the Stonyhurst restrictions
-            if newloc_t > 180:
-                newloc_t = newloc_t - 360
-            elif newloc_t < -180:
-                newloc_t = newloc_t + 360
+            # if newloc_t > 180:
+            #     newloc_t = newloc_t - 360
+            # elif newloc_t < -180:
+            #     newloc_t = newloc_t + 360
 
             # Add to the array
             new_loc_arr.append(newloc_t)
 
         # Find the nominal and uncertainty values
         new_loc_unc = np.std(new_loc_arr, mean=new_loc_arr[0])
+
+        # Make sure it falls within the Stonyhurst restrictions
+        if new_loc_arr[0] > 180:
+            new_loc_arr[0] = new_loc_arr[0] - 360
+        elif new_loc_arr[0] < -180:
+            new_loc_arr[0] = new_loc_arr[0] + 360
         new_loc = [new_loc_arr[0], float(new_loc_unc)]
     else:
         if towards:
@@ -1516,9 +1546,23 @@ def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, background
             ax[n].axvline(x=dates[0], color='k', linestyle='dashed', linewidth=0.5)
 
         # Show the background window
-        if len(background_window) > 1:
+        if isinstance(background_window, dict):
+            ax[n].axvspan(background_window[sc][0], background_window[sc][1],
+                          alpha=0.2, color='grey')
+            if background_window[sc][0].date == background_window[sc][1].date:
+                bg_txt = f"Background window:\n{background_window[sc][0].strftime('%H:%M')} - {background_window[sc][1].strftime('%H:%M %d %b, %Y')}"
+            else:
+                bg_txt = f"Background window:\n{background_window[sc][0].strftime('%H:%M %d %b, %Y')} - {background_window[sc][1].strftime('%H:%M %d %b, %Y')}"
+            box_obj = AnchoredText(bg_txt, frameon=True, loc='lower right',
+                                   pad=0.5, prop={'size':6})
+            plt.setp(box_obj.patch, facecolor='grey', alpha=0.9)
+            ax[n].add_artist(box_obj)
+        elif isinstance(background_window, list) and len(background_window) > 1:
             ax[n].axvspan(background_window[0], background_window[1], alpha=0.2, color='grey')
-            bg_txt = f'Background window:\n{background_window[0].strftime("%H:%M")} - {background_window[0].strftime("%H:%M %d %b, %Y")}'
+            if background_window[0].date == background_window[1].date:
+                bg_txt = f'Background window:\n{background_window[0].strftime("%H:%M")} - {background_window[1].strftime("%H:%M %d %b, %Y")}'
+            else:
+                bg_txt = f'Background window:\n{background_window[0].strftime("%H:%M %d %b, %Y")} - {background_window[1].strftime("%H:%M %d %b, %Y")}'
             box_obj = AnchoredText(bg_txt, frameon=True, loc='lower right',
                                    pad=0.5, prop={'size':7})
             plt.setp(box_obj.patch, facecolor='grey', alpha=0.9)
@@ -1591,7 +1635,7 @@ def find_peak_intensity(sc_dict, data_path, date, window_length=10):
 
     return peak_data_results
 
-def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_range_label, flare_loc, plot_foot_sep_limits):
+def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_range_label, reference, flare_loc, plot_foot_sep_limits):
     """Plotting the results of the find_peak_intensity function."""
 
     # Plot
@@ -1613,7 +1657,7 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
         gauss_ax.set_xlabel(f'Footpoint Longitude ({DEGREE_TEXT})', fontsize=9)
         x_col_label = 'foot_long'
         peak_xlabel = 'xreal'
-        flarelong = flare_loc[0]
+        flarelong = reference
     tseries_ax.set_xlabel('Time & Date', fontsize=9)
 
     # Add a text box with the energy and species
@@ -1739,7 +1783,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
     else:
         gauss_ax.set_xlabel(f'Footpoint Longitude ({DEGREE_TEXT})', fontsize=9)
         x_col_label = 'foot_long'
-        flarelong = flare_loc[0]
+        flarelong = reference
         gauss_xlabel = 'xreal'
 
     ylimits = [1e5, 1e-5]
@@ -1851,7 +1895,7 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
     else:
         ax.set_xlabel(f'Footpoint Longitude ({DEGREE_TEXT})', fontsize=9)
         x_col_label = 'foot_long'
-        flarelong = flare_loc[0]
+        flarelong = reference
 
     ylimits = [1e5, 1e-5]
     xlimits = [reference-90, reference+90]
