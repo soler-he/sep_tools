@@ -975,8 +975,8 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
 
         bin_width = []
         energy_range = []
+        soho_meta = soho_meta['channels_dict_df_p']
         for n in range(bin_list[0], bin_list[1]+1):
-            soho_meta = soho_meta['channels_dict_df_p']
             bin_start = soho_meta.loc[n, 'lower_E']
             bin_end = soho_meta.loc[n, 'upper_E']
 
