@@ -76,8 +76,8 @@ def print_results(file_with_fit_results):
 			print('Beta:  ', round(results[ 'Beta'][0], ndigits = 2))
 
 	if fit_type == 'single power-law with exponential cutoff' or fit_type == 'double power-law with exponential cutoff':
-		print('Exponential cutoff energy [MeV]:  ', round(results[ 'Exponential cutoff point [MeV]',][0], ndigits = 2), r'+/-', round(results[  'Cutoff err [MeV]'][0], ndigits = 2))
-		print('Cutoff exponent:  ', round(results[ 'Exponenent',][0], ndigits = 2))
+		print('Exponential cutoff energy [MeV]:  ', round(results['Exponential cutoff point [MeV]'][0], ndigits = 2), r'+/-', round(results[  'Cutoff err [MeV]'][0], ndigits = 2))
+		print('Cutoff exponent:  ', round(results['Exponent'][0], ndigits = 2))
 		
 	
 	print('E min [MeV]:  ', round(results['E min [MeV]'][0], ndigits = 2))    
