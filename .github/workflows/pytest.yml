@@ -2,7 +2,7 @@
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 #
 # Run pytest locally to update durations file:
-# pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html --nbmake -n=auto --nbmake-kernel=python3 --nbmake-timeout=500 --ignore=SEP_Multi-Instrument-Plot.ipynb --ignore=SEP_PyOnset.ipynb --durations=0 --store-durations
+# pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html --nbmake -n=auto --nbmake-kernel=python3 --nbmake-timeout=500 --ignore=SEP_Multi-Instrument-Plot.ipynb --ignore=SEP_PyOnset.ipynb --ignore=JupyterHub_Help.ipynb--durations=0 --store-durations
 
 name: pytest
 
@@ -65,9 +65,9 @@ jobs:
       run: |
         source .venv/bin/activate
         if python -c "import matplotlib; exit(0 if matplotlib.__version__ >= '3.11' else 1)"; then
-          pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html --mpl-results-path='/home/runner/work/sep_tools/tests_report/' --cov --cov-report=xml --nbmake -n=auto --nbmake-kernel=python3 --nbmake-timeout=500 --ignore=SEP_Multi-Instrument-Plot.ipynb --ignore=SEP_PyOnset.ipynb --durations=0 --splits 5 --group ${{ matrix.group }} --splitting-algorithm=least_duration
+          pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-generate-summary=html --mpl-results-path='/home/runner/work/sep_tools/tests_report/' --cov --cov-report=xml --nbmake -n=auto --nbmake-kernel=python3 --nbmake-timeout=500 --ignore=SEP_Multi-Instrument-Plot.ipynb --ignore=SEP_PyOnset.ipynb --ignore=JupyterHub_Help.ipynb --durations=0 --splits 5 --group ${{ matrix.group }} --splitting-algorithm=least_duration
         else
-          pytest -ra --cov --cov-report=xml --nbmake -n=auto --nbmake-kernel=python3 --nbmake-timeout=500 --ignore=SEP_Multi-Instrument-Plot.ipynb --ignore=SEP_PyOnset.ipynb --durations=0 --splits 5 --group ${{ matrix.group }} --splitting-algorithm=least_duration
+          pytest -ra --cov --cov-report=xml --nbmake -n=auto --nbmake-kernel=python3 --nbmake-timeout=500 --ignore=SEP_Multi-Instrument-Plot.ipynb --ignore=SEP_PyOnset.ipynb --ignore=JupyterHub_Help.ipynb --durations=0 --splits 5 --group ${{ matrix.group }} --splitting-algorithm=least_duration
         fi
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v6
@@ -120,7 +120,7 @@ jobs:
           --mpl-results-path='D:\a\sep_tools\tests_report\' `
           --cov --cov-report=xml --nbmake -n=auto --nbmake-kernel=python3 `
           --nbmake-timeout=500 --ignore=SEP_Multi-Instrument-Plot.ipynb `
-          --ignore=SEP_PyOnset.ipynb --durations=0 `
+          --ignore=SEP_PyOnset.ipynb --ignore=JupyterHub_Help.ipynb --durations=0 `
           --splits 2 --group ${{ matrix.group }} --splitting-algorithm=least_duration
       shell: pwsh
     - name: Upload coverage reports to Codecov
