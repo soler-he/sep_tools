@@ -184,7 +184,7 @@ class SpatialEvent:
         """Download the location data for the time period."""
         if np.isnan(self.reference):
             self._get_reference_point()
-        
+
         self.sm_data, self.plot_foot_sep_limits = horizons_speasy_location_loader(
             observers = self.spacecraft_list,
             dates = [self.start, self.end],
@@ -223,7 +223,7 @@ class SpatialEvent:
             # Collecting the full energy range
             lbl_tmp = (self.channel_labels[sc]).split('-')
             s_tmp = float(lbl_tmp[0])
-            e_tmp = float( (lbl_tmp[1]).split(' M')[0]) 
+            e_tmp = float( (lbl_tmp[1]).split(' M')[0])
             if np.isnan(full_energy_range[0]):
                 full_energy_range[0] = s_tmp
                 full_energy_range[1] = e_tmp
@@ -233,7 +233,7 @@ class SpatialEvent:
                 if (e_tmp > full_energy_range[1]):
                     full_energy_range[1] = e_tmp
         self.energy_range_label = f"{full_energy_range[0]:.1f}-{full_energy_range[1]:.1f} MeV"
-            
+
         print("Data loading complete.")
 
 
@@ -321,7 +321,7 @@ class SpatialEvent:
         if perform_process:
             for sc in self.spacecraft_list:
                 self.sc_data_ic[sc] = intercalibration_calculation(self.sc_data_bg.get(sc), intercalibration_factors[sc])
-                
+
             print("Intercalibration function complete.")
         else:
             for sc in self.spacecraft_list:
@@ -351,7 +351,7 @@ class SpatialEvent:
         if perform_process:
             for sc in self.spacecraft_list:
                 self.sc_data_rs[sc] = radial_scaling_calculation(self.sc_data_ic.get(sc), radial_scaling_factors)
-                
+
             print("Radial Scaling function complete.")
         else:
             for sc in self.spacecraft_list:
@@ -442,12 +442,12 @@ class SpatialEvent:
 
         if len(self.peak_data) == 0:
             self._get_peak_fits()
-        
+
         self.sc_data_rs['Gauss'] = fit_gauss_curves_to_data(self.sc_data_rs, self.out_path,
                                                             self.reference, self.flare_loc,
                                                             self.peak_data, self.energy_range_label,
                                                             self.plot_foot_sep_limits)
-        
+
         print(f"Calculations for Gaussian curves complete.")
 
     # Final Results
@@ -457,7 +457,7 @@ class SpatialEvent:
 
         fig, ax = plot_gauss_fits_timeseries(self.sc_data_rs, self.out_path, self.start, self.reference, self.channel_labels, self.flare_loc)
         return fig, ax
-        
+
 
     def save_df_to_csv(self, label=''):
         """Allows the user to save the observational data and Gaussian calculations
@@ -496,14 +496,14 @@ class SpatialEvent:
 ## Observer Location data loader
 def horizons_speasy_location_loader(observers, dates, data_path, resampling, source_loc, vsw_list=[]):
     """Downloading data from sunpy and speasy, similar to SolarMACH but a full time period is loaded for each observer.
-    
+
     NB if any NaNs are present, then they do remain and we do not currently try to fill the gap."""
     filename = f"SpacecraftLocationData_{dates[0].strftime('%d%m%Y')}.csv"
 
     if filename in os.listdir(data_path):
         print("The positional data is already downloaded, would you like to use this data (y) or redownload the data if settings have changed.")
         if input("Yes (y) or no (press enter)").lower() in ['yes','y']:
-            sm_loop = pd.read_csv(data_path+filename, 
+            sm_loop = pd.read_csv(data_path+filename,
                                   index_col=0, header=[0,1],
                                   parse_dates=True, na_values='nan')
 
@@ -516,7 +516,7 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
 
     # Set up the start and end times
     ## Use 2 hours before given flare start time for background if needed
-    start = dt.datetime(dates[0].year, dates[0].month, dates[0].day, dates[0].hour, 0) - dt.timedelta(hours=2) 
+    start = dt.datetime(dates[0].year, dates[0].month, dates[0].day, dates[0].hour, 0) - dt.timedelta(hours=2)
     end = dates[1]
 
     # Create the dictionary to store horizons coords
@@ -527,7 +527,7 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
     default_time_range = pd.date_range(start=start, end=end, freq=resampling)
     vsw_df_default = pd.DataFrame({'vsw':[default_vsw]*len(default_time_range)},
                                   index=default_time_range)
-    
+
     if len(vsw_list) == 0: # empty list
         amda_tree = spz.inventories.data_tree.amda
         cda_tree = spz.inventories.data_tree.cda
@@ -636,7 +636,7 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
     # Calculate footpoint data with errors
     beyond_limits = False
     for obs in observers:
-        
+
         hdf1 = hc_dict[obs]
 
         ftlng_arr, fl_err_arr, sep_arr, swapd_coord_sides = ([] for i in range(4))
@@ -656,7 +656,7 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
                 swapd_coord_sides.append('yes')
             else:
                 swapd_coord_sides.append('no')
-            
+
 
         hdf1['foot_long'] = ftlng_arr
         hdf1['foot_long_error'] = fl_err_arr
@@ -671,7 +671,7 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
 
     # Save to csv for easy access later
     df2.to_csv(data_path+filename, na_rep='nan')
-            
+
     # if beyond_limits=True then the footpoint separations had to wrap around and we should plot the
     #  footpoint separation not the straightforward longitude.
     # if beyond_limits=False then the event is probably facing the earth and we dont have to
@@ -691,7 +691,7 @@ def find_obs_separation_values(obs_footlong, source_long):
 
     return sep, beyond_limits
 
-    
+
 # Solar-MACH looping function out of use. Kept for archiving purposes.
 def solarmach_loop(observers, dates, data_path, resampling, source_loc, vsw_list=[], coord_sys='Stonyhurst'):
     """Downloads the fleet location data between the given dates with the
@@ -721,7 +721,7 @@ def solarmach_loop(observers, dates, data_path, resampling, source_loc, vsw_list
     # Create a new dict with each spacecraft df saved separately
     df1 = {}
     for obs in observers:
-        
+
         r_dist, vsw, foot_long, foot_long_error, long_sep = ([] for i in range(5))
         for tt in date_list:
             tmp_df = pd.DataFrame.from_dict(sm_df[tt])
@@ -731,7 +731,7 @@ def solarmach_loop(observers, dates, data_path, resampling, source_loc, vsw_list
             vsw.append( tmp_df['Vsw'][obs] )
 
             foot_calc = move_along_parker_spiral(
-                r_dist=tmp_df['Heliocentric distance (AU)'][obs], 
+                r_dist=tmp_df['Heliocentric distance (AU)'][obs],
                 loc=[float(tmp_df['Stonyhurst longitude (°)'][obs]),
                      float(tmp_df['Stonyhurst latitude (°)'][obs])],
                 vsw=tmp_df['Vsw'][obs], towards=True, err_calc=True)
@@ -759,7 +759,7 @@ def solarmach_loop(observers, dates, data_path, resampling, source_loc, vsw_list
         df1[obs]['long_sep'] = long_sep
         df1[obs]['foot_long_error'] = foot_long_error
 
-        
+
     df2 = pd.DataFrame({(outer_key, inner_key): values
                         for outer_key, inner_dict in df1.items()
                         for inner_key, values in inner_dict.items()})
@@ -772,7 +772,7 @@ def solarmach_loop(observers, dates, data_path, resampling, source_loc, vsw_list
     df2.to_csv(data_path+filename)
 
     return df2
-    
+
 def move_along_parker_spiral(r_dist, loc, vsw, towards, err_calc):
     """ Reads in the radial distance, location  [WE, NS],  measured Vsw,
         'towards' the Sun (True) or away (False), err_calc = True/False.
@@ -836,41 +836,60 @@ def move_along_parker_spiral(r_dist, loc, vsw, towards, err_calc):
 
 
     return new_loc
-    
-    
+
+
 ################################################
 ## Data loaders
 ################################################
 def weighted_bin_merge(df0, spacecraft, species, channel_list, header_label, binwidths):
-    """Reading in a df with just columns to merge across the rows (one row should merge to one intensity value),
-        the spacecraft and instrument, the species(just e or p), and the bin numbers."""
+    """
+    Input:
+        - dataframe: with simple columns and time index
+        - spacecraft and instrument (outdated)
+        - species (outdated)
+        - channel_list
+        - header_label: for the column labels minus the channel number (i.e. "Flux_5" would be given as "Flux_" and the channel 5 would be included later.)
+        - binwidths: upper energy - lower energy for each channel.
 
-    if species.lower() == 'p':
-        species = 'protons'
-    else:
-        species = 'electrons'
+    Process:
+        - Find all the relevant header labels.
+        - Pull the data into a 2D array (time index length with each index giving a list of the fluxes at that time)
+        - Calculate the numerator at each index as the sum of (flux_i * binwidth_i).
+        - Calculate the denominator as sum of the binwidths.
+        - The final flux array is formed using numerator / denominator.
+
+    Parts of this function were improved using AI/ChatGPT on 26 June 2026."""
+
+    # Confirm the species type (electrons hopefully introduced in later versions)
+    species = 'protons' if species.lower() == 'p' else 'electrons'
 
     full_channel_list = range(channel_list[0], channel_list[1]+1)
-    time_indx = []
-    merged_flux = []
-    for i in df0.index:
-        time_indx.append(i)
 
-        row_flux = 0
-        row_div = 0
-        for n in range(len(full_channel_list)):
-            if type(header_label) is list: #If its a double-layered header
-                row_flux = row_flux + ( df0.loc[i, (header_label[0], f"{header_label[1]}{full_channel_list[n]}")] ) * binwidths[n]
-            else:
-                row_flux = row_flux + ( df0.loc[i, f"{header_label}{full_channel_list[n]}"] ) * binwidths[n]
-            row_div = row_div + binwidths[n]
-        merged_flux.append(float(row_flux / row_div))
+    # Collect all relevant header labels.
+    if isinstance(header_label, list):
+        # MultiIndex Columns: (header_label[0], f"{header_label[1]}{n}")
+        cols = [(header_label[0], f"{header_label[1]}{n}") for n in full_channel_list]
+    else:
+        # Columns: f"{header_label}{n}"
+        cols = [f"{header_label}{n}" for n in full_channel_list]
+
+    # Pull the data into a 2D array
+    chan_arr = df0[cols].to_numpy(dtype=float)
+
+    # Calculate the numerator: sum of (flux_i * binwidth_i)
+    numtr = np.nansum(chan_arr * binwidths, axis=1) # Axis indicates to calc along the channel axis
+
+    # Calculate the denominator: sum of binwidths
+    dentr = np.nansum(binwidths)
+
+    merged_bins = numtr / dentr
+
+    return merged_bins.tolist()
 
 
-    return merged_flux
 
 def rms_mean(x_arr):
-    """This function is used to 'resample' or average the uncertainty columns. Parts of this code were assisted by ChatGPT on 18Nov2025."""
+    """This function is used to 'resample' or average the uncertainty columns. Parts of this code were assisted by AI/ChatGPT on 18Nov2025."""
     return np.sqrt(np.sum(x_arr**2)) / len(x_arr)
 
 
@@ -892,7 +911,7 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
     filename = f"SEP_intensities_{dates[0].strftime('%d%m%Y')}.csv"
 
 
-    
+
     # Download the data and load into a dictionary with the key as the spacecraft-instrument label
     #sc_dict = {}
     spacecraft = spacecraft.lower()
@@ -942,7 +961,7 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
         for tt in psp_df.index:
             flux_arr.append( np.nanmean([psp_df.loc[tt, f"A_F_{bin_label}"], psp_df.loc[tt, f"B_F_{bin_label}"]]) )
             unc_arr.append( np.nanmean([psp_df.loc[tt, f"A_Func_{bin_label}"], psp_df.loc[tt, f"B_Func_{bin_label}"]]) )
-        
+
         psp_df1["Flux"] = flux_arr
         psp_df1["Uncertainty"] = unc_arr
 
@@ -1179,7 +1198,7 @@ def radial_scaling_calculation(df0, scaling_values):
     """Scales the data based on its radial distance according to:
         I_new = I * R ^(a +- b)."""
     df = df0.copy(deep=True) # so it doesnt mess with the OG df's
-    
+
     a = scaling_values[0]
     b = scaling_values[1]
 
@@ -1188,7 +1207,7 @@ def radial_scaling_calculation(df0, scaling_values):
             or (df.loc[t, 'Flux']==0) or (df.loc[t, 'r_dist']==0):
             f_rscld = np.nan
             unc_final = np.nan
-            
+
         else:
             # Scale the flux
             f_rscld = df.loc[t, 'Flux'] * (df.loc[t, 'r_dist'] ** a)
@@ -1199,7 +1218,7 @@ def radial_scaling_calculation(df0, scaling_values):
             unc_limit_plus = abs(f_rscld - unc_plus)
             unc_minus = df.loc[t, 'Flux'] * (df.loc[t, 'r_dist'] **(a-b))
             unc_limit_minus = abs(f_rscld - unc_minus)
-    
+
             unc_fail = False
             if (unc_limit_plus >= unc_limit_minus): # plus is bigger than minus
                 if (f_rscld - unc_limit_plus) > 0: # plus is not bigger than f
@@ -1225,10 +1244,10 @@ def radial_scaling_calculation(df0, scaling_values):
                 # print("Unc minus: ", unc_limit_minus)
                 # jax = input('Continue? ')
                 chosen_unc_limit = np.nan
-    
+
             ## Find the calculated scaled uncertainty
             unc_calculated = df.loc[t, 'Uncertainty'] * (df.loc[t, 'r_dist'] ** a)
-    
+
             ## Merge both results for the final scaled uncertainty
             unc_final = np.sqrt(((unc_calculated)**2) + ((chosen_unc_limit)**2))
 
@@ -1823,7 +1842,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
     x_curve = np.linspace(-360,360,200)
     y_curve = 10 ** log_gauss_function(x_curve, gauss_values['A'], gauss_values['X0']+flarelong, gauss_values['sigma'])
     gauss_ax.semilogy(x_curve, y_curve, color='k')
-    
+
     # Add the error region
     y_err_curve = log_gauss_error_range_calc(x_curve, y_curve, gauss_values, flarelong)
     gauss_ax.fill_between(x_curve, y_curve-y_err_curve, y_curve+y_err_curve,
@@ -1927,7 +1946,7 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
     #gauss_values['X0'] = gauss_values['X0']+flarelong
 
     x_curve = np.linspace(-360,360, 250)
-    y_curve = 10 ** log_gauss_function(x_curve, 
+    y_curve = 10 ** log_gauss_function(x_curve,
                                         gauss_values['A'],
                                         gauss_values['X0']+flarelong,
                                         gauss_values['sigma'])
@@ -1947,7 +1966,7 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
 
     gauss_text = f"Center: {gauss_values['X0']:.2f}{DEGREE_TEXT}\n"
     gauss_text = f"{gauss_text}Width: {gauss_values['sigma']:.2f}{DEGREE_TEXT}"
-    box_obj2 = AnchoredText(gauss_text, frameon=True, loc='upper right', 
+    box_obj2 = AnchoredText(gauss_text, frameon=True, loc='upper right',
                             pad=0.5, prop={'size':7})
     plt.setp(box_obj2.patch, facecolor='lemonchiffon', alpha=0.5)
     ax.add_artist(box_obj2)
@@ -1956,7 +1975,7 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
     # Add vertical line for flare if given
     if not pd.isna(flare_loc[0]):
         ax.axvline(x=flarelong, color='k', linestyle='dashed',
-                    linewidth=0.5, alpha=0.9, 
+                    linewidth=0.5, alpha=0.9,
                     label=f"Reference at {flare_loc[0]}{DEGREE_TEXT}")
 
     ax.legend(#bbox_to_anchor=(1., 0.9, 0.5, 0.1), loc='upper left',
