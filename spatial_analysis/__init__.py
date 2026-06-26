@@ -210,7 +210,7 @@ class SpatialEvent:
             print("Please run '*.load_spacecraft_data()' first.")
 
 
-    def load_spacecraft_data(self, channels, resampling): # Step 2
+    def load_spacecraft_data(self, channels, resampling, read_saved_data=True): # Step 2
         """Download the data for each sc"""
         self.channels = channels
         self.resampling = resampling
@@ -218,7 +218,7 @@ class SpatialEvent:
 
         full_energy_range = [np.nan, np.nan]
         for sc in tqdm(self.spacecraft_list):
-            self.sc_data[sc], self.channel_labels[sc] = load_sc_data(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling)
+            self.sc_data[sc], self.channel_labels[sc] = load_sc_data(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling, read_saved_data)
 
             # Collecting the full energy range
             lbl_tmp = (self.channel_labels[sc]).split('-')
@@ -896,7 +896,7 @@ def rms_mean(x_arr):
 
 ################################################
 
-def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
+def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling, read_saved_data):
     """Load the data, merge the bins, make omnidirectional, resample, and return one df:
         -index: times
         - header1: sc-ins
@@ -917,9 +917,34 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
     spacecraft = spacecraft.lower()
 
     if 'psp' == spacecraft:
-        psp_df, psp_meta = psp_isois_load(dataset='PSP_ISOIS-EPIHI_L2-HET-RATES60',
-                                          startdate=dates[0], enddate=dates[1],
-                                          path=data_path, resample=None)
+
+        # Either use downloaded data or freshly download and save new data.
+        basic_data_filename = f"PSP_EPIHi_HET_L2_{dates[0].strftime('%d%b%Y')}-{dates[1].strftime('%d%b%Y')}.csv"
+
+        if basic_data_filename in os.listdir(data_path) and read_saved_data:
+            print("PSP: Reading locally stored files.")
+            psp_df = pd.read_csv(data_path+basic_data_filename,
+                                 index_col=0, parse_dates=True)
+            psp_meta = pd.read_csv(data_path+f"PSP_EPIHi_HET_L2_{dates[0].strftime('%d%b%Y')}_meta.csv", index_col=0)
+        else:
+            psp_df, psp_meta = psp_isois_load(dataset='PSP_ISOIS-EPIHI_L2-HET-RATES60',
+                                              startdate=dates[0], enddate=dates[1],
+                                              path=data_path, resample=None)
+
+            # Store basic data in csv for easier access later
+            cols = []
+            for n in range(len(psp_meta['H_ENERGY'])):
+                for d in ['A','B']:
+                    for h in ['Flux', 'Uncertainty']:
+                        cols.append(f"{d}_H_{h}_{n}")
+
+            csv_df = psp_df[cols]
+            csv_df.to_csv(data_path+basic_data_filename, na_rep='nan')
+
+            csv_meta = pd.DataFrame({'H_ENERGY_LABL':psp_meta['H_ENERGY_LABL']})
+            csv_meta.to_csv(data_path+f"PSP_EPIHi_HET_L2_{dates[0].strftime('%d%b%Y')}_meta.csv")
+
+
 
         # Find channels and bin widths
         bin_list = proton_channels['PSP']
@@ -978,10 +1003,32 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
 
 
     if 'soho' == spacecraft:
-        soho_df, soho_meta = soho_load(dataset='SOHO_ERNE-HED_L2-1MIN',
-                                       startdate=dates[0], enddate=dates[1],
-                                       path=data_path, resample=None,
-                                       pos_timestamp='start')
+
+        # Either use downloaded data or freshly download and save new data.
+        basic_data_filename = f"SOHO_ERNE_HED_L2_{dates[0].strftime('%d%b%Y')}-{dates[1].strftime('%d%b%Y')}.csv"
+
+        if basic_data_filename in os.listdir(data_path) and read_saved_data:
+            print("SOHO: Reading locally stored files.")
+            soho_df = pd.read_csv(data_path+basic_data_filename,
+                                  index_col=0, parse_dates=True)
+            soho_meta = pd.read_csv(data_path+f"SOHO_ERNE_HED_L2_{dates[0].strftime('%d%b%Y')}_meta.csv", index_col=0)
+        else:
+            soho_df, soho_meta = soho_load(dataset='SOHO_ERNE-HED_L2-1MIN',
+                                           startdate=dates[0], enddate=dates[1],
+                                           path=data_path, resample=None,
+                                           pos_timestamp='start')
+
+            # Store basic data in csv for easier access later
+            cols = []
+            for n in range(len(soho_meta['channels_dict_df_p'])):
+                for h in ['PH', 'PHC']:
+                    cols.append(f"{h}_{n}")
+
+            csv_df = soho_df[cols]
+            csv_df.to_csv(data_path+basic_data_filename, na_rep='nan')
+
+            soho_meta = soho_meta['channels_dict_df_p']
+            soho_meta.to_csv(data_path+f"SOHO_ERNE_HED_L2_{dates[0].strftime('%d%b%Y')}_meta.csv")
 
 
         # Find channels and bin widths
@@ -994,7 +1041,7 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
 
         bin_width = []
         energy_range = []
-        soho_meta = soho_meta['channels_dict_df_p']
+        #soho_meta = soho_meta['channels_dict_df_p']
         for n in range(bin_list[0], bin_list[1]+1):
             bin_start = soho_meta.loc[n, 'lower_E']
             bin_end = soho_meta.loc[n, 'upper_E']
@@ -1029,10 +1076,32 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
         return soho, energy_range_lbl
 
     if 'stereo a' == spacecraft:
-        sta_df, sta_meta = stereo_load(instrument='HET', spacecraft='ahead',
-                                       startdate=dates[0], enddate=dates[1],
-                                       path=data_path, resample=None,
-                                       pos_timestamp='start')
+        # Either use downloaded data or freshly download and save new data.
+        basic_data_filename = f"STEREOA_HET_{dates[0].strftime('%d%b%Y')}-{dates[1].strftime('%d%b%Y')}.csv"
+
+        if basic_data_filename in os.listdir(data_path) and read_saved_data:
+            print('STEREO A: Reading locally stored files.')
+            sta_df = pd.read_csv(data_path+basic_data_filename,
+                                 index_col=0, parse_dates=True)
+            sta_meta = pd.read_csv(data_path+f"STEREOA_HET_{dates[0].strftime('%d%b%Y')}_meta.csv", index_col=0)
+
+        else:
+            sta_df, sta_meta = stereo_load(instrument='HET', spacecraft='ahead',
+                                           startdate=dates[0], enddate=dates[1],
+                                           path=data_path, resample=None,
+                                           pos_timestamp='start')
+
+            # Store basic data in csv for easier access later
+            cols = []
+            for n in range(len(sta_meta['channels_dict_df_p'])):
+                for h in ['Proton_Flux', 'Proton_Sigma']:
+                    cols.append(f"{h}_{n}")
+
+            csv_df = sta_df[cols]
+            csv_df.to_csv(data_path+basic_data_filename, na_rep='nan')
+
+            sta_meta = sta_meta['channels_dict_df_p']
+            sta_meta.to_csv(data_path+f"STEREOA_HET_{dates[0].strftime('%d%b%Y')}_meta.csv")
 
 
         # Find channels and bin widths
@@ -1045,7 +1114,7 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
 
         bin_width = []
         energy_range = []
-        sta_meta = sta_meta['channels_dict_df_p']
+        #sta_meta = sta_meta['channels_dict_df_p']
         for n in range(bin_list[0], bin_list[1]+1):
             bin_start = sta_meta.loc[n, 'lower_E']
             bin_end = sta_meta.loc[n, 'upper_E']
@@ -1076,23 +1145,57 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling):
 
 
     if 'solar orbiter' == spacecraft:
-        # Download directional data
-        solo_s, soloe, solo_meta = epd_load(sensor='het', level='l2',
-                                            startdate=dates[0], enddate=dates[1],
-                                            viewing='sun', autodownload=True,
-                                            pos_timestamp='start', path=data_path)
-        solo_a, soloe, solo_meta = epd_load(sensor='het', level='l2',
-                                            startdate=dates[0], enddate=dates[1],
-                                            viewing='asun', autodownload=True,
-                                            pos_timestamp='start', path=data_path)
-        solo_n, soloe, solo_meta = epd_load(sensor='het', level='l2',
-                                            startdate=dates[0], enddate=dates[1],
-                                            viewing='north', autodownload=True,
-                                            pos_timestamp='start', path=data_path)
-        solo_d, soloe, solo_meta = epd_load(sensor='het', level='l2',
-                                            startdate=dates[0], enddate=dates[1],
-                                            viewing='south', autodownload=True,
-                                            pos_timestamp='start', path=data_path)
+        # Either use downloaded data or freshly download and save new data.
+        basic_data_filename = f"SolO_HET_L2_{dates[0].strftime('%d%b%Y')}-{dates[1].strftime('%d%b%Y')}_"
+
+        if basic_data_filename+"sun.csv" in os.listdir(data_path) and read_saved_data:
+            print("Solar Orbiter: Reading locally stored files.")
+            solo_s = pd.read_csv(data_path+basic_data_filename+"sun.csv",
+                                 header=[0,1], index_col=0, parse_dates=True)
+            solo_a = pd.read_csv(data_path+basic_data_filename+"asun.csv",
+                                 header=[0,1], index_col=0, parse_dates=True)
+            solo_n = pd.read_csv(data_path+basic_data_filename+"north.csv",
+                                 header=[0,1], index_col=0, parse_dates=True)
+            solo_d = pd.read_csv(data_path+basic_data_filename+"south.csv",
+                                 header=[0,1], index_col=0, parse_dates=True)
+            solo_meta = pd.read_csv(data_path+f"SolO_HET_L2_{dates[0].strftime('%d%b%Y')}_meta.csv", index_col=0)
+        else:
+            # Download directional data
+            solo_s, soloe, solo_meta = epd_load(sensor='het', level='l2',
+                                                startdate=dates[0], enddate=dates[1],
+                                                viewing='sun', autodownload=True,
+                                                pos_timestamp='start', path=data_path)
+            solo_a, soloe, solo_meta = epd_load(sensor='het', level='l2',
+                                                startdate=dates[0], enddate=dates[1],
+                                                viewing='asun', autodownload=True,
+                                                pos_timestamp='start', path=data_path)
+            solo_n, soloe, solo_meta = epd_load(sensor='het', level='l2',
+                                                startdate=dates[0], enddate=dates[1],
+                                                viewing='north', autodownload=True,
+                                                pos_timestamp='start', path=data_path)
+            solo_d, soloe, solo_meta = epd_load(sensor='het', level='l2',
+                                                startdate=dates[0], enddate=dates[1],
+                                                viewing='south', autodownload=True,
+                                                pos_timestamp='start', path=data_path)
+
+            # Store basic data in csv for easier access later
+            cols = []
+            for n in range(len(solo_meta['H_Bins_Text'])):
+                for h in ['H_Flux', 'H_Uncertainty']:
+                    cols.append( (h, f"{h}_{n}") )
+
+            csv_df = solo_s[cols]
+            csv_df.to_csv(data_path+basic_data_filename+"sun.csv", na_rep='nan')
+            csv_df = solo_a[cols]
+            csv_df.to_csv(data_path+basic_data_filename+"asun.csv", na_rep='nan')
+            csv_df = solo_n[cols]
+            csv_df.to_csv(data_path+basic_data_filename+"north.csv", na_rep='nan')
+            csv_df = solo_d[cols]
+            csv_df.to_csv(data_path+basic_data_filename+"south.csv", na_rep='nan')
+
+            csv_meta = pd.DataFrame({'H_Bins_Width': solo_meta['H_Bins_Width'],
+                                     'H_Bins_Low_Energy': solo_meta['H_Bins_Low_Energy']})
+            csv_meta.to_csv(data_path+f"SolO_HET_L2_{dates[0].strftime('%d%b%Y')}_meta.csv")
 
 
         # Find channels and bin widths
