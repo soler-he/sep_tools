@@ -191,7 +191,8 @@ class SpatialEvent:
             data_path = self.out_path,
             resampling = self.resampling,
             source_loc = self.reference,
-            vsw_list = self.vsw_list)
+            vsw_list = self.vsw_list,
+            raw_path = self.raw_path)
 
         # Merge the sc data to the sm data
         if len(self.sc_data_ic) != 0:
@@ -494,18 +495,23 @@ class SpatialEvent:
 
 
 ## Observer Location data loader
-def horizons_speasy_location_loader(observers, dates, data_path, resampling, source_loc, vsw_list=[]):
+def horizons_speasy_location_loader(observers, dates, data_path, resampling, source_loc, vsw_list, raw_path):
     """Downloading data from sunpy and speasy, similar to SolarMACH but a full time period is loaded for each observer.
 
     NB if any NaNs are present, then they do remain and we do not currently try to fill the gap."""
     filename = f"SpacecraftLocationData_{dates[0].strftime('%d%m%Y')}.csv"
 
-    if filename in os.listdir(data_path):
+    if filename in os.listdir(data_path) or filename in os.listdir(raw_path):
         print("The positional data is already downloaded, would you like to use this data (y) or redownload the data if settings have changed.")
         if input("Yes (y) or no (press enter)").lower() in ['yes','y']:
-            sm_loop = pd.read_csv(data_path+filename,
-                                  index_col=0, header=[0,1],
-                                  parse_dates=True, na_values='nan')
+            if filename in os.listdir(data_path):
+                sm_loop = pd.read_csv(data_path+filename, 
+                                      index_col=0, header=[0,1],
+                                      parse_dates=True, na_values='nan')
+            else:
+                sm_loop = pd.read_csv(raw_path+filename, 
+                                      index_col=0, header=[0,1],
+                                      parse_dates=True, na_values='nan')
 
             beyond_limits = False
             for sc, col in sm_loop.columns:
