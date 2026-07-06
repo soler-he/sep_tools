@@ -70,7 +70,7 @@ jobs:
           pytest -ra --cov --cov-report=xml --nbmake -n=auto --nbmake-kernel=python3 --nbmake-timeout=500 --ignore=SEP_Multi-Instrument-Plot.ipynb --ignore=SEP_PyOnset.ipynb --ignore=JupyterHub_Help.ipynb --durations=0 --splits 5 --group ${{ matrix.group }} --splitting-algorithm=least_duration
         fi
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
     - name: Save pytest-mpl report and pip freeze as artifact
@@ -124,7 +124,7 @@ jobs:
           --splits 2 --group ${{ matrix.group }} --splitting-algorithm=least_duration
       shell: pwsh
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
     - name: Save pytest-mpl report and pip freeze as artifact
