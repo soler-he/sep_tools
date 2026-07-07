@@ -2083,7 +2083,7 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
                 xmax=(gauss_values['X0']+flarelong),
                 color='blue', alpha=0.95, linewidth=1.2, zorder=0)
 
-    gauss_text = f"{X0_TEXT}: {gauss_values['X0']:.2f}{DEGREE_TEXT}\n"
+    gauss_text = f"{X0_TEXT}: {gauss_values['X0']+flarelong:.2f}{DEGREE_TEXT}\n"
     gauss_text = f"{gauss_text}{SIGMA_TEXT}: {gauss_values['sigma']:.2f}{DEGREE_TEXT}"
     box_obj2 = AnchoredText(gauss_text, frameon=True, loc='upper right',
                             pad=0.5, prop={'size':7})
