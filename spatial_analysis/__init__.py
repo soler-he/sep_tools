@@ -64,6 +64,7 @@ mpl.rcParams.update({'font.size': 10,
 
 
 DEGREE_TEXT = r'$^{\circ}$'
+X0_TEXT = r'$X_0$'
 SIGMA_TEXT = r'$\sigma$'
 PM_SYMB = r"$\pm$"
 SQUARED_TEXT = r"$^{2}$"
@@ -115,6 +116,7 @@ class SpatialEvent:
         self.energy_range_label = ""
         self.resampling = ""
         self.plot_foot_sep_limits = False # True if farside event then this plots the separation values
+        self.read_saved_data = False
 
         if 'flare_loc' in kwargs.keys():
             self.flare_loc = kwargs['flare_loc']
@@ -192,7 +194,8 @@ class SpatialEvent:
             resampling = self.resampling,
             source_loc = self.reference,
             vsw_list = self.vsw_list,
-            raw_path = self.raw_path)
+            raw_path = self.raw_path,
+            read_saved_data = self.read_saved_data)
 
         # Merge the sc data to the sm data
         if len(self.sc_data_ic) != 0:
@@ -211,15 +214,16 @@ class SpatialEvent:
             print("Please run '*.load_spacecraft_data()' first.")
 
 
-    def load_spacecraft_data(self, channels, resampling, read_saved_data=True): # Step 2
+    def load_spacecraft_data(self, channels, resampling, read_saved_data=False): # Step 2
         """Download the data for each sc"""
         self.channels = channels
         self.resampling = resampling
         self.spacecraft_list = list(channels.keys())
+        self.read_saved_data = read_saved_data
 
         full_energy_range = [np.nan, np.nan]
         for sc in tqdm(self.spacecraft_list):
-            self.sc_data[sc], self.channel_labels[sc] = load_sc_data(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling, read_saved_data)
+            self.sc_data[sc], self.channel_labels[sc] = load_sc_data(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling, self.read_saved_data)
 
             # Collecting the full energy range
             lbl_tmp = (self.channel_labels[sc]).split('-')
@@ -495,15 +499,16 @@ class SpatialEvent:
 
 
 ## Observer Location data loader
-def horizons_speasy_location_loader(observers, dates, data_path, resampling, source_loc, vsw_list, raw_path):
+def horizons_speasy_location_loader(observers, dates, data_path, resampling, source_loc, vsw_list, raw_path, read_saved_data):
     """Downloading data from sunpy and speasy, similar to SolarMACH but a full time period is loaded for each observer.
 
     NB if any NaNs are present, then they do remain and we do not currently try to fill the gap."""
     filename = f"SpacecraftLocationData_{dates[0].strftime('%d%m%Y')}.csv"
 
     if filename in os.listdir(data_path) or filename in os.listdir(raw_path):
-        print("The positional data is already downloaded, would you like to use this data (y) or redownload the data if settings have changed.")
-        if input("Yes (y) or no (press enter)").lower() in ['yes','y']:
+        #print("The positional data is already downloaded, would you like to use this data (y) or redownload the data if settings have changed.")
+        #if input("Yes (y) or no (press enter)").lower() in ['yes','y']:
+        if read_saved_data:
             if filename in os.listdir(data_path):
                 sm_loop = pd.read_csv(data_path+filename, 
                                       index_col=0, header=[0,1],
@@ -1661,7 +1666,7 @@ def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, background
 
     # Title
     ax[0].set_title(dates[0].strftime("%H:%M - %d %b, %Y"), pad=9, loc='left')
-    fig.supylabel('Intensity')
+    fig.supylabel(f'Intensity (s sr cm{SQUARED_TEXT} MeV){NEGPOWER_TEXT}', x=-0.04)
 
 
     for n, sc in enumerate(obs):
@@ -1775,7 +1780,7 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
     gauss_ax = fig.add_subplot(grid[0,0])
     tseries_ax = fig.add_subplot(grid[0,1:], sharey=gauss_ax)
 
-    gauss_ax.set_ylabel('Intensity', fontsize=9)
+    gauss_ax.set_ylabel(f'Intensity (s sr cm{SQUARED_TEXT} MeV){NEGPOWER_TEXT}', fontsize=9)
     if plot_foot_sep_limits:
         gauss_ax.set_xlabel(f'Footpoint Separation ({DEGREE_TEXT})', fontsize=9)
         x_col_label = 'long_sep'
@@ -1830,11 +1835,11 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
     y_curve = 10**(log_gauss_function(x_curve, peak_data_results['A'], peak_data_results['X0']+flarelong, peak_data_results['sigma']))
 
     gauss_ax.semilogy(x_curve, y_curve, color='k')
-    gauss_ax.axvline(x=peak_data_results['X0']+flarelong, color='goldenrod', linewidth=1.2, alpha=0.8)
+    gauss_ax.axvline(x=peak_data_results['X0']+flarelong, color='darkorange', linewidth=1.2, alpha=0.8)
     gauss_ax.hlines(y=0.6065*(10**peak_data_results['A']),
                     xmin=(peak_data_results['X0']+flarelong-peak_data_results['sigma']),
-                    xmax=(peak_data_results['X0']+flarelong+peak_data_results['sigma']),
-                    color='turquoise', linewidth=1.2, alpha=0.8)
+                    xmax=(peak_data_results['X0']+flarelong),
+                    color='blue', linewidth=1.2, alpha=0.8)
 
     # Provide error range
 
@@ -1842,21 +1847,23 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
     gauss_ax.fill_between(x_curve, y_curve-yerr_curve, y_curve+yerr_curve, alpha=0.7, color='peachpuff')
 
     # Add vertical line for flare if given
+    gauss_text = ''
     if not pd.isna(flare_loc[0]):
         gauss_ax.axvline(x=flarelong, color='k', linestyle='dashed',
                          linewidth=0.5, alpha=0.9,
                          label=f"Reference at {flare_loc[0]}{DEGREE_TEXT}")
+        gauss_text = f"Reference at [{flare_loc[0]}, {flare_loc[1]}]{DEGREE_TEXT}\n"
 
     # Add the text
-    gauss_text = f"Center = {peak_data_results['X0']+flarelong:.1f}{DEGREE_TEXT}\n"
-    gauss_text = f"{gauss_text}Width = {peak_data_results['sigma']:.1f}{DEGREE_TEXT}"
+    gauss_text = f"{gauss_text}{X0_TEXT} = {peak_data_results['X0']+flarelong:.1f}{DEGREE_TEXT}\n"
+    gauss_text = f"{gauss_text}{SIGMA_TEXT} = {peak_data_results['sigma']:.1f}{DEGREE_TEXT}"
     box_obj = AnchoredText(gauss_text, frameon=True, loc='upper left', pad=0.5, prop={'size':8})
     plt.setp(box_obj.patch, facecolor='aliceblue', alpha=0.8)
     gauss_ax.add_artist(box_obj)
 
 
     gauss_ax.set_xlim([xlimits[0]-40, xlimits[1]+40])
-    gauss_ax.set_ylim([ylimits[0]*0.5, ylimits[1]*10])
+    gauss_ax.set_ylim([ylimits[0]*0.8, ylimits[1]*15])
     tseries_ax.set_xlim(left=(date - dt.timedelta(hours=1)) )#, date + dt.timedelta(hours=20))
     tseries_ax.xaxis.set_major_formatter(
         mpl.dates.ConciseDateFormatter(tseries_ax.xaxis.get_major_locator(),
@@ -1900,7 +1907,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
     gauss_ax = fig.add_subplot(grid[0,0])
     tseries_ax = fig.add_subplot(grid[0,1:], sharey=gauss_ax)
 
-    gauss_ax.set_ylabel('Intensity')
+    gauss_ax.set_ylabel(f'Intensity (s sr cm{SQUARED_TEXT} MeV){NEGPOWER_TEXT}')
     tseries_ax.set_xlabel('Time & Date')
 
     if plot_foot_sep_limits:
@@ -1936,15 +1943,16 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
     tseries_ax.axvline(x=timestep, color='k', linewidth=1.2, alpha=0.8)
 
     # Add a vertical line in the gaussian curve to indicate the flares initial position (if provided)
+    gauss_text = ''
     if not pd.isna(flare_loc[0]):
         gauss_ax.axvline(x=flarelong, color='k', linestyle='dashed', linewidth=0.5, alpha=0.9, label=f'Reference at {flare_loc[0]}{DEGREE_TEXT}')
 
     # Add the Gauss results text
     #gauss_values['X0'] = gauss_values['X0']+flarelong
-    gauss_text = f"Center: {gauss_values['X0']+flarelong:.2f}{DEGREE_TEXT}\n"
-    gauss_text = f"{gauss_text}Width: {gauss_values['sigma']:.2f}{DEGREE_TEXT}"
+    gauss_text = f"{gauss_text}{X0_TEXT}: {gauss_values['X0']+flarelong:.2f}{DEGREE_TEXT}\n"
+    gauss_text = f"{gauss_text}{SIGMA_TEXT}: {gauss_values['sigma']:.2f}{DEGREE_TEXT}"
     box_obj = AnchoredText(gauss_text, frameon=True, loc='upper left', pad=0.5, prop={'size':9})
-    plt.setp(box_obj.patch, facecolor='grey', alpha=0.9)
+    plt.setp(box_obj.patch, facecolor='grey', alpha=0.7)
     gauss_ax.add_artist(box_obj)
 
     # Calculate and plot the curve
@@ -1960,11 +1968,11 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
 
 
     # Show the different elements of the curve (ie the center and width)
-    gauss_ax.axvline(x=gauss_values['X0']+flarelong, color='goldenrod', alpha=0.8)
+    gauss_ax.axvline(x=gauss_values['X0']+flarelong, color='darkorange', alpha=0.8)
     gauss_ax.hlines(y=0.6065*(10**gauss_values['A']),
                     xmin=(gauss_values['X0']+flarelong-gauss_values['sigma']),
-                    xmax=(gauss_values['X0']+flarelong+gauss_values['sigma']),
-                    color='turquoise', alpha=0.8, linewidth=1.2)
+                    xmax=(gauss_values['X0']+flarelong),
+                    color='blue', alpha=0.8, linewidth=1.2)
 
 
 
@@ -1977,7 +1985,8 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
                           10**(sc_df['y'][n]),
                           xerr=sc_df['xerr'][n],
                           yerr=10**(sc_df['yerr'][n]),
-                          label=sc_df['sc'][n], marker=markers['marker'],
+                          label=markers['label'], #sc_df['sc'][n],
+                          marker=markers['marker'],
                           color=markers['color'], ecolor=markers['color'])
 
         # Plot the timeseries data
@@ -1987,7 +1996,8 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
                                 y1=full_df[sc_df['sc'][n]]['Flux'] - full_df[sc_df['sc'][n]]['Uncertainty'],
                                 y2=full_df[sc_df['sc'][n]]['Flux'] + full_df[sc_df['sc'][n]]['Uncertainty'],
                             color=markers['color'], alpha=0.3)
-    gauss_ax.legend(bbox_to_anchor=(0.2, 1.03, 1.0, 0.1), loc='upper left', ncols=6, fontsize=6)
+    gauss_ax.legend(loc='upper left', bbox_to_anchor=(0.02,1.15), ncols=6, fontsize=8)
+    #bbox_to_anchor=(0.2, 1.03, 1.0, 0.1), loc='upper left', ncols=6, fontsize=9)
 
     gauss_ax.set_xlim(xlimits[0]-20, xlimits[1]+20)
     tseries_ax.set_ylim(ylimits[0]*0.5, ylimits[1]*2)
@@ -2067,14 +2077,14 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
         alpha=0.7, color='peachpuff')
 
     # Show the curves elements
-    ax.axvline(x=gauss_values['X0']+flarelong, color='goldenrod', alpha=0.8)
+    ax.axvline(x=gauss_values['X0']+flarelong, color='darkorange', alpha=0.8)
     ax.hlines(y=0.6065*(10**gauss_values['A']),
                 xmin=(gauss_values['X0']+flarelong-gauss_values['sigma']),
-                xmax=(gauss_values['X0']+flarelong+gauss_values['sigma']),
-                color='turquoise', alpha=0.8, linewidth=1.2, zorder=0)
+                xmax=(gauss_values['X0']+flarelong),
+                color='blue', alpha=0.95, linewidth=1.2, zorder=0)
 
-    gauss_text = f"Center: {gauss_values['X0']:.2f}{DEGREE_TEXT}\n"
-    gauss_text = f"{gauss_text}Width: {gauss_values['sigma']:.2f}{DEGREE_TEXT}"
+    gauss_text = f"{X0_TEXT}: {gauss_values['X0']:.2f}{DEGREE_TEXT}\n"
+    gauss_text = f"{gauss_text}{SIGMA_TEXT}: {gauss_values['sigma']:.2f}{DEGREE_TEXT}"
     box_obj2 = AnchoredText(gauss_text, frameon=True, loc='upper right',
                             pad=0.5, prop={'size':7})
     plt.setp(box_obj2.patch, facecolor='lemonchiffon', alpha=0.5)
@@ -2085,7 +2095,7 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
     if not pd.isna(flare_loc[0]):
         ax.axvline(x=flarelong, color='k', linestyle='dashed',
                     linewidth=0.5, alpha=0.9,
-                    label=f"Reference at {flare_loc[0]}{DEGREE_TEXT}")
+                    label=f"Reference at [{flare_loc[0]}, {flare_loc[1]}]{DEGREE_TEXT}")
 
     ax.legend(#bbox_to_anchor=(1., 0.9, 0.5, 0.1), loc='upper left',
                 loc='upper left', ncols=1, fontsize=5)
@@ -2136,8 +2146,8 @@ def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, fl
     fig, ax = plt.subplots(3, 1, figsize=[6,6], dpi=300, sharex=True)
     plt.subplots_adjust(hspace=0.02)
 
-    ax[0].set_title(date.strftime("%H:%M - %d %b, %Y"), pad=20, loc='left')
-    ax[0].set_ylabel('Intensity')
+    ax[0].set_title(date.strftime("%H:%M - %d %b, %Y"), pad=23, loc='left')
+    ax[0].set_ylabel(f'Intensity (s sr cm{SQUARED_TEXT} MeV){NEGPOWER_TEXT}')
     ax[1].set_ylabel(r'Gauss $X_0$')
     ax[2].set_ylabel(r'Gauss $\sigma$')
 
@@ -2163,7 +2173,7 @@ def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, fl
         ylimits['intensity'][0] = np.nanmin([ylimits['intensity'][0], np.nanmin(s_df['Flux'])] )
         ylimits['intensity'][1] = np.nanmax([ylimits['intensity'][1], np.nanmax(s_df['Flux'])] )
 
-    ax[0].legend(loc='upper center', ncols=4, bbox_to_anchor=(0.5,1.15))
+    ax[0].legend(loc='upper center', ncols=2, bbox_to_anchor=(0.5,1.22), fontsize=6)
 
 
     # Plot the flare location if its provided
@@ -2171,7 +2181,7 @@ def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, fl
         ax[1].axhline(y=flare_loc[0],
                       linestyle='dashed', color='k', alpha=0.9, linewidth=0.5,
                       label=f"Reference at [{flare_loc[0]}, {flare_loc[1]}]{DEGREE_TEXT}")
-        ax[1].legend()
+        ax[1].legend(fontsize=8)
 
     # Plot the Gaussian results
     for i, row in sc_dict['Gauss'].iterrows():
@@ -2190,6 +2200,8 @@ def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, fl
     ax[1].set_ylim([ylimits['center'][0]-20, ylimits['center'][1]+20])
     ax[2].set_ylim([ylimits['sigma'][0]-20, ylimits['sigma'][1]+20])
 
+    locator = mpl.dates.AutoDateLocator(minticks=5, maxticks=8)
+    ax[2].xaxis.set(major_locator=locator, )
     ax[2].set_xlim(left=(date - dt.timedelta(hours=1)))#, date + dt.timedelta(hours=20)])
     ax[2].xaxis.set_major_formatter(
         mpl.dates.ConciseDateFormatter(ax[1].xaxis.get_major_locator(),
