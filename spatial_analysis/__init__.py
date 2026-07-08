@@ -1131,7 +1131,6 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling, read
             bin_end = sta_meta.loc[n, 'upper_E']
 
             bin_width.append(bin_end - bin_start)
-            bin_width.append(bin_end - bin_start)
             if len(energy_range) == 0:
                 energy_range.append(bin_start)
             if n == bin_list[1]:
