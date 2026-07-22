@@ -37,6 +37,33 @@ class Event:
     def __init__(self):
         pass
 
+    def _validate_times(self, spec_start, spec_end, subtract_background=False, background_start=None, background_end=None):
+        """
+        Raise ValueError if any of the provided times fall outside the loaded data range.
+        """
+        _loaded_start = pd.Timestamp(self.startdate)
+        _loaded_end   = pd.Timestamp(self.enddate)
+
+        _times_to_check = {'spec_start': pd.Timestamp(spec_start),
+                        'spec_end':   pd.Timestamp(spec_end),
+                        }
+        if subtract_background:
+            if background_start is not None:
+                _times_to_check['background_start'] = pd.Timestamp(background_start)
+            if background_end is not None:
+                _times_to_check['background_end']   = pd.Timestamp(background_end)
+
+        _out_of_range = {label: t for label, t in _times_to_check.items()
+                        if not (_loaded_start <= t <= _loaded_end)
+                        }
+        if _out_of_range:
+            raise ValueError(
+                f"The following times are outside the loaded data range "
+                f"[{_loaded_start}, {_loaded_end}]:\n"
+                + "\n".join(f"  {label}: {t}" for label, t in _out_of_range.items())
+                + "\nPlease adjust the times or reload the data with a wider date range."
+            )
+
     def load_data(self, spacecraft, instrument, species, startdate, enddate, viewing='', data_level='l2', data_path=None):
         self.spacecraft = spacecraft
         self.instrument = instrument
@@ -123,6 +150,8 @@ class Event:
         # return df, meta
 
     def plot_flux(self, spec_start, spec_end, subtract_background=True, background_start=None, background_end=None, savefig=False, spec_type='integral', resample=None):
+
+        self._validate_times(spec_start, spec_end, subtract_background, background_start, background_end)
 
         fig, axs = plt.subplots(1, sharex=True, figsize=(9, 6), dpi=200)
         if resample is not None:
@@ -551,6 +580,8 @@ class Event:
             raise TypeError(f"Expected self.df to be a pandas DataFrame, but got {type(self.df).__name__}. "
                             f"Please ensure that the data is loaded correctly before calling get_spec()."
                             )
+
+        self._validate_times(spec_start, spec_end, subtract_background, background_start, background_end)
 
         I_spec = []
         unc_spec = []
