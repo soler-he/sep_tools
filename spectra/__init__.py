@@ -826,6 +826,10 @@ class Event:
 
         self.subtract_background = subtract_background
         self.spec_type = spec_type
+        self.spec_window = (pd.Timestamp(spec_start), pd.Timestamp(spec_end))
+        self.bg_window   = (pd.Timestamp(background_start), pd.Timestamp(background_end)) \
+                           if (subtract_background and background_start is not None and background_end is not None) \
+                           else None
 
         self.I_unc = self.final_unc
         # self.E_unc = self.DE/2.
@@ -841,7 +845,51 @@ class Event:
     #     #     custom_warning(f"Expected a pd.Series, got pd.DataFrame with shape {series.shape}")
     #     return np.sqrt(np.nansum(series**2, axis=0)) / len(series)
 
-    def plot_spectrum(self, savefig=None, filename='', ylim=None):
+    def plot_spectrum(self, savefig=None, filename='', ylim=None, info_box=True):
+        """
+        Plot the energy spectrum computed by :meth:`get_spec`.
+
+        Produces a log–log scatter plot with symmetric error bars in energy and
+        intensity. The plot title, y-axis label, and axis scales are set
+        automatically based on the spectrum type (``'integral'`` or ``'peak'``)
+        and whether background subtraction was applied, as recorded on the
+        instance by the preceding call to :meth:`get_spec`.
+
+        Parameters
+        ----------
+        savefig : bool or None, default None
+            If True, the figure is saved to disk. The output path is either
+            ``filename`` (if provided) or an auto-generated path inside the
+            ``output_spectra/`` subdirectory of the current working directory.
+        filename : str, default ''
+            Explicit output path (including extension) for the saved figure.
+            Ignored when ``savefig`` is False. If ``savefig`` is True and
+            ``filename`` is empty, the filename is constructed automatically as::
+
+                output_spectra/spectrum_<spec_type>_<SPACECRAFT>_<INSTRUMENT>_<viewing>_<species>.png
+
+        ylim : tuple of float or None, default None
+            If given, passed directly to ``ax.set_ylim()`` to fix the y-axis
+            range. If ``None``, matplotlib determines the range automatically.
+        info_box : bool, default True
+            Whether to display a monospace text box in the lower-left corner of
+            the axes showing the spectrum time window and, if background
+            subtraction was used, the background time window.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure object.
+        ax : matplotlib.axes.Axes
+            The axes object.
+
+        Notes
+        -----
+        - This method requires that :meth:`get_spec` has been called beforehand,
+        as it reads the instance attributes ``spec_E``, ``final_spec``,
+        ``final_unc``, ``E_unc_minus``, ``E_unc_plus``, ``spec_type``,
+        ``subtract_background``, ``spec_window``, and ``bg_window``.
+        """
         fig, ax = plt.subplots(1, sharex=True, figsize=(5, 4), dpi=150)
         ax.errorbar(self.spec_E, self.final_spec, xerr=[self.E_unc_minus, self.E_unc_plus], yerr=self.final_unc, fmt='o', markersize=8,
                     label=self.species, elinewidth=2, capsize=5, capthick=2, ecolor='lightgray')
@@ -864,6 +912,17 @@ class Event:
         ax.set_yscale("log")
         if ylim is not None:
             ax.set_ylim(ylim)
+
+        if info_box:
+            _fmt = '%Y-%m-%d %H:%M'
+            _info_lines = [f"Spectrum: {self.spec_window[0].strftime(_fmt)} – {self.spec_window[1].strftime(_fmt)}"]
+            if self.bg_window is not None:
+                _info_lines.append(f"Backgrnd: {self.bg_window[0].strftime(_fmt)} – {self.bg_window[1].strftime(_fmt)}")
+            ax.text(0.02, 0.02, "\n".join(_info_lines),
+                    transform=ax.transAxes, fontsize=7, family='monospace',
+                    verticalalignment='bottom', horizontalalignment='left',
+                    bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor='gray', alpha=0.8)
+                    )
 
         ax.set_xlabel("Energy (MeV)")
         ax.set_ylabel(ylabel_str)
