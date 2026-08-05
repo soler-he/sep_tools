@@ -45,6 +45,7 @@ elif sys.argv[1] == "sta":
 elif sys.argv[1] == "psp":
     m.options.path = f"{local_data_path}/psp/"
     m.options.spacecraft.value = "Parker Solar Probe"
+    m.options.mag.value = False
     m.options.stix.value = False
     m.options.goes.value = False
     m.options.psp_epilo_p.value = False
