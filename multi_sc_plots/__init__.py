@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import sunpy
-from IPython.display import display
+from IPython.display import display, HTML
 from matplotlib.ticker import AutoMinorLocator
 # from matplotlib.transforms import blended_transform_factory
 from PIL import Image
@@ -187,7 +187,15 @@ class Event:
         self.wind_flux_thres_p = None  # 1e3/1e6  # None
 
     def instrument_selection(self):
-        e_checkboxes = dict(zip(self.e_instruments, [w.Checkbox(value=True, description=option[:-1], indent=False) for option in self.e_instruments]))
+        # e_checkboxes = dict(zip(self.e_instruments, [w.Checkbox(value=True, description=option[:-1], indent=False) for option in self.e_instruments]))  # deactivate unreliable EPHIN electron data for now
+        # <-- deactivate unreliable EPHIN electron data for now
+        e_checkboxes = dict(zip(self.e_instruments, [w.Checkbox(value=False if option == 'SOHO/EPHIN e' else True,
+                                                         description=option[:-1],
+                                                         disabled=option == 'SOHO/EPHIN e',
+                                                         indent=False) for option in self.e_instruments]))
+        e_checkboxes['SOHO/EPHIN e'].add_class('strikethrough-label')
+        display(HTML("<style>.strikethrough-label label { text-decoration: line-through; }</style>"))
+        # deactivate unreliable EPHIN electron data for now -->
         p_checkboxes = dict(zip(self.p_instruments, [w.Checkbox(value=True, description=option[:-1], indent=False) for option in self.p_instruments]))
 
         # --- Select/Deselect All buttons ---
