@@ -3,7 +3,7 @@ import ipywidgets as w
 import os
 import matplotlib as mpl
 
-from IPython.display import display
+from IPython.display import display, HTML
 import multi_inst_plots.stereo_tools as stereo
 import multi_inst_plots.psp_tools as psp
 import multi_inst_plots.l1_tools as l1
@@ -134,7 +134,11 @@ class Options:
 
         self.l1_wind_e =  w.Checkbox(value=True, description="Wind/3DP Electrons")
         self.l1_wind_p = w.Checkbox(value=True, description="Wind/3DP Protons")
-        self.l1_ephin = w.Checkbox(value=True, description="SOHO/COSTEP-EPHIN Electrons")
+        # <-- deactivate unreliable EPHIN electron data for now
+        self.l1_ephin = w.Checkbox(value=False, description="SOHO/COSTEP-EPHIN Electrons", disabled=True)
+        self.l1_ephin.add_class('strikethrough-label')
+        display(HTML("<style>.strikethrough-label label { text-decoration: line-through; }</style>"))
+        # deactivate unreliable EPHIN electron data for now -->
         self.l1_erne = w.Checkbox(value=True, description="SOHO/ERNE-HED Protons")
         self.l1_ch_erne_p = w.SelectMultiple(description="ERNE-HED Protons", options=range(0, L1_ERNE_P_CH_MAX, 1), 
                                              value=tuple(range(0,L1_ERNE_P_CH_MAX,2)), rows=10, disabled=False, style=_style)
