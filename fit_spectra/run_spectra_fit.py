@@ -21,7 +21,7 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
                 plot_title = '', x_label = 'Intensity', y_label = 'Energy', 
                 legend_title = '', data_label_for_legend = 'data', which_fit = 'best', 
                 e_min = None, e_max = None, g1_guess = -1.9, g2_guess = -2.5, g3_guess = -4., 
-                I0_guess = 1000, alpha_guess = 10, beta_guess = 10, break_guess_low = 0.6, 
+                I0_guess = 1000, E_0=0.1, alpha_guess = 10, beta_guess = 10, break_guess_low = 0.6, 
                 break_guess_high = 1.2, cut_guess = 1.2, exponent_guess = 2, use_random = True, 
                 iterations = 20 , legend_details = False, energy_unit="MeV", intensity_unit=r"1/(cm$^2$ sr s MeV)"):
     """This function calls the make_the_fit functoin that creates the fit. It plots and saves the results of the fit.
@@ -51,6 +51,7 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
 		g2_guess (float, optional): The slope of the second part of a double/triple pl fit. gamma2 < gamma1. Defaults to -2.5. 
 		g3_guess (int, optional): The slope of the third part of a double/triple pl fit. gamma3 < gamma2 < gamma1. Defaults to -4.
 		I0_guess (int, optional): The intensity/flux value at 0.1 MeV. Defaults to 1000.
+        E_0 (float, optional): The energy that corresponds to intensity at I0. Defaults to E_0=0.1 (MeV).
 		alpha_guess (int, optional): The smoothness of the transition between gamma1 and gamma2. Defaults to 10.
 		beta_guess (int, optional): The smoothness of the transition between gamma3 and gamma2. Defaults to 10.
 		break_guess_low (float, optional): Guess value for the energy correponding to the break in the double pl and first break for the triple pl. Input in MeV. Defaults to 0.6.
@@ -115,7 +116,7 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
 
     f, ax = plt.subplots(1, figsize=(6, 5), dpi = 300)
 
-    fit = fitting.MAKE_THE_FIT(x_data, y_data, x_err, y_err, ax, direction='sun', e_min = e_min, e_max = e_max, which_fit=which_fit, g1_guess=g1_guess, g2_guess=g2_guess, g3_guess = g3_guess, alpha_guess=alpha_guess, beta_guess = beta_guess, break_low_guess=break_guess_low, break_high_guess = break_guess_high, cut_guess = cut_guess, I0_guess = I0_guess, exponent_guess = exponent_guess, use_random = use_random, iterations = iterations, path = None, path2 = fit_var_path, detailed_legend = legend_details)
+    fit = fitting.MAKE_THE_FIT(x_data, y_data, x_err, y_err, ax, direction='sun', e_min = e_min, e_max = e_max, which_fit=which_fit, g1_guess=g1_guess, g2_guess=g2_guess, g3_guess = g3_guess, alpha_guess=alpha_guess, beta_guess = beta_guess, break_low_guess=break_guess_low, break_high_guess = break_guess_high, cut_guess = cut_guess, I0_guess = I0_guess, E_0=E_0, exponent_guess = exponent_guess, use_random = use_random, iterations = iterations, path = None, path2 = fit_var_path, detailed_legend = legend_details)
 
 
     ax.errorbar(x_data, y_data, xerr = x_err, yerr=y_err, marker='o', markersize= 3 , linestyle='', color='red', alpha = 0.5, label=data_label_for_legend, zorder = -1)
