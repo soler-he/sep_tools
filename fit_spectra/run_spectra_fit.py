@@ -17,7 +17,13 @@ import os
 from pathlib import Path
 
 
-def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exclude = None, plot_title = '', x_label = 'Intensity [/]', y_label = 'Energy [MeV]', legend_title = '', data_label_for_legend = 'data', which_fit = 'best', e_min = None, e_max = None, g1_guess = -1.9, g2_guess = -2.5, g3_guess = -4., I0_guess = 1000, alpha_guess = 10, beta_guess = 10, break_guess_low = 0.6, break_guess_high = 1.2, cut_guess = 1.2, exponent_guess = 2, use_random = True, iterations = 20 , legend_details = False):
+def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exclude = None, 
+                plot_title = '', x_label = 'Intensity', y_label = 'Energy', 
+                legend_title = '', data_label_for_legend = 'data', which_fit = 'best', 
+                e_min = None, e_max = None, g1_guess = -1.9, g2_guess = -2.5, g3_guess = -4., 
+                I0_guess = 1000, alpha_guess = 10, beta_guess = 10, break_guess_low = 0.6, 
+                break_guess_high = 1.2, cut_guess = 1.2, exponent_guess = 2, use_random = True, 
+                iterations = 20 , legend_details = False, energy_unit="MeV", intensity_unit=r"1/(cm$^2$ sr s MeV)"):
     """This function calls the make_the_fit functoin that creates the fit. It plots and saves the results of the fit.
 
     Args:
@@ -27,8 +33,8 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
         save (bool): if True the plots and fit results will be saved. Note: the original filename and possible new title of the plot will be used as the file name. Possible spaces will be replaced by '_'
         channels_to_exclude (list): list of channels to be excluded. List of indices corresponding to the cannels. Defaults to 'None'
         plot_title (str, optional): The title of the plot, will also be used when saving the results. Defaults to ''.
-        x_label (str, optional): label for the x axis. Defaults to 'Intensity [/]'.
-        y_label (str, optional): label for the y axis. Defaults to 'Energy [MeV]'.
+        x_label (str, optional): label for the x axis. Defaults to 'Intensity [intensity_unit]'.
+        y_label (str, optional): label for the y axis. Defaults to 'Energy [energy_unit]'.
         legend_title (str, optional): title for the legend. Defaults to ''.
         which_fit (str, optional): which_fit options: 'single' will force a single pl fit to the data
 		  			'double' will force a double pl fit to the data but ONLY if the break point is within the energy range otherwise a sigle pl fit will be produced instead
@@ -53,7 +59,9 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
 		use_random (bool, optional): If True the fitting function will, in addition to the guess values, choose random values from a predifined list of values for each variable. 
 					These values are chosen close to the guess values. Defaults to True.
 		iterations (int, optional): The number of times the function will choose random values to use in the fit to the data. Defaults to 20.
-
+        legend_details (bool?)
+        energy_unit (str, optional): The unit of energy for the x-axis. Defaults to 'MeV'.
+        intensity_unit (str, optional): The unit of intensity for the y-axis. Defaults to r"1/(cm$^2$ sr s MeV)")
     """
 
     #file_name = os.path.basename(path) this gives you the filename with the extention e.g. .csv
@@ -131,9 +139,12 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
     ax.yaxis.set_minor_formatter(pltt.NullFormatter())
 
     plt.legend(title=''+legend_title+'',  prop={'size': 7})
+    plt.title(plot_title)
+
+    y_label = f"{y_label} [{intensity_unit}]"
+    x_label = f"{x_label} [{energy_unit}]"
     plt.ylabel(y_label)
     plt.xlabel(x_label)
-    plt.title(plot_title)
     
     if save:
         plt.savefig(folder_path+'/'+file_name+'_'+name_string+'_fit-plot_'+which_fit+'.png', dpi=300)
