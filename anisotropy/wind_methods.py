@@ -11,7 +11,7 @@ from anisotropy.polarity_plotting import polarity_gse  # wind_polarity_preparati
 from sunpy.coordinates import get_horizons_coord, HeliographicStonyhurst
 
 
-def wind_download_and_prepare(instrument, startdate, enddate, path, averaging, species, en_channel, bg_start, bg_end):
+def wind_download_and_prepare(instrument, startdate, enddate, path, averaging, species, en_channel, bg_start, bg_end, offline=False):
     if species == "p":
         dataset1 = 'WI_SOSP_3DP'  # Proton omnidirectional fluxes 70 keV - 6.8 MeV, often at 24 sec
         dataset2 = 'WI_SOPD_3DP'  # Proton energy-angle distributions 70 keV - 6.8 MeV, often at 24 sec
@@ -23,8 +23,8 @@ def wind_download_and_prepare(instrument, startdate, enddate, path, averaging, s
         ch_string = 'Electrons'
         sp_str = "Electron"
 
-    df_omni, meta_omni = wind3dp_load(dataset1, startdate, enddate, resample=averaging, path=path, multi_index=False)
-    df_angle, meta_angle = wind3dp_load(dataset2, startdate, enddate, resample=averaging, path=path)
+    df_omni, meta_omni = wind3dp_load(dataset1, startdate, enddate, resample=averaging, path=path, multi_index=False, offline=offline)
+    df_angle, meta_angle = wind3dp_load(dataset2, startdate, enddate, resample=averaging, path=path, offline=offline)
 
     en_ch_df = pd.DataFrame({'energy': meta_angle['channels_dict_df']['Bins_Text'].values})
     en_ch_df.index.names = ['channel']

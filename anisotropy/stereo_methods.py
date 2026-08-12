@@ -23,7 +23,7 @@ def angle_between(v1, v2):
     return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
 
 
-def stereo_download_and_prepare(sc, instrument, startdate, enddate, path, averaging, species, en_channel, bg_start, bg_end):
+def stereo_download_and_prepare(sc, instrument, startdate, enddate, path, averaging, species, en_channel, bg_start, bg_end, offline=False):
     if sc == "STEREO A":
         sc = "A"
     elif sc == "STEREO B":
@@ -31,7 +31,7 @@ def stereo_download_and_prepare(sc, instrument, startdate, enddate, path, averag
 
     if instrument == "SEPT":
         data_product = "l2"
-        df_sun, df_asun, df_north, df_south, energies = sept_load_data(species, sc, data_product, startdate, enddate, path)
+        df_sun, df_asun, df_north, df_south, energies = sept_load_data(species, sc, data_product, startdate, enddate, path, offline=offline)
         df_sun = df_sun.loc[(df_sun.index >= startdate) & (df_sun.index <= enddate)]
         df_asun = df_asun.loc[(df_asun.index >= startdate) & (df_asun.index <= enddate)]
         df_north = df_north.loc[(df_north.index >= startdate) & (df_north.index <= enddate)]
@@ -45,7 +45,7 @@ def stereo_download_and_prepare(sc, instrument, startdate, enddate, path, averag
     en_ch_df.index.names = ['channel']
     en_ch_df.to_csv(f'anisotropy/channels_STEREO_{instrument}_{species}.csv')
 
-    mag_sc, mag_rtn = stereo_mag_preparation(startdate, enddate, sc, path)
+    mag_sc, mag_rtn = stereo_mag_preparation(startdate, enddate, sc, path, offline=offline)
     mag_sc = resample_mag_to_sept(df_dict["sun"].index, mag_sc, averaging=averaging)
     mag_rtn = resample_mag_to_sept(df_dict["sun"].index, mag_rtn, averaging=averaging)
     pol, phi_relative, pol_times = stereo_polarity_preparation(sc, mag_rtn, V=400)
@@ -462,7 +462,7 @@ def calc_sept_pa_coverage(sc, species, mag_data):
     return coverage
 
 
-def stereo_mag_preparation(startdate, enddate, sc, path, averaging=None):
+def stereo_mag_preparation(startdate, enddate, sc, path, averaging=None, offline=False):
     # downloadpath = f'{path}l1/mag/'
 
     # MAG for PA coverage calculations
@@ -477,7 +477,7 @@ def stereo_mag_preparation(startdate, enddate, sc, path, averaging=None):
 
     if averaging is None:
         averaging = "1s"  # make faster
-    mag_sc, metadata_sc = stereo_load('MAG', msdate, medate, mag_coord='SC', spacecraft=sc_str, path=path, resample=averaging)
+    mag_sc, metadata_sc = stereo_load('MAG', msdate, medate, mag_coord='SC', spacecraft=sc_str, path=path, resample=averaging, offline=offline)
     mag_sc = mag_sc[['BFIELD_0', 'BFIELD_1', 'BFIELD_2', 'BFIELD_3']].rename({'BFIELD_0': 'Bx', 'BFIELD_1': 'By', 'BFIELD_2': 'Bz', 'BFIELD_3': 'B'}, axis=1)
 
     # L1 MAG RTN data set
@@ -531,7 +531,7 @@ def stereo_specieschannels(specieschannel):
     return instrument, species, channels
 
 
-def sept_load_data(species, sc, data_product, startdate, enddate, downloadpath):
+def sept_load_data(species, sc, data_product, startdate, enddate, downloadpath, offline=False):
     instrument = "SEPT"
     if sc.upper() == "A":
         sc_str = "ahead"
@@ -545,7 +545,8 @@ def sept_load_data(species, sc, data_product, startdate, enddate, downloadpath):
                                           viewing="sun",
                                           path=downloadpath,
                                           all_columns=True,
-                                          pos_timestamp="center")
+                                          pos_timestamp="center",
+                                          offline=offline)
     df_sun = df_sun.drop(columns=['julian_date', 'year', 'frac_doy', 'hour', 'min', 'sec'])
     df_asun, energies = stereo_sept_loader(startdate=startdate,
                                            enddate=enddate+pd.Timedelta(1, unit="day"),
@@ -554,7 +555,8 @@ def sept_load_data(species, sc, data_product, startdate, enddate, downloadpath):
                                            viewing="asun",
                                            path=downloadpath,
                                            all_columns=True,
-                                           pos_timestamp="center")
+                                           pos_timestamp="center",
+                                           offline=offline)
     df_asun = df_asun.drop(columns=['julian_date', 'year', 'frac_doy', 'hour', 'min', 'sec'])
     df_north, energies = stereo_sept_loader(startdate=startdate,
                                             enddate=enddate+pd.Timedelta(1, unit="day"),
@@ -563,7 +565,8 @@ def sept_load_data(species, sc, data_product, startdate, enddate, downloadpath):
                                             viewing="north",
                                             path=downloadpath,
                                             all_columns=True,
-                                            pos_timestamp="center")
+                                            pos_timestamp="center",
+                                            offline=offline)
     df_north = df_north.drop(columns=['julian_date', 'year', 'frac_doy', 'hour', 'min', 'sec'])
     df_south, energies = stereo_sept_loader(startdate=startdate,
                                             enddate=enddate+pd.Timedelta(1, unit="day"),
@@ -572,7 +575,8 @@ def sept_load_data(species, sc, data_product, startdate, enddate, downloadpath):
                                             viewing="south",
                                             path=downloadpath,
                                             all_columns=True,
-                                            pos_timestamp="center")
+                                            pos_timestamp="center",
+                                            offline=offline)
     df_south = df_south.drop(columns=['julian_date', 'year', 'frac_doy', 'hour', 'min', 'sec'])
     return df_sun, df_asun, df_north, df_south, energies[f'channels_dict_df_{species[:1]}']
 

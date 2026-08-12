@@ -69,12 +69,13 @@ def format_tick_labels(x):
 
 class SEPevent: 
   
-    def __init__(self, event_id, path, spacecraft, instrument, species, channels, starttime, endtime, averaging, av_min, solo_ept_ion_contamination_correction, plot_folder=None):
+    def __init__(self, event_id, path, spacecraft, instrument, species, channels, starttime, endtime, averaging, av_min, solo_ept_ion_contamination_correction, plot_folder=None, offline=False):
         self.event_id = event_id
         self.path = path+os.sep
         if not plot_folder:
             plot_folder = os.getcwd()
         self.plot_folder = plot_folder+os.sep
+        self.offline = offline
         # create folders if not existing yet
         for p in [self.path, self.plot_folder]:
             if not os.path.isdir(p):
@@ -160,7 +161,7 @@ class SEPevent:
     def download_and_prepare(self): 
         spacecraft = self.spacecraft
         if spacecraft == "Solar Orbiter":
-            I_times, I_data, I_unc, sectors, en_channel_string, delta_E, count_str, mu_times, mu_data, mag_data, pol, phi_relative, pol_times, bg_times, bg_I_data, bg_I_unc, bg_mu_data, sp_str, ch_string, mag_data_coord, coverage, flux_arr, count_arr, t_arr, gf_arr, mag_sc, averaging, av_min = solo_download_and_prepare(self.instrument,self.start_time,self.end_time,self.path,self.averaging,self.species,self.channels,self.bg_start,self.bg_end,self.solo_ept_ion_contamination_correction)
+            I_times, I_data, I_unc, sectors, en_channel_string, delta_E, count_str, mu_times, mu_data, mag_data, pol, phi_relative, pol_times, bg_times, bg_I_data, bg_I_unc, bg_mu_data, sp_str, ch_string, mag_data_coord, coverage, flux_arr, count_arr, t_arr, gf_arr, mag_sc, averaging, av_min = solo_download_and_prepare(self.instrument,self.start_time,self.end_time,self.path,self.averaging,self.species,self.channels,self.bg_start,self.bg_end,self.solo_ept_ion_contamination_correction, offline=self.offline)
             self.flux_arr = flux_arr
             self.count_arr = count_arr
             self.t_arr = t_arr
@@ -169,14 +170,14 @@ class SEPevent:
             self.averaging = averaging
             self.av_min = av_min
         elif "STEREO" in spacecraft:
-            I_times, I_data, I_unc, sectors, en_channel_string, delta_E, count_str, mu_times, mu_data, mag_data, pol, phi_relative, pol_times, bg_times, bg_I_data, bg_I_unc, bg_mu_data, sp_str, ch_string, mag_data_coord, coverage, flux_arr, count_arr, t_arr, gf_arr, mag_sc = stereo_download_and_prepare(self.spacecraft,self.instrument,self.start_time,self.end_time,self.path,self.averaging,self.species,self.channels,self.bg_start,self.bg_end)
+            I_times, I_data, I_unc, sectors, en_channel_string, delta_E, count_str, mu_times, mu_data, mag_data, pol, phi_relative, pol_times, bg_times, bg_I_data, bg_I_unc, bg_mu_data, sp_str, ch_string, mag_data_coord, coverage, flux_arr, count_arr, t_arr, gf_arr, mag_sc = stereo_download_and_prepare(self.spacecraft,self.instrument,self.start_time,self.end_time,self.path,self.averaging,self.species,self.channels,self.bg_start,self.bg_end, offline=self.offline)
             self.flux_arr = flux_arr
             self.count_arr = count_arr
             self.t_arr = t_arr
             self.gf_arr = gf_arr
             self.mag_sc = mag_sc
         elif spacecraft == "Wind":
-            I_times, I_data, I_unc, sectors, en_channel_string, delta_E, count_str, mu_times, mu_data, mag_data, pol, phi_relative, pol_times, bg_times, bg_I_data, bg_I_unc, bg_mu_data, sp_str, ch_string, mag_data_coord, coverage = wind_download_and_prepare(self.instrument,self.start_time,self.end_time,self.path,self.averaging,self.species,self.channels,self.bg_start,self.bg_end)
+            I_times, I_data, I_unc, sectors, en_channel_string, delta_E, count_str, mu_times, mu_data, mag_data, pol, phi_relative, pol_times, bg_times, bg_I_data, bg_I_unc, bg_mu_data, sp_str, ch_string, mag_data_coord, coverage = wind_download_and_prepare(self.instrument,self.start_time,self.end_time,self.path,self.averaging,self.species,self.channels,self.bg_start,self.bg_end, offline=self.offline)
 
         self.I_times = I_times
         self.I_data = I_data
