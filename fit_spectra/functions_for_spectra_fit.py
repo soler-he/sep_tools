@@ -28,7 +28,7 @@ def exclude_channels(data, channels_to_exclude):
 	dataframe_to_exclude = dataframe_to_exclude.drop(channels_to_keep, axis = 0)
 	dataframe_to_exclude = dataframe_to_exclude.reset_index()
 	return [dataframe_to_fit, dataframe_to_exclude]# return two dataframes. one is the dataframe that will be fit and one will be the one plotted in gray that has the excluded channels.
-    
+
 
 def print_results(file_with_fit_results):
 	"""prints the fit results

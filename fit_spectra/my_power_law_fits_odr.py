@@ -11,17 +11,21 @@ def power_law_fit(x,y,xerr = None,yerr = None, gamma1=-1.8, I0=None, E_0=0.1, pr
     unc: y-error
     gamma1, I0, E_0: guess-values for the fit
     '''
+
+	def simple_pl(p,x):#, I0, gamma1):
+		I0, gamma1 = p
+		y = I0*(x/E_0)**gamma1
+		return y#I0*x**gamma1
 	
 	#covMatrix = np.cov(xerr,bias=False)
 
-	
 
 	I0 = y[-1] if I0==None else I0
 	plmodel = Model(simple_pl)
 	#data = RealData(x, y, covx=covMatrix, sy=yerr)
 	data = RealData(x, y, sx=xerr, sy=yerr)
     # Set up ODR with the model and data.
-	odr = ODR(data, plmodel, beta0=[I0, gamma1, E_0])
+	odr = ODR(data, plmodel, beta0=[I0, gamma1])
     # Run the regression.
 	result = odr.run()
 	
@@ -202,10 +206,8 @@ def double_line(p, x):#, I0, c2, gamma1, gamma2, E_break):
     return y
 
 
-def simple_pl(p,x):#, I0, gamma1):
+def simple_pl_visual(p,x):#, I0, gamma1):
 	I0, gamma1, E_0 = p
 	y = I0*(x/E_0)**gamma1
 	return y#I0*x**gamma1
-
-
 

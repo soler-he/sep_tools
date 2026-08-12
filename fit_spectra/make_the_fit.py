@@ -552,8 +552,8 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 		I0_array = np.arange(I0_guess/100.,I0_guess*100., I0_guess/500.)
 		
 	# alpha array
-		a1_array = np.arange(0.01,0.1,0.01)
-		a2_array = np.arange(0.1,1.0,0.05)
+		a1_array = np.arange(0.01,E_0,0.01)
+		a2_array = np.arange(E_0,1.0,0.05)
 		a3_array = np.arange(1,10,0.5)
 		a4_array = np.arange(10,100,10)
 		a5_array = np.arange(100,220,20)
@@ -564,20 +564,20 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 	# break array
 	# cut array = break_array *1.8
 		
-		if e_max<0.1:
+		if e_max<E_0:
 			break_array_low = np.arange(e_min, e_max, 0.001)
-		if e_max>=0.1 and e_max<1.0:
-			b1_array = np.arange(e_min, 0.1, 0.001)
-			b2_array = np.arange(0.1, e_max, 0.005)
+		if e_max>=E_0 and e_max<1.0:
+			b1_array = np.arange(e_min, E_0, 0.001)
+			b2_array = np.arange(E_0, e_max, 0.005)
 			break_array_low = np.hstack((b1_array, b2_array))
 		if e_max >=1 and e_max < 10:
-			b1_array = np.arange(e_min, 0.1, 0.001)
-			b2_array = np.arange(0.1, 1, 0.005)
+			b1_array = np.arange(e_min, E_0, 0.001)
+			b2_array = np.arange(E_0, 1, 0.005)
 			b3_array = np.arange(1, e_max, 0.01)
 			break_array_low = np.hstack((b1_array, b2_array, b3_array))
 		if e_max>=10:
-			b1_array = np.arange(e_min, 0.1, 0.001)
-			b2_array = np.arange(0.1, 1, 0.005)
+			b1_array = np.arange(e_min, E_0, 0.001)
+			b2_array = np.arange(E_0, 1, 0.005)
 			b3_array = np.arange(1, 10, 0.01)
 			b4_array = np.arange(10, e_max, 1)
 			break_array_low = np.hstack((b1_array, b2_array, b3_array, b4_array))
@@ -1048,9 +1048,8 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 			#ax.plot([], [], ' ', label=r'$\mathregular{I_0=}$%5.2f' %round(I0, ndigits=2)+"/(s cm² sr MeV)")
 			
 
-
-		ax.plot(xplot, pl_fit.simple_pl([I0, gamma1, E_0], xplot), '-', color=color[direction], label=r'$\mathregular{\gamma=}$%5.2f' %round(gamma1, ndigits=2)+r"$\pm$"+'{0:.2f}'.format(gamma1_err))
-		ax.plot(xplot, pl_fit.simple_pl([I0, gamma1, E_0], xplot), '--k', zorder=10)
+		ax.plot(xplot, pl_fit.simple_pl_visual([I0, gamma1, E_0], xplot), '-', color=color[direction], label=r'$\mathregular{\gamma=}$%5.2f' %round(gamma1, ndigits=2)+r"$\pm$"+'{0:.2f}'.format(gamma1_err))
+		ax.plot(xplot, pl_fit.simple_pl_visual([I0, gamma1, E_0], xplot), '--k', zorder=10)
 
 
 
