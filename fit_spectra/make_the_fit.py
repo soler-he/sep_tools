@@ -1123,7 +1123,7 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 		#	gamma2_err = gamma_temp_err
 			
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! result double seems to be empty sometimes and it causes the fit to crash
-		fit_plot = pl_fit.double_pl_func_visual(result_double.beta, xplot, E_0)
+		fit_plot = pl_fit.double_pl_func_visual(result_double.beta, xplot, E_0=E_0)
 		fit_plot[fit_plot == 0] = np.nan
 
 		if detailed_legend:
@@ -1178,9 +1178,9 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 		gamma1_err = errors[1]
 		cut_err = errors[2]
 		exponent = result_cut.beta[3]
-		
-			
-		fit_plot = pl_fit.cut_pl_func(result_cut.beta, xplot)
+
+
+		fit_plot = pl_fit.cut_pl_func_visual(result_cut.beta, xplot, E_0=E_0)
 		fit_plot[fit_plot == 0] = np.nan
 
 		if detailed_legend:
@@ -1189,8 +1189,6 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 			ax.plot([], [], ' ', label=r'$\mathregular{\chi²=}$%5.2f' %round(redchi_cut, ndigits=2))
 			#ax.plot([], [], ' ', label=r'$\mathregular{I_0=}$%5.2f' %round(I0, ndigits=2)+"/(s cm² sr MeV)")
 			ax.plot([], [], ' ', label=r'$\mathregular{I_0=}$' +"{:.2e}".format(I0)+"/(s cm² sr MeV)")
-			
-			
 
 
 		ax.plot(xplot, fit_plot, '-b', label=r'$\mathregular{\gamma_1=}$%5.2f' %round(gamma1, ndigits=2)+r"$\pm$"+'{0:.2f}'.format(gamma1_err))#, lw=lwd)
@@ -1198,7 +1196,6 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 			ax.axvline(x=cut, color='purple', linestyle='--', label=r'$\mathregular{E_c=}$ '+str(round(cut, ndigits=1))+'\n'+r"$\pm$"+str(round(cut_err, ndigits=1))+' MeV')
 		elif len(str(cut*1e3).split('.')[0])<=3:
 			ax.axvline(x=cut, color='purple', linestyle='--', label=r'$\mathregular{E_c=}$ '+str(round(cut*1e3, ndigits=1))+'\n'+r"$\pm$"+str(round(cut_err*1e3, ndigits=1))+' keV')
-		
 
 		result_dataframe["Reduced chi sq"] = redchi_cut
 		result_dataframe["I0"] = I0
@@ -1260,7 +1257,7 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 
 	
 			
-		fit_plot = pl_fit.cut_break_pl_func(result_cut.beta, xplot)
+		fit_plot = pl_fit.cut_break_pl_func_visual(result_cut.beta, xplot, E_0=E_0)
 		fit_plot[fit_plot == 0] = np.nan
 
 		if detailed_legend:
@@ -1406,10 +1403,10 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 				beta = -abs(beta)
 
 
-			
 
-			
-		fit_plot = pl_fit.triple_pl_func(result_triple.beta, xplot)
+
+
+		fit_plot = pl_fit.triple_pl_func_visual(result_triple.beta, xplot, E_0=E_0)
 		fit_plot[fit_plot == 0] = np.nan
 
 		if detailed_legend:

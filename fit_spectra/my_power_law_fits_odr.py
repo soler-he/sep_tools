@@ -84,13 +84,10 @@ def triple_pl_fit(x,y, xerr = None, yerr = None, gamma1=-1.8, gamma2=-2, gamma3 
 	#covMatrix = np.cov(xerr,bias=False)
 
 	def triple_pl_func(p, x):#, I0, gamma1, gamma2, alpha, E_break):
-		'''
-		Mar 2020: functin 25 of prinsloo 2019 paper but withoug exponential roll-over
-
+		"""
 		The function here is nested inside another function, so that E_0 is treated as a free
 		parameter outside, but as a constant (not a variable!) inside. 
-
-		'''
+		"""
 
 		I0, gamma1, gamma2, gamma3, alpha, beta, E_break_low, E_break_high, = p
 
@@ -221,12 +218,12 @@ def double_line(p, x):#, I0, c2, gamma1, gamma2, E_break):
     return y
 
 
-def simple_pl_visual(p,x):#, I0, gamma1):
+def simple_pl_visual(p,x):
 	I0, gamma1, E_0 = p
 	y = I0*(x/E_0)**gamma1
-	return y#I0*x**gamma1
+	return y
 
-def double_pl_func_visual(p, x, E_0):#, I0, gamma1, gamma2, alpha, E_break):
+def double_pl_func_visual(p, x, E_0):
 	'''
 	Mar 2020: functin 25 of prinsloo 2019 paper but withoug exponential roll-over
 	'''
@@ -234,5 +231,32 @@ def double_pl_func_visual(p, x, E_0):#, I0, gamma1, gamma2, alpha, E_break):
 	I0, gamma1, gamma2, alpha, E_break = p
 
 	y = I0 * (x/E_0)**gamma1  * ((x**alpha + E_break**alpha)/(E_0**alpha+E_break**alpha))**((gamma2-gamma1)/alpha)
+
+	return y
+
+def triple_pl_func_visual(p, x, E_0):
+	'''
+	Mar 2020: functin 25 of prinsloo 2019 paper but withoug exponential roll-over
+	'''
+
+	I0, gamma1, gamma2, gamma3, alpha, beta, E_break_low, E_break_high, = p
+
+	y = I0 * (x/E_0)**gamma1  * ((x**alpha + E_break_low**alpha)/(E_0**alpha+E_break_low**alpha))**((gamma2-gamma1)/alpha)* ((x**beta + E_break_high**beta)/(E_0**beta+E_break_high**beta))**((gamma3-gamma2)/beta)
+
+	return y
+
+def cut_pl_func_visual(p, x, E_0):
+
+	I0, gamma1, E_cut, exponent = p
+
+	y = I0*(x/E_0)**gamma1 *np.exp(-(x/E_cut)**exponent)
+
+	return y
+
+def cut_break_pl_func(p, x, E_0):
+
+	I0, gamma1, gamma2, alpha, E_break, E_cut, exponent = p
+
+	y = I0*(x/E_0)**gamma1 * ((x**alpha + E_break**alpha)/(E_0**alpha+E_break**alpha))**((gamma2-gamma1)/alpha)*np.exp(-(x/E_cut)**exponent)
 
 	return y
