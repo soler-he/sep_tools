@@ -10,7 +10,7 @@ pillow>=11.0.0
 git+https://github.com/Christian-Palmroos/PyOnset/
 pyspedas
 scipy
-git+https://github.com/serpentine-h2020/SEPpy/  # seppy>=0.4.4 TODO: change to pypi version when released
+seppy>=0.5.0
 solarmach>=0.5.3
 solo-epd-loader>=0.4.4
 speasy>=1.5.2
