@@ -523,7 +523,9 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 		smallest_difference_index = absolute_val_array.argmin()
 		I0_guess = spec_flux[smallest_difference_index]
 		
-		
+	# Validate I0 counterpart: E_0:
+	if E_0 <= 0:
+		raise ValueError(f"E_0={E_0} is an invalid guess for I0 energy. Energy must be a positive nonzero value.")
 	
 	# the break guess should be between min and max energy
 	
