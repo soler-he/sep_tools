@@ -1121,7 +1121,7 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 		#	gamma2_err = gamma_temp_err
 			
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! result double seems to be empty sometimes and it causes the fit to crash
-		fit_plot = pl_fit.double_pl_func(result_double.beta, xplot)
+		fit_plot = pl_fit.double_pl_func_visual(result_double.beta, xplot, E_0)
 		fit_plot[fit_plot == 0] = np.nan
 
 		if detailed_legend:
