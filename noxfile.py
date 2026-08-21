@@ -4,7 +4,7 @@ import nox
 nox.options.sessions = ["lint", "tests"]
 nox.options.default_venv_backend = "uv"
 
-PYTHON_VERSIONS = ["3.10", "3.11", "3.12", "3.13", "3.14"]
+PYTHON_VERSIONS = ["3.11", "3.12", "3.13", "3.14"]
 GROUPS = [1, 2, 3, 4, 5]
 SPLITS = 5
 
