@@ -25,7 +25,10 @@ ST_HET_E_CH_MAX = 3
 SOL_HET_E_CH_MAX = 4
 
 PSP_HET_P_CH_MAX = 15
-L1_ERNE_P_CH_MAX = 10
+# <-- Remove untrusty 3 highest energy channels of SOHO/ERNE-HED. TODO: Undo this when the data has been corrected!
+# L1_ERNE_P_CH_MAX = 10
+L1_ERNE_P_CH_MAX = 7
+# Remove untrusty 3 highest energy channels of SOHO/ERNE-HED. -->
 ST_HET_P_CH_MAX = 11
 SOL_HET_P_CH_MAX = 36
 

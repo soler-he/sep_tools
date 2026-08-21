@@ -353,8 +353,9 @@ class Event:
 
         if 'SOHO/ERNE-HED p' in self.instruments:
             # print('loading soho/erne')
-            self.erne_chstring = ['13-16 MeV', '16-20 MeV', '20-25 MeV', '25-32 MeV', '32-40 MeV', '40-50 MeV', '50-64 MeV', '64-80 MeV', '80-100 MeV', '100-130 MeV']
+            # self.erne_chstring = ['13-16 MeV', '16-20 MeV', '20-25 MeV', '25-32 MeV', '32-40 MeV', '40-50 MeV', '50-64 MeV', '64-80 MeV', '80-100 MeV', '100-130 MeV']
             self.soho_erne_org, self.erne_energies = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=self.startdate, enddate=self.enddate, path=soho_path, resample=None, max_conn=1, offline=self.offline)
+            self.erne_chstring = [s.replace(" ", "").replace("MeV", " MeV") for s in self.erne_energies['P_E_label'].tolist()]
 
         if 'Parker Solar Probe/EPI-Hi HET e' in self.instruments or 'Parker Solar Probe/EPI-Hi HET p' in self.instruments:
             # print('loading PSP/EPI-Hi HET data')
