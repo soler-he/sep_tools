@@ -10,8 +10,8 @@ pillow>=11.0.0
 git+https://github.com/Christian-Palmroos/PyOnset/
 pyspedas
 scipy
-seppy>=0.4.4
-solarmach>=0.5.3
+seppy>=0.5.1
+solarmach>=0.5.4
 solo-epd-loader>=0.4.4
 speasy>=1.5.2
 statsmodels>=0.14.6
