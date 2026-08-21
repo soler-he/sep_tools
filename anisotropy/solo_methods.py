@@ -10,9 +10,9 @@ from tqdm.auto import tqdm
 from seppy.loader.solo import mag_load
 
 
-def solo_download_and_prepare(instrument, startdate, enddate, path, averaging, species, en_channel, bg_start, bg_end, solo_ept_ion_contamination_correction=False):
+def solo_download_and_prepare(instrument, startdate, enddate, path, averaging, species, en_channel, bg_start, bg_end, solo_ept_ion_contamination_correction=False, offline=False):
     data_product = "l2"
-    df_sun_p, df_asun_p, df_north_p, df_south_p, df_sun_e, df_asun_e, df_north_e, df_south_e, energies = epd_load_data(instrument, data_product, startdate, enddate, path)
+    df_sun_p, df_asun_p, df_north_p, df_south_p, df_sun_e, df_asun_e, df_north_e, df_south_e, energies = epd_load_data(instrument, data_product, startdate, enddate, path, offline=offline)
     
     if solo_ept_ion_contamination_correction:
         if (instrument == "EPT"):
@@ -525,27 +525,27 @@ def resample_mag_to_fluxes(datetimes,df_mag,averaging,pos_timestamp="center"):
     return df_mag_resampled
 
 
-def solo_mag_srf(startdate,enddate,path,av_min=None,mag_data_product="l2"):
+def solo_mag_srf(startdate,enddate,path,av_min=None,mag_data_product="l2", offline=False):
     # MAG and PA coverage
     msdate = dt.datetime.combine(startdate.date(), dt.time.min)
     medate = dt.datetime.combine(enddate.date()+ dt.timedelta(days=1), dt.time.min)
     try:
-        mag_srf = solo_mag_loader(msdate, medate, level=mag_data_product, frame='srf', av=av_min, path=path)
+        mag_srf = solo_mag_loader(msdate, medate, level=mag_data_product, frame='srf', av=av_min, path=path, offline=offline)
     except:
         raise
         print('changing mag data product to LL')
         mag_type = 'LL'
-        mag_srf = solo_mag_loader(msdate, medate, level=mag_data_product,frame='srf', av=av_min, path=path)
+        mag_srf = solo_mag_loader(msdate, medate, level=mag_data_product,frame='srf', av=av_min, path=path, offline=offline)
     
     mag_srf = mag_srf[(mag_srf.index <= enddate) & (mag_srf.index >= startdate)]
     return mag_srf
 
 
-def epd_load_data(instrument,data_product,startdate,enddate,path):
-    df_sun_p, df_sun_e, energies = epd_load(sensor=instrument, level=data_product, startdate=startdate, enddate=enddate, viewing='sun', path=path, autodownload=True)
-    df_asun_p, df_asun_e, energies = epd_load(sensor=instrument, level=data_product, startdate=startdate, enddate=enddate, viewing='asun', path=path, autodownload=True)
-    df_north_p, df_north_e, energies = epd_load(sensor=instrument, level=data_product, startdate=startdate, enddate=enddate, viewing='north', path=path, autodownload=True)
-    df_south_p, df_south_e, energies = epd_load(sensor=instrument, level=data_product, startdate=startdate, enddate=enddate, viewing='south', path=path, autodownload=True)
+def epd_load_data(instrument,data_product,startdate,enddate,path,offline=False):
+    df_sun_p, df_sun_e, energies = epd_load(sensor=instrument, level=data_product, startdate=startdate, enddate=enddate, viewing='sun', path=path, autodownload=not offline)
+    df_asun_p, df_asun_e, energies = epd_load(sensor=instrument, level=data_product, startdate=startdate, enddate=enddate, viewing='asun', path=path, autodownload=not offline)
+    df_north_p, df_north_e, energies = epd_load(sensor=instrument, level=data_product, startdate=startdate, enddate=enddate, viewing='north', path=path, autodownload=not offline)
+    df_south_p, df_south_e, energies = epd_load(sensor=instrument, level=data_product, startdate=startdate, enddate=enddate, viewing='south', path=path, autodownload=not offline)
     return df_sun_p,df_asun_p,df_north_p,df_south_p,df_sun_e,df_asun_e,df_north_e,df_south_e, energies
 
 
@@ -797,9 +797,9 @@ def calc_ept_ion_contamination_correction(df_sun_e,df_asun_e,df_north_e,df_south
     return df_sun_e,df_asun_e,df_north_e,df_south_e
 
 
-def solo_download_intensities(instrument,startdate,enddate,path,averaging,species,en_channel,solo_ept_ion_contamination_correction=False):
+def solo_download_intensities(instrument,startdate,enddate,path,averaging,species,en_channel,solo_ept_ion_contamination_correction=False, offline=False):
     data_product = "l2"
-    df_sun_p,df_asun_p,df_north_p,df_south_p,df_sun_e,df_asun_e,df_north_e,df_south_e, energies = epd_load_data(instrument,data_product,startdate,enddate,path)
+    df_sun_p,df_asun_p,df_north_p,df_south_p,df_sun_e,df_asun_e,df_north_e,df_south_e, energies = epd_load_data(instrument,data_product,startdate,enddate,path,offline=offline)
     
     if solo_ept_ion_contamination_correction:
         if (instrument == "EPT"):
@@ -829,7 +829,7 @@ def solo_download_intensities(instrument,startdate,enddate,path,averaging,specie
     return I_times, I_data, I_unc, sectors, en_channel_string
 
 
-def solo_mag_loader(sdate, edate, level='l2', type='normal', frame='rtn', av=None, path=None):
+def solo_mag_loader(sdate, edate, level='l2', type='normal', frame='rtn', av=None, path=None, offline=False):
     """
     to do: implement higher resultion averaging ('1S' (seconds)) for burst data
     loads SolO/MAG data from soar using function mag_load() from Jan: 
@@ -856,7 +856,7 @@ def solo_mag_loader(sdate, edate, level='l2', type='normal', frame='rtn', av=Non
         [description]
     """    
     print('Loading MAG...')
-    mag_data = mag_load(sdate, edate, level=level, data_type=type, frame=frame, path=path)
+    mag_data = mag_load(sdate, edate, level=level, data_type=type, frame=frame, path=path, offline=offline)
     #mag_data = mag_load(sdate, edate, level=level, frame=frame, path=path)
     if frame == 'rtn':
         mag_data.rename(columns={'B_RTN_0':'B_r', 'B_RTN_1':'B_t', 'B_RTN_2':'B_n'}, inplace=True)
@@ -892,15 +892,15 @@ def calc_EPT_corrected_e(df_ept_e, df_ept_p):
     return df_ept_e_corr
 
 
-def solo_polarity_preparation(startdate, enddate, av_min=1, path=None, mag_data_product="l2", V=400):
+def solo_polarity_preparation(startdate, enddate, av_min=1, path=None, mag_data_product="l2", V=400, offline=False):
     msdate = dt.datetime.combine(startdate.date(), dt.time.min)
     medate = dt.datetime.combine(enddate.date() + dt.timedelta(days=1), dt.time.min)
     try:
-        mag_rtn = solo_mag_loader(msdate, medate, level=mag_data_product, frame='rtn', av=av_min, path=path)
+        mag_rtn = solo_mag_loader(msdate, medate, level=mag_data_product, frame='rtn', av=av_min, path=path, offline=offline)
     except:
         print('changing mag data product to LL')
         mag_type = 'LL'
-        mag_rtn = solo_mag_loader(msdate, medate, level=mag_data_product,frame='rtn', av=av_min, path=path)
+        mag_rtn = solo_mag_loader(msdate, medate, level=mag_data_product,frame='rtn', av=av_min, path=path, offline=offline)
     pos = get_horizons_coord('Solar Orbiter', time={'start':mag_rtn.index[0]-pd.Timedelta(minutes=15),'stop':mag_rtn.index[-1]+pd.Timedelta(minutes=15),'step':"1min"})  # (lon, lat, radius) in (deg, deg, AU)
     pos = pos.transform_to(HeliographicStonyhurst())
     #Interpolate position data to magnetic field data cadence
