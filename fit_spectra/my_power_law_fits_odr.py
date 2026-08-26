@@ -3,26 +3,18 @@ from scipy.odr import *
 
 
 
-def power_law_fit(x,y,xerr = None,yerr = None, gamma1=-1.8, I0=None, E_0=0.1, print_report=False):
+def power_law_fit(x,y,xerr = None,yerr = None, gamma1=-1.8, I0=None, print_report=False):
 	'''
 	fits a power law to the data using scipy.odr
 
     x,y: data to fit, should be np.log() of Energy and Intensity
     unc: y-error
-    gamma1, I0, E_0: guess-values for the fit
+    gamma1, I0: guess-values for the fit
     '''
-
-	def simple_pl(p,x):#, I0, gamma1):
-		"""
-		The function here is nested inside another function, so that E_0 is treated as a free
-		parameter outside, but as a constant (not a variable!) inside. 
-		"""
-		I0, gamma1 = p
-		y = I0*(x/E_0)**gamma1
-		return y#I0*x**gamma1
 	
 	#covMatrix = np.cov(xerr,bias=False)
 
+	
 
 	I0 = y[-1] if I0==None else I0
 	plmodel = Model(simple_pl)
@@ -42,21 +34,20 @@ def power_law_fit(x,y,xerr = None,yerr = None, gamma1=-1.8, I0=None, E_0=0.1, pr
 		
 	return result
 
+def double_pl_func(p, x):#, I0, gamma1, gamma2, alpha, E_break):
+    '''
+    Mar 2020: functin 25 of prinsloo 2019 paper but withoug exponential roll-over
+    '''
 
-def double_pl_fit(x,y, xerr = None, yerr = None, gamma1=-1.8, gamma2=-2, I0=None, alpha=None, E_break=0.1, print_report=False, maxit=20, E_0=0.1):
+    I0, gamma1, gamma2, alpha, E_break = p
+
+    y = I0 * (x/0.1)**gamma1  * ((x**alpha + E_break**alpha)/(0.1**alpha+E_break**alpha))**((gamma2-gamma1)/alpha)
+
+    return y
+
+
+def double_pl_fit(x,y, xerr = None, yerr = None, gamma1=-1.8, gamma2=-2, I0=None, alpha=None, E_break=0.1, print_report=False, maxit=20):
 	#covMatrix = np.cov(xerr,bias=False)
-
-	def double_pl_func(p, x):#, I0, gamma1, gamma2, alpha, E_break):
-		"""
-		The function here is nested inside another function, so that E_0 is treated as a free
-		parameter outside, but as a constant (not a variable!) inside. 
-		"""
-
-		I0, gamma1, gamma2, alpha, E_break = p
-
-		y = I0 * (x/E_0)**gamma1  * ((x**alpha + E_break**alpha)/(E_0**alpha+E_break**alpha))**((gamma2-gamma1)/alpha)
-
-		return y
 
 	I0 = y[3] if I0==None else I0
 	alpha = 0.1 if alpha==None else alpha
@@ -79,21 +70,20 @@ def double_pl_fit(x,y, xerr = None, yerr = None, gamma1=-1.8, gamma2=-2, I0=None
 
 	return result
 
+def triple_pl_func(p, x):#, I0, gamma1, gamma2, alpha, E_break):
+    '''
+    Mar 2020: functin 25 of prinsloo 2019 paper but withoug exponential roll-over
+    '''
 
-def triple_pl_fit(x,y, xerr = None, yerr = None, gamma1=-1.8, gamma2=-2, gamma3 = -3, I0=None, alpha=None, beta = None, E_break_low=0.06, E_break_high = 0.12, print_report=False, maxit=20, E_0=0.1):
+    I0, gamma1, gamma2, gamma3, alpha, beta, E_break_low, E_break_high = p
+
+    y = I0 * (x/0.1)**gamma1  * ((x**alpha + E_break_low**alpha)/(0.1**alpha+E_break_low**alpha))**((gamma2-gamma1)/alpha)* ((x**beta + E_break_high**beta)/(0.1**beta+E_break_high**beta))**((gamma3-gamma2)/beta)
+
+    return y
+
+
+def triple_pl_fit(x,y, xerr = None, yerr = None, gamma1=-1.8, gamma2=-2, gamma3 = -3, I0=None, alpha=None, beta = None, E_break_low=0.06, E_break_high = 0.12, print_report=False, maxit=20):
 	#covMatrix = np.cov(xerr,bias=False)
-
-	def triple_pl_func(p, x):#, I0, gamma1, gamma2, alpha, E_break):
-		"""
-		The function here is nested inside another function, so that E_0 is treated as a free
-		parameter outside, but as a constant (not a variable!) inside. 
-		"""
-
-		I0, gamma1, gamma2, gamma3, alpha, beta, E_break_low, E_break_high, = p
-
-		y = I0 * (x/E_0)**gamma1  * ((x**alpha + E_break_low**alpha)/(E_0**alpha+E_break_low**alpha))**((gamma2-gamma1)/alpha)* ((x**beta + E_break_high**beta)/(E_0**beta+E_break_high**beta))**((gamma3-gamma2)/beta)
-
-		return y
 
 	I0 = y[3] if I0==None else I0
 	alpha = 0.1 if alpha==None else alpha
@@ -117,21 +107,16 @@ def triple_pl_fit(x,y, xerr = None, yerr = None, gamma1=-1.8, gamma2=-2, gamma3 
 
 	return result
 
-	
-def cut_break_pl_fit(x,y, xerr = None, yerr = None, gamma1=-1.8, gamma2=-2, I0=None, alpha=None, E_break=0.1, E_cut = 0.35, exponent = 2, print_report=False, maxit=20, E_0=0.1):
-	
-	def cut_break_pl_func(p, x): #I0, gamma1, gamma2, alpha, E_break, E_cut
-		"""
-		The function here is nested inside another function, so that E_0 is treated as a free
-		parameter outside, but as a constant (not a variable!) inside. 
-		"""
+def cut_break_pl_func(p, x): #I0, gamma1, gamma2, alpha, E_break, E_cut
 
-		I0, gamma1, gamma2, alpha, E_break, E_cut, exponent = p
-		
-		y = I0*(x/E_0)**gamma1 * ((x**alpha + E_break**alpha)/(E_0**alpha+E_break**alpha))**((gamma2-gamma1)/alpha)*np.exp(-(x/E_cut)**exponent)
-		
-		return y
+	I0, gamma1, gamma2, alpha, E_break, E_cut, exponent = p
 	
+	y = I0*(x/0.1)**gamma1 * ((x**alpha + E_break**alpha)/(0.1**alpha+E_break**alpha))**((gamma2-gamma1)/alpha)*np.exp(-(x/E_cut)**exponent)
+	
+	return y
+
+	
+def cut_break_pl_fit(x,y, xerr = None, yerr = None, gamma1=-1.8, gamma2=-2, I0=None, alpha=None, E_break=0.1, E_cut = 0.35, exponent = 2, print_report=False, maxit=20):
 	I0 = y[4] if I0==None else I0
 	#c2 = y[-1]*1e-2 if c2==None else c2
 	alpha = 0.1 if alpha==None else alpha
@@ -152,17 +137,16 @@ def cut_break_pl_fit(x,y, xerr = None, yerr = None, gamma1=-1.8, gamma2=-2, I0=N
 
 	return result
 	
-	
-def cut_pl_fit(x,y, xerr = None, yerr = None, gamma1=-1.8, I0=None, E_cut = 0.35, exponent = 2, print_report=False, maxit=20, E_0=0.1):
-	
-	def cut_pl_func(p, x): #I0, gamma1, gamma2, alpha, E_break, E_cut
+def cut_pl_func(p, x): #I0, gamma1, gamma2, alpha, E_break, E_cut
 
-		I0, gamma1, E_cut, exponent = p
-		
-		y = I0*(x/E_0)**gamma1 *np.exp(-(x/E_cut)**exponent)
-		
-		return y
+	I0, gamma1, E_cut, exponent = p
+	
+	y = I0*(x/0.1)**gamma1 *np.exp(-(x/E_cut)**exponent)
+	
+	return y
 
+	
+def cut_pl_fit(x,y, xerr = None, yerr = None, gamma1=-1.8, I0=None, E_cut = 0.35, exponent = 2, print_report=False, maxit=20):
 	I0 = y[4] if I0==None else I0
 	#c2 = y[-1]*1e-2 if c2==None else c2
 	#alpha = 0.1 if alpha==None else alpha
@@ -218,45 +202,10 @@ def double_line(p, x):#, I0, c2, gamma1, gamma2, E_break):
     return y
 
 
-def simple_pl_visual(p,x):
-	I0, gamma1, E_0 = p
-	y = I0*(x/E_0)**gamma1
-	return y
+def simple_pl(p,x):#, I0, gamma1):
+	I0, gamma1 = p
+	y = I0*(x/0.1)**gamma1
+	return y#I0*x**gamma1
 
-def double_pl_func_visual(p, x, E_0):
-	'''
-	Mar 2020: functin 25 of prinsloo 2019 paper but withoug exponential roll-over
-	'''
 
-	I0, gamma1, gamma2, alpha, E_break = p
 
-	y = I0 * (x/E_0)**gamma1  * ((x**alpha + E_break**alpha)/(E_0**alpha+E_break**alpha))**((gamma2-gamma1)/alpha)
-
-	return y
-
-def triple_pl_func_visual(p, x, E_0):
-	'''
-	Mar 2020: functin 25 of prinsloo 2019 paper but withoug exponential roll-over
-	'''
-
-	I0, gamma1, gamma2, gamma3, alpha, beta, E_break_low, E_break_high, = p
-
-	y = I0 * (x/E_0)**gamma1  * ((x**alpha + E_break_low**alpha)/(E_0**alpha+E_break_low**alpha))**((gamma2-gamma1)/alpha)* ((x**beta + E_break_high**beta)/(E_0**beta+E_break_high**beta))**((gamma3-gamma2)/beta)
-
-	return y
-
-def cut_pl_func_visual(p, x, E_0):
-
-	I0, gamma1, E_cut, exponent = p
-
-	y = I0*(x/E_0)**gamma1 *np.exp(-(x/E_cut)**exponent)
-
-	return y
-
-def cut_break_pl_func(p, x, E_0):
-
-	I0, gamma1, gamma2, alpha, E_break, E_cut, exponent = p
-
-	y = I0*(x/E_0)**gamma1 * ((x**alpha + E_break**alpha)/(E_0**alpha+E_break**alpha))**((gamma2-gamma1)/alpha)*np.exp(-(x/E_cut)**exponent)
-
-	return y
