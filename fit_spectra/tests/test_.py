@@ -45,6 +45,7 @@ def test_SEP_Fit_Spectra(which_fit, use_random):
 
     # initial guesses:
     intensity_zero_guess = 1e14  # peak flux
+    energy_zero = 0.1 # I0 at this energy (in MeVs)
     gamma_1_guess = -1.7  # gamma 1 -> spectral index before the break (or single pl)
     gamma_2_guess = -2.  # gamma 2 -> spectral index after the first break (for broken pls)
     gamma_3_guess = -4.5  # gamma 3 -> spectral index after the second break (for triple pl)
@@ -61,15 +62,26 @@ def test_SEP_Fit_Spectra(which_fit, use_random):
     iterations = 1000
     legend_details = False
     plot_title = ''
-    x_label = 'Energy (MeV)'
-    y_label = 'Intensity\n/(s cm² sr MeV)'  # use for peak spectrum
+    x_label = "Energy"
+    y_label = "Intensity"  # use for peak spectrum
+    energy_unit = "MeV"
+    intensity_unit = r"1/(cm$^2$ sr s MeV)"
     # y_label = 'Intensity\n/(cm² sr MeV)'  # use for integrated spectrum
     legend_title = ''
     use_filename_as_title = True
     save_plot = True
 
     plt.close('all')
-    run_the_fit(path, data, save_plot, use_filename_as_title, channels_to_exclude=exclude_channels, plot_title=plot_title, x_label=x_label, y_label=y_label, legend_title=legend_title, which_fit=which_fit,  e_min=e_min, e_max=e_max, g1_guess=gamma_1_guess, g2_guess=gamma_2_guess, g3_guess=gamma_3_guess, I0_guess=intensity_zero_guess, alpha_guess=alpha_guess, beta_guess=beta_guess, break_guess_low=break_energy_low_guess, break_guess_high=break_energy_high_guess, cut_guess=cutoff_energy_guess, exponent_guess=exponent_guess, use_random=use_random, iterations=iterations, legend_details=legend_details)
+    run_the_fit(path, data, save_plot, use_filename_as_title, 
+                channels_to_exclude=exclude_channels, plot_title=plot_title, 
+                x_label=x_label, y_label=y_label, legend_title=legend_title, 
+                which_fit=which_fit,  e_min=e_min, e_max=e_max, g1_guess=gamma_1_guess, 
+                g2_guess=gamma_2_guess, g3_guess=gamma_3_guess, I0_guess=intensity_zero_guess, 
+                alpha_guess=alpha_guess, beta_guess=beta_guess, 
+                break_guess_low=break_energy_low_guess, break_guess_high=break_energy_high_guess, 
+                cut_guess=cutoff_energy_guess, exponent_guess=exponent_guess, 
+                use_random=use_random, iterations=iterations, legend_details=legend_details, 
+                E_0=energy_zero, energy_unit=energy_unit, intensity_unit=intensity_unit)
     fig = plt.gcf()
 
     return fig

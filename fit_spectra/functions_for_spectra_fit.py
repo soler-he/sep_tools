@@ -28,7 +28,7 @@ def exclude_channels(data, channels_to_exclude):
 	dataframe_to_exclude = dataframe_to_exclude.drop(channels_to_keep, axis = 0)
 	dataframe_to_exclude = dataframe_to_exclude.reset_index()
 	return [dataframe_to_fit, dataframe_to_exclude]# return two dataframes. one is the dataframe that will be fit and one will be the one plotted in gray that has the excluded channels.
-    
+
 
 def print_results(file_with_fit_results):
 	"""prints the fit results
@@ -87,7 +87,7 @@ def print_results(file_with_fit_results):
 	return ''
 
 
-def plot_spectrum(data):
+def plot_spectrum(data, energy_unit="MeV", intensity_unit=r"1/(cm^2 sr s MeV)"):
 	x_data = data['Energy']  # energy for spectra
 	y_data = data['Intensity']
 	x_err = None
@@ -126,8 +126,8 @@ def plot_spectrum(data):
 	ax.set_yscale('log')
 
 	# plt.legend('',  prop={'size': 7})
-	plt.ylabel('Intensity')
-	plt.xlabel('Energy')
+	plt.ylabel(f'Intensity [{intensity_unit}]')
+	plt.xlabel(f'Energy [{energy_unit}]')
 	# plt.title('Example spectrum')
 
 	# if save:
