@@ -458,7 +458,7 @@ def find_I0(spec_e, spec_flux, e_min, e_max):
 	
 	
 
-def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_fit='best', e_min=None, e_max=None, g1_guess=-2., g2_guess=None, g3_guess=None, alpha_guess=5., beta_guess = 5,  break_low_guess=0.065, break_high_guess=0.12, cut_guess = 0.12, I0_guess=None, E_0=0.1, exponent_guess = 2, use_random = False, iterations = 10, path = None, path2 = None, detailed_legend = False):
+def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_fit='best', e_min=None, e_max=None, g1_guess=-2., g2_guess=None, g3_guess=None, alpha_guess=5., beta_guess = 5,  break_low_guess=0.065, break_high_guess=0.12, cut_guess = 0.12, I0_guess=None, E_0=None, exponent_guess = 2, use_random = False, iterations = 10, path = None, path2 = None, detailed_legend = False):
 	"""This function fit the data to a single, double or break+cut power law. 
 	The fit type can be chosen between: single,double, cut or best. 
 	The best option checks between all the options and chooses between the three by checking the reduced chisqr.
@@ -522,7 +522,10 @@ def MAKE_THE_FIT(spec_e, spec_flux, e_err, flux_err, ax, direction='sun', which_
 		absolute_val_array = np.abs(spec_e - 1)
 		smallest_difference_index = absolute_val_array.argmin()
 		I0_guess = spec_flux[smallest_difference_index]
-		
+	
+	if E_0 is None:
+		E_0 = 0.1
+
 	# Validate I0 counterpart: E_0:
 	if E_0 <= 0:
 		raise ValueError(f"E_0={E_0} is an invalid guess for I0 energy. Energy must be a positive nonzero value.")
