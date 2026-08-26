@@ -64,7 +64,7 @@ class Event:
                 + "\nPlease adjust the times or reload the data with a wider date range."
             )
 
-    def load_data(self, spacecraft, instrument, species, startdate, enddate, viewing='', data_level='l2', data_path=None):
+    def load_data(self, spacecraft, instrument, species, startdate, enddate, viewing='', data_level='l2', data_path=None, offline=False):
         self.spacecraft = spacecraft
         self.instrument = instrument
         self.species = species
@@ -72,6 +72,7 @@ class Event:
         self.enddate = enddate
         self.viewing = viewing
         self.data_level = data_level
+        self.offline = offline
 
         if self.spacecraft.lower() in ['wind']:
             self.instrument = '3DP SST'
@@ -91,7 +92,7 @@ class Event:
                 raise Exception("Solar Orbiter instruments require a defined 'viewing'!")
             df_protons, df_electrons, self.meta = epd_load(sensor=self.instrument, level=self.data_level, startdate=self.startdate,
                                                            enddate=self.enddate, viewing=self.viewing, path=data_path,
-                                                           autodownload=True)
+                                                           autodownload=not self.offline)
             # flatten multi-index columns
             df_electrons.columns = df_electrons.columns.droplevel(0)
             df_protons.columns = df_protons.columns.droplevel(0)
@@ -106,7 +107,7 @@ class Event:
             if self.spacecraft.lower() in ['stereo b', 'stereo-b']:
                 sc = 'behind'
             self.df, self.meta = stereo_load(instrument=self.instrument, startdate=self.startdate, enddate=self.enddate, spacecraft=sc,
-                                             sept_species=self.species[0], sept_viewing=self.viewing, path=data_path)
+                                             sept_species=self.species[0], sept_viewing=self.viewing, path=data_path, offline=self.offline)
 
         if self.spacecraft.lower() in ['wind']:
             # TODO: !!! remove lowest energy channels (noisy)?
@@ -120,14 +121,15 @@ class Event:
                     dataset = 'WI_SOSP_3DP'
                 elif self.viewing.lower().startswith('sector'):
                     dataset = 'WI_SOPD_3DP'
-            self.df, self.meta = wind3dp_load(dataset=dataset, startdate=self.startdate, enddate=self.enddate, path=data_path, multi_index=False)
+            self.df, self.meta = wind3dp_load(dataset=dataset, startdate=self.startdate, enddate=self.enddate, path=data_path, multi_index=False, offline=self.offline)
             custom_notification('No intensity uncertainties available for Wind/3DP.')
 
         if self.spacecraft.lower() in ['soho']:
             if self.instrument.upper() == 'ERNE-HED':
                 self.viewing = ''
-                self.erne_chstring = ['13-16 MeV', '16-20 MeV', '20-25 MeV', '25-32 MeV', '32-40 MeV', '40-50 MeV', '50-64 MeV', '64-80 MeV', '80-100 MeV', '100-130 MeV']
-                self.df, self.meta = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=self.startdate, enddate=self.enddate, path=data_path, max_conn=1)
+                # self.erne_chstring = ['13-16 MeV', '16-20 MeV', '20-25 MeV', '25-32 MeV', '32-40 MeV', '40-50 MeV', '50-64 MeV', '64-80 MeV', '80-100 MeV', '100-130 MeV']
+                self.df, self.meta = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=self.startdate, enddate=self.enddate, path=data_path, max_conn=1, offline=self.offline)
+                self.erne_chstring = [s.replace(" ", "").replace("MeV", " MeV") for s in self.meta['P_E_label'].tolist()]
                 soho_fluxes = self.df[self.df.filter(like='PH_').columns]
                 soho_counts = self.df[self.df.filter(like='PHC_').columns]
                 for i in range(0, soho_fluxes.shape[1]):
@@ -146,7 +148,7 @@ class Event:
                 if self.viewing == '':
                     raise Exception("Parker Solar Probe HET requires a defined 'viewing'!")
                 self.df, self.meta = psp_isois_load(dataset='PSP_ISOIS-EPIHI_L2-HET-RATES60', startdate=self.startdate, enddate=self.enddate,
-                                                    path=data_path)
+                                                    path=data_path, offline=self.offline)
         # return df, meta
 
     def plot_flux(self, spec_start, spec_end, subtract_background=True, background_start=None, background_end=None, savefig=False, spec_type='integral', resample=None):

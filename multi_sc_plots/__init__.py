@@ -28,6 +28,10 @@ from sunpy.time import parse_time
 # from sunpy.coordinates import frames, get_horizons_coord
 # from tqdm import tqdm
 
+from copy import deepcopy
+
+FIG_DPI = 200
+
 
 # omit some warnings
 warnings.simplefilter(action='once', category=pd.errors.PerformanceWarning)
@@ -242,7 +246,9 @@ class Event:
         e_checkboxes.update(p_checkboxes)
         return e_checkboxes
 
-    def load_data(self, startdate, enddate, dict_instruments, data_path=None):
+    def load_data(self, startdate, enddate, dict_instruments, data_path=None, offline=False):
+
+        self.offline = offline
 
         # with warnings.catch_warnings():
         #    warnings.filterwarnings("ignore", module='seppy')
@@ -302,7 +308,7 @@ class Event:
             elif self.viewing['WIND/3DP'].lower().startswith('sector'):
                 dataset_wind_e = 'WI_SFPD_3DP'
             # print('loading wind/3dp e')
-            self.wind3dp_e_df_org, self.wind3dp_e_meta = wind3dp_load(dataset=dataset_wind_e, startdate=self.startdate, enddate=self.enddate, resample=None, multi_index=False, path=wind_path, threshold=self.wind_flux_thres_e)
+            self.wind3dp_e_df_org, self.wind3dp_e_meta = wind3dp_load(dataset=dataset_wind_e, startdate=self.startdate, enddate=self.enddate, resample=None, multi_index=False, path=wind_path, threshold=self.wind_flux_thres_e, offline=self.offline)
 
         if 'WIND/3DP p' in self.instruments:
             if self.viewing['WIND/3DP'].lower().startswith('omni'):
@@ -310,13 +316,13 @@ class Event:
             elif self.viewing['WIND/3DP'].lower().startswith('sector'):
                 dataset_wind_p = 'WI_SOPD_3DP'
             # print('loading wind/3dp p')
-            self.wind3dp_p_df_org, self.wind3dp_p_meta = wind3dp_load(dataset=dataset_wind_p, startdate=self.startdate, enddate=self.enddate, resample=None, multi_index=False, path=wind_path, threshold=self.wind_flux_thres_p)
+            self.wind3dp_p_df_org, self.wind3dp_p_meta = wind3dp_load(dataset=dataset_wind_p, startdate=self.startdate, enddate=self.enddate, resample=None, multi_index=False, path=wind_path, threshold=self.wind_flux_thres_p, offline=self.offline)
 
         if 'STEREO-A/HET e' in self.instruments or 'STEREO-A/HET p' in self.instruments:
             # print('loading stereo/het')
             self.sta_het_e_labels = ['0.7-1.4 MeV', '1.4-2.8 MeV', '2.8-4.0 MeV']
             self.sta_het_p_labels = ['13.6-15.1 MeV', '14.9-17.1 MeV', '17.0-19.3 MeV', '20.8-23.8 MeV', '23.8-26.4 MeV', '26.3-29.7 MeV', '29.5-33.4 MeV', '33.4-35.8 MeV', '35.5-40.5 MeV', '40.0-60.0 MeV']
-            self.sta_het_df_org, self.sta_het_meta = stereo_load(instrument='het', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', resample=None, path=stereo_path, max_conn=1)
+            self.sta_het_df_org, self.sta_het_meta = stereo_load(instrument='het', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', resample=None, path=stereo_path, max_conn=1, offline=self.offline)
 
         # if 'STEREO-A/LET e' in self.instruments or 'STEREO-A/LET p' in self.instruments:
         #     # print('loading stereo/let')
@@ -326,11 +332,11 @@ class Event:
 
         if 'STEREO-A/SEPT e' in self.instruments:
             # print('loading stereo/sept e')
-            self.sta_sept_df_e_org, self.sta_sept_dict_e = stereo_load(instrument='sept', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', sept_species='e', sept_viewing=self.viewing['STEREO-A/SEPT'], resample=None, path=stereo_path, max_conn=1)
+            self.sta_sept_df_e_org, self.sta_sept_dict_e = stereo_load(instrument='sept', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', sept_species='e', sept_viewing=self.viewing['STEREO-A/SEPT'], resample=None, path=stereo_path, max_conn=1, offline=self.offline)
 
         if 'STEREO-A/SEPT p' in self.instruments:
             # print('loading stereo/sept p')
-            self.sta_sept_df_p_org, self.sta_sept_dict_p = stereo_load(instrument='sept', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', sept_species='p', sept_viewing=self.viewing['STEREO-A/SEPT'], resample=None, path=stereo_path, max_conn=1)
+            self.sta_sept_df_p_org, self.sta_sept_dict_p = stereo_load(instrument='sept', startdate=self.startdate, enddate=self.enddate, spacecraft='sta', sept_species='p', sept_viewing=self.viewing['STEREO-A/SEPT'], resample=None, path=stereo_path, max_conn=1, offline=self.offline)
 
         if 'SOHO/EPHIN e' in self.instruments or 'SOHO/EPHIN p' in self.instruments:
             # print('loading soho/ephin')
@@ -340,22 +346,24 @@ class Event:
                                                                         enddate=self.enddate,
                                                                         path=soho_path,
                                                                         resample=None,
-                                                                        pos_timestamp='center')
+                                                                        pos_timestamp='center',
+                                                                        offline=self.offline)
             except UnboundLocalError:
                 pass
 
         if 'SOHO/ERNE-HED p' in self.instruments:
             # print('loading soho/erne')
-            self.erne_chstring = ['13-16 MeV', '16-20 MeV', '20-25 MeV', '25-32 MeV', '32-40 MeV', '40-50 MeV', '50-64 MeV', '64-80 MeV', '80-100 MeV', '100-130 MeV']
-            self.soho_erne_org, self.erne_energies = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=self.startdate, enddate=self.enddate, path=soho_path, resample=None, max_conn=1)
+            # self.erne_chstring = ['13-16 MeV', '16-20 MeV', '20-25 MeV', '25-32 MeV', '32-40 MeV', '40-50 MeV', '50-64 MeV', '64-80 MeV', '80-100 MeV', '100-130 MeV']
+            self.soho_erne_org, self.erne_energies = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=self.startdate, enddate=self.enddate, path=soho_path, resample=None, max_conn=1, offline=self.offline)
+            self.erne_chstring = [s.replace(" ", "").replace("MeV", " MeV") for s in self.erne_energies['P_E_label'].tolist()]
 
         if 'Parker Solar Probe/EPI-Hi HET e' in self.instruments or 'Parker Solar Probe/EPI-Hi HET p' in self.instruments:
             # print('loading PSP/EPI-Hi HET data')
-            self.psp_het, self.psp_het_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-HET-RATES60', startdate=self.startdate, enddate=self.enddate, path=psp_path, resample=None)
+            self.psp_het, self.psp_het_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-HET-RATES60', startdate=self.startdate, enddate=self.enddate, path=psp_path, resample=None, offline=self.offline)
             # psp_let1, psp_let1_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-LET1-RATES60', startdate, enddate, path=psp_path, resample=psp_resample)
             if len(self.psp_het) == 0:
                 print(f'No PSP/EPI-Hi HET 60s data found for {self.startdate.date()} - {self.enddate.date()}. Trying 3600s data.')
-                self.psp_het, self.psp_het_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-HET-RATES3600', startdate=self.startdate, enddate=self.enddate, path=psp_path, resample=None)
+                self.psp_het, self.psp_het_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-HET-RATES3600', startdate=self.startdate, enddate=self.enddate, path=psp_path, resample=None, offline=self.offline)
                 self.psp_3600 = True
                 # self.psp_het_resample = None
 
@@ -365,7 +373,7 @@ class Event:
                                                                             startdate=self.startdate, enddate=self.enddate,
                                                                             epilo_channel=self.psp_epilo_channel_e,
                                                                             epilo_threshold=psp_epilo_threshold_e,
-                                                                            path=psp_path, resample=None)
+                                                                            path=psp_path, resample=None, offline=self.offline)
             if len(self.psp_epilo_e) == 0:
                 print(f'No PSP/EPI-Lo PE data for {self.startdate.date()} - {self.enddate.date()}')
 
@@ -376,14 +384,14 @@ class Event:
                                                                             startdate=self.startdate, enddate=self.enddate,
                                                                             epilo_channel=self.psp_epilo_channel_p,
                                                                             epilo_threshold=psp_epilo_threshold_p,
-                                                                            path=psp_path, resample=None)
+                                                                            path=psp_path, resample=None, offline=self.offline)
             if len(self.psp_epilo_p) == 0:
                 print(f'No PSP/EPI-Lo IC data for {self.startdate.date()} - {self.enddate.date()}')
 
         if 'Solar Orbiter/EPT e' in self.instruments or 'Solar Orbiter/EPT p' in self.instruments:
             # print('loading solo/ept e & p')
             try:
-                result = epd_load(sensor='EPT', viewing=self.viewing['Solar Orbiter/EPT'], level=self.ept_data_product, startdate=self.startdate, enddate=self.enddate, path=solo_path, autodownload=True)
+                result = epd_load(sensor='EPT', viewing=self.viewing['Solar Orbiter/EPT'], level=self.ept_data_product, startdate=self.startdate, enddate=self.enddate, path=solo_path, autodownload=not self.offline)
                 if self.ept_data_product == 'l2':
                     self.ept_p, self.ept_e, self.ept_energies = result
                 if self.ept_data_product == 'l3':
@@ -396,7 +404,7 @@ class Event:
         if 'Solar Orbiter/HET e' in self.instruments or 'Solar Orbiter/HET p' in self.instruments:
             # print('loading solo/het e & p')
             try:
-                self.het_p, self.het_e, self.het_energies = epd_load(sensor='HET', viewing=self.viewing['Solar Orbiter/HET'], level=self.het_data_product, startdate=self.startdate, enddate=self.enddate, path=solo_path, autodownload=True)
+                self.het_p, self.het_e, self.het_energies = epd_load(sensor='HET', viewing=self.viewing['Solar Orbiter/HET'], level=self.het_data_product, startdate=self.startdate, enddate=self.enddate, path=solo_path, autodownload=not self.offline)
             except (Exception):
                 print(f'No SOLO/HET data for {self.startdate.date()} - {self.enddate.date()}')
                 self.het_e = []
@@ -405,7 +413,7 @@ class Event:
         if 'BepiColombo/SIXS-P e' in self.instruments or 'BepiColombo/SIXS-P p' in self.instruments:
             # print('loading Bepi/SIXS')
             try:
-                self.sixs_df, self.sixs_meta = bepi_sixsp_l3_loader(startdate=self.startdate, enddate=self.enddate, resample=None, path=sixs_path, pos_timestamp='center')
+                self.sixs_df, self.sixs_meta = bepi_sixsp_l3_loader(startdate=self.startdate, enddate=self.enddate, resample=None, path=sixs_path, pos_timestamp='center', offline=self.offline)
                 if len(self.sixs_df) > 0:
                     self.sixs_df_p_org = self.sixs_df[[f"Side{self.viewing['BepiColombo/SIXS-P']}_P{i}" for i in range(1, 10)]]
                     self.sixs_df_e_org = self.sixs_df[[f"Side{self.viewing['BepiColombo/SIXS-P']}_E{i}" for i in range(1, 8)]]
@@ -1095,3 +1103,20 @@ def calc_av_en_flux_EPD2(df, energies, en_channel, sensor, particles):
         flux_out = pd.DataFrame({'flux': df[flux_key][f'{flux_key}_{en_channel}']}, index=df.index)
         en_channel_string = en_str[en_channel][0]
     return flux_out, en_channel_string
+
+def copy_fig_axs(fig):
+    """
+    Copy Figure and Axes objects (to make modifications easier).
+
+    Args:
+        fig (matplotlib.Figure): figure object
+
+    Returns:
+        tuple: tuple (matplotlib.Figure, matplotlib.Axes) of copied figure and axes
+
+    """
+    fig_copy = deepcopy(fig)
+    fig_copy.set_dpi(FIG_DPI)
+    axs_copy = fig_copy.get_axes()
+
+    return fig_copy, axs_copy
