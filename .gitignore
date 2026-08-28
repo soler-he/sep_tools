@@ -275,3 +275,6 @@ output_spatial_analysis/
 
 # Regression onset testing
 SEP_Regression-Onset-Testing.ipynb
+
+# Fit spectra development
+SEP_Fit-Spectra_dev.ipynb
