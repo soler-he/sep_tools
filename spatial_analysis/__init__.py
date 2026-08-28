@@ -177,7 +177,7 @@ class SpatialEvent:
                            coord_sys = 'Stonyhurst',
                            silent = True)
         except ConnectionError:
-            print('Unable to load solar wind speeds manually.')
+            print('Unable to load solar wind speeds automatically.')
             print('Using 400 km/s for each observer instead.')
             sm = SolarMACH(self.start,
                            ['BepiColombo', 'PSP', 'SOHO', 'Solar Orbiter', 'STEREO A'],
