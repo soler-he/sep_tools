@@ -21,7 +21,9 @@ from multi_sc_plots import add_watermark
 
 # disable unused speasy data provider before importing to speed it up
 os.environ['SPEASY_CORE_DISABLED_PROVIDERS'] = "sscweb,archive,csa"
-import speasy as spz
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message="Non compliant ISTP file*", category=UserWarning, module="speasy.*")
+    import speasy as spz
 
 # omit Pandas' PerformanceWarning
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)

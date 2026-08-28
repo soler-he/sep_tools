@@ -18,7 +18,6 @@ from IPython.display import display, Image
 #from sunpy.time import parse_time
 import astropy.constants as aconst
 import astropy.units as u
-import speasy as spz
 from sunpy.coordinates import get_horizons_coord
 
 from seppy.loader.psp import psp_isois_load
@@ -41,6 +40,12 @@ warnings.filterwarnings(action='ignore', message='The variable "HET_', category=
 # warnings.filterwarnings(action='once', message="Mean of empty slice", category=RuntimeWarning)
 
 warnings.filterwarnings(action='ignore', category=OptimizeWarning, message='Covariance of the parameters could not be estimated')
+
+# disable unused speasy data provider before importing to speed it up
+os.environ['SPEASY_CORE_DISABLED_PROVIDERS'] = "sscweb,archive,csa"
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message="Non compliant ISTP file*", category=UserWarning, module="speasy.*")
+    import speasy as spz
 
 marker_settings = {
     'Solar Orbiter': {'marker': 's', 'color': 'dodgerblue', 'label': 'Solar Orbiter / EPD - HET'},

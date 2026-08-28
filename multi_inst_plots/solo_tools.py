@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import pandas as pd
-
+import warnings
 
 from matplotlib.colors import Normalize
 from matplotlib import cm
@@ -24,10 +24,9 @@ from multi_sc_plots import add_watermark
 
 # disable unused speasy data provider before importing to speed it up
 os.environ['SPEASY_CORE_DISABLED_PROVIDERS'] = "sscweb,archive,csa"
-import speasy as spz
-
-# import warnings
-# warnings.filterwarnings('ignore')
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message="Non compliant ISTP file*", category=UserWarning, module="speasy.*")
+    import speasy as spz
 
 plt.rcParams['axes.linewidth'] = 1.5
 plt.rcParams['font.size'] = 12
