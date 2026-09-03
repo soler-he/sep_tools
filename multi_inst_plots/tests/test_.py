@@ -3,7 +3,14 @@ import os
 import multi_inst_plots as m
 from seppy.util import jupyterhub_data_path
 import pytest
+import warnings
 
+# disable unused speasy data provider before importing to speed it up
+os.environ['SPEASY_CORE_DISABLED_PROVIDERS'] = "sscweb,archive,csa"
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message="Non compliant ISTP file*", category=UserWarning, module="speasy.*")
+    import speasy as spz
+    spz.core.cache.drop_matching_entries(".*amda.*psp_b_1min.*")
 
 """
 Install dependencies for tests:
