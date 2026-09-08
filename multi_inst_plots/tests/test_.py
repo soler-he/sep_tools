@@ -3,7 +3,14 @@ import os
 import multi_inst_plots as m
 from seppy.util import jupyterhub_data_path
 import pytest
+import warnings
 
+# disable unused speasy data provider before importing to speed it up
+os.environ['SPEASY_CORE_DISABLED_PROVIDERS'] = "sscweb,archive,csa"
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message="Non compliant ISTP file*", category=UserWarning, module="speasy.*")
+    import speasy as spz
+    spz.core.cache.drop_matching_entries(".*amda.*psp_b_1min.*")
 
 """
 Install dependencies for tests:
@@ -45,7 +52,7 @@ def test_SEP_Multi_Instrument_Plot_SolO(monkeypatch):
     m.options.path = f"{os.getcwd()}{os.sep}data"
     m.options.spacecraft.value = 'Solar Orbiter'
     # # deactivate STIX for now as it crashes on GitHub
-    m.options.stix.value = True
+    m.options.stix.value = False
     m.options.stix_ltc.value = True
     # manually select GOES satellite 16 bc. automatic detection sometimes give different results (17 not always shown)
     m.options.goes_man_select.value = True
