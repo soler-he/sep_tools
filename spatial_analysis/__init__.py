@@ -145,6 +145,7 @@ class SpatialEvent:
 
         # List and load the data
         self.spacecraft_list = []
+        self.excluded_observers = [] # sc that are excluded from fitting but still plotted
 
         # Define the solar wind speed list
         self.vsw_list = []
@@ -240,7 +241,7 @@ class SpatialEvent:
         self.offline = offline
 
         full_energy_range = [np.nan, np.nan]
-        for sc in tqdm(self.spacecraft_list):
+        for sc in tqdm(list(channels.keys())):
             # self.sc_data[sc], self.channel_labels[sc] = load_sc_data(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling, self.offline)
 
             sc_df, chn_lbls = load_sc_data(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling, self.offline)
@@ -340,19 +341,17 @@ class SpatialEvent:
 
     def intercalibrate(self, intercalibration_factors, perform_process=True): # Step 4
         """Adjusts the data based on the given intercalibration values."""
-        # for ick in intercalibration_factors.keys():
-        #     if ick not in self.spacecraft_list:
-        #         print("This spacecraft is not included in this event run:")
-        #         print(ick)
-        #         perform_process=False
-        if len(intercalibration_factors) != len(self.spacecraft_list):
-            print("The number of IC factors doesn't match the number of spacecraft.")
-            print('Factors for: ', list(intercalibration_factors.keys()))
-            print('Spacecraft included in event run: ', self.spacecraft_list)
-            for scl in self.spacecraft_list:
-                if scl not in intercalibration_factors.keys():
-                    print(f'Missing IC factor for {scl}. Unable to perform intercalibration.')
-                    perform_process = False
+
+        if perform_process:
+            if len(intercalibration_factors) != len(self.spacecraft_list):
+                for scl in self.spacecraft_list:
+                    if scl not in intercalibration_factors.keys():
+                        print(f'Missing IC factor for {scl}. Unable to perform intercalibration.')
+                        perform_process = False
+                if not perform_process:
+                    print("The number of IC factors doesn't match the number of spacecraft.")
+                    print('Factors for: ', list(intercalibration_factors.keys()))
+                    print('Spacecraft included in event run: ', self.spacecraft_list)
 
         if perform_process:
             for sc in self.spacecraft_list:
@@ -385,6 +384,8 @@ class SpatialEvent:
 
 
         if perform_process:
+            print('Starting Radial Scaling function')
+
             for sc in self.spacecraft_list:
                 self.sc_data_rs[sc] = radial_scaling_calculation(self.sc_data_ic.get(sc), radial_scaling_factors)
 
@@ -436,10 +437,13 @@ class SpatialEvent:
         if len(self.sm_data) == 0:
             self._load_solarmach_loop()
 
-        self.peak_data = find_peak_intensity(scdata, self.out_path, self.start, window_length)
+        self.peak_data = find_peak_intensity(scdata, self.out_path, self.start, self.excluded_observers, window_length)
 
-    def plot_peak_fits(self, window_length=10): # Step 6
-        """Plots the Gaussian curve fitted to the peak intensities."""
+    def plot_peak_fits(self, window_length=10, excluded_observers=[]): # Step 6
+        """Plots the Gaussian curve fitted to the peak intensities.
+            Doesn't fit the excluded_observers but still plots them with white mfc."""
+
+        self.excluded_observers = excluded_observers
 
         if not isinstance(window_length, (float, int)):
             print("Wrong data type for 'window_length'.")
@@ -458,7 +462,7 @@ class SpatialEvent:
                 print("Please run '*.load_spacecraft_data() first.")
             else:
                 self._get_peak_fits(scdata, window_length=window_length)
-                plot_peak_intensity(scdata, self.out_path, self.start, self.peak_data, self.energy_range_label, self.reference, self.flare_loc, self.plot_foot_sep_limits)
+                plot_peak_intensity(scdata, self.out_path, self.start, self.peak_data, self.energy_range_label, self.reference, self.flare_loc, self.plot_foot_sep_limits, self.excluded_observers, window_length=window_length)
 
     def _get_reference_point(self):
         """Function to find a reference point for the Gaussian calculations.
@@ -473,8 +477,11 @@ class SpatialEvent:
         self.reference = find_reference_loc(scdata, self.sm_data_short)
 
 
-    def calc_Gaussian_fit(self): # Step 7
+    def calc_Gaussian_fit(self, excluded_observers=[]): # Step 7
         """Calculates the Gaussian fits at each time interval."""
+
+        # in case it changes
+        self.excluded_observers = excluded_observers
 
         if len(self.peak_data) == 0:
             self._get_peak_fits()
@@ -482,16 +489,17 @@ class SpatialEvent:
         self.sc_data_rs['Gauss'] = fit_gauss_curves_to_data(self.sc_data_rs, self.out_path,
                                                             self.reference, self.flare_loc,
                                                             self.peak_data, self.energy_range_label,
-                                                            self.plot_foot_sep_limits)
+                                                            self.plot_foot_sep_limits,
+                                                            self.excluded_observers)
 
         print(f"Calculations for Gaussian curves complete.")
 
     # Final Results
     def plot_Gauss_results(self): # Step 8
         if len(self.sc_data_rs.get('Gauss')) == 0:
-            self.calc_Gaussian_fit()
+            self.calc_Gaussian_fit(self.excluded_observers)
 
-        fig, ax = plot_gauss_fits_timeseries(self.sc_data_rs, self.out_path, self.start, self.reference, self.channel_labels, self.flare_loc)
+        fig, ax = plot_gauss_fits_timeseries(self.sc_data_rs, self.out_path, self.start, self.reference, self.channel_labels, self.flare_loc, self.excluded_observers)
         return fig, ax
 
 
@@ -521,7 +529,7 @@ class SpatialEvent:
             calculated."""
 
             # Add check for timestep data type
-        fig, ax = plot_one_timestep_curve(self.sc_data_rs, self.out_path, timestep, self.channel_labels, self.flare_loc, self.reference, self.energy_range_label, self.plot_foot_sep_limits)
+        fig, ax = plot_one_timestep_curve(self.sc_data_rs, self.out_path, timestep, self.channel_labels, self.flare_loc, self.reference, self.energy_range_label, self.plot_foot_sep_limits, self.excluded_observers)
 
         return fig, ax
 
@@ -913,15 +921,10 @@ def weighted_bin_merge(df0, spacecraft, species, channel_list, header_label, bin
         PA = kwargs['pa']
 
         if spacecraft in ['bepi', 'bepicolombo', 'Bepi', 'BepiColombo']: # create an array of the required bin widths
-            print('Old bepi binwidths: ')
-            print(binwidths)
             new_bw = []
             for bnn in binwidths.keys():
                 new_bw.append(binwidths[bnn][PA])
             binwidths = new_bw
-            print('New bepi binwidths: ')
-            print(binwidths)
-            jax = input('move on?')
 
     # Confirm the species type (electrons hopefully introduced in later versions)
     species = 'protons' if species.lower() == 'p' else 'electrons'
@@ -1271,12 +1274,9 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling, offl
 
         # Remove the specified timezone provided by the data loader
         bepi_df.index = bepi_df.index.tz_localize(None)
-        print(bepi_df.head())
-        bepi_df.to_csv('bepiwtf.csv')
 
         # Find channels and bin widths
         bin_list = proton_channels['BepiColombo']
-        print('bin list: ', bin_list)
 
         if len(bin_list) == 1:
             bin_label = f"{bin_list[0]}"
@@ -1305,15 +1305,12 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling, offl
 
         # Get the energy range for labels
         energy_range_lbl = f"{energy_range[0]:.1f}-{energy_range[1]:.1f} MeV"
-        print('Bepi energy range label: ', energy_range_lbl)
 
         # Merge the channels
         print( bepi_df['Side1_P7'].head() )
         for vw in bin_width[bin_list[0]].keys(): # getting the sides
             bepi_df[f"{vw}_F_{bin_label}"] = weighted_bin_merge(bepi_df, 'bepi', 'p', bin_list, f"Side{vw}_{spec[0]}", bin_width, pa=vw)
             bepi_df[f"{vw}_Func_{bin_label}"] = weighted_bin_merge(bepi_df, 'bepi', 'p', bin_list, [f"Side{vw}_{spec[0]}", '_stat_err'], bin_width, pa=vw)
-        print( bepi_df['1_F_7'].head() )
-        jax = input('Before should = after...')
 
         # Make omnidirectional
         flux_arr, unc_arr = ([] for i in range(2))
@@ -1331,7 +1328,6 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling, offl
         bepi_df1 = pd.DataFrame.from_dict(bepi_dct)
         bepi_df1.set_index('Time', inplace=True)
 
-        print(bepi_df1.head())
 
         # Resample
         bepi = bepi_df1.resample(resampling).agg({'Flux':'mean', 'Uncertainty': rms_mean})
@@ -1609,7 +1605,7 @@ def odr_gauss_fit(dict_1timestep, prev_results={'A': np.nan, 'X0': np.nan, 'sigm
 
 
 
-def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data, energy_range_label, plot_foot_sep_limits):
+def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data, energy_range_label, plot_foot_sep_limits, excluded_observers):
     """Read in the full df, calculate the curve at each timestep, save the results to new columns."""
     # Create a folder to save the gaussian timestep figures in
     try:
@@ -1626,14 +1622,30 @@ def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data
 
     for i in tqdm(sc_dict[obs[0]].index): # iterate through each timestep
         x, xerr, y, yerr, sc_arr, x_real = ([] for i in range(6))
+        excl_dict = {}
 
         for sc, df in sc_dict.items():
-            sc_arr.append(sc)
-            y.append(float(np.log10(df.loc[i, 'Flux'])))
-            yerr.append(float(np.log10(df.loc[i, 'Uncertainty'])))
-            x.append(float(df.loc[i, 'long_sep'])) #x.append(float(df.loc[i, 'foot_long']))
-            xerr.append(float(df.loc[i, 'foot_long_error']))
-            x_real.append(float(df.loc[i, 'foot_long']))
+            if sc not in excluded_observers:
+                sc_arr.append(sc)
+                if i not in df.index:
+                    y.append(np.nan)
+                    yerr.append(np.nan)
+                    x.append(np.nan) #x.append(float(df.loc[i, 'foot_long']))
+                    xerr.append(np.nan)
+                    x_real.append(np.nan)
+                else:
+                    y.append(float(np.log10(df.loc[i, 'Flux'])))
+                    yerr.append(float(np.log10(df.loc[i, 'Uncertainty'])))
+                    x.append(float(df.loc[i, 'long_sep'])) #x.append(float(df.loc[i, 'foot_long']))
+                    xerr.append(float(df.loc[i, 'foot_long_error']))
+                    x_real.append(float(df.loc[i, 'foot_long']))
+            else:
+                if i in df.index:
+                    excl_dict[sc] = {'x': float(df.loc[i, 'long_sep']),
+                                    'xerr': float(df.loc[i, 'foot_long_error']),
+                                    'xreal': float(df.loc[i, 'foot_long']),
+                                    'y': float(np.log10(df.loc[i, 'Flux'])),
+                                    'yerr': float(np.log10(df.loc[i, 'Uncertainty']))}
 
         # Calculate the fit now
         timestep_dict = {'x':x, 'y':y, 'sc':sc_arr, 'xerr':xerr, 'yerr':yerr, 'xreal': x_real}
@@ -1657,7 +1669,7 @@ def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data
 
         # Plot the fit for this timestep
         if not np.isnan(x).any() and not np.isnan(gauss_results['X0']):
-            plot_curve_and_timeseries(gauss_results, timestep_dict, sc_dict, data_path+f'Gauss_fits{os.sep}', i, reference, flare_loc, energy_range_label, plot_foot_sep_limits)
+            plot_curve_and_timeseries(gauss_results, timestep_dict, sc_dict, data_path+f'Gauss_fits{os.sep}', i, reference, flare_loc, energy_range_label, plot_foot_sep_limits, excl_dict)
 
         prev_gauss = gauss_results
 
@@ -1779,7 +1791,7 @@ def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, background
     plt.show()
 
 
-def find_peak_intensity(sc_dict, data_path, date, window_length=10):
+def find_peak_intensity(sc_dict, data_path, date, excluded_observers, window_length=10):
     """Reading in all the spacecraft datasets, this function finds the peak of each dataset
         and fits a Gaussian curve to the resulting set of peaks."""
 
@@ -1789,6 +1801,8 @@ def find_peak_intensity(sc_dict, data_path, date, window_length=10):
     # Iterate through each spacecraft df and save the intensity and datetime of the peak
     peak_y, peak_yerr, peak_x, peak_xerr, peak_time, peak_sc, peak_xreal = ([] for i in range(7))
     for sc, sc_df in sc_dict.items():
+        if sc in excluded_observers: # So it doesn't get added to the fitting dict.
+            continue
         peak_index = sc_df.loc[date:peak_window_end, 'Flux'].idxmax()
 
         peak_time.append(peak_index)
@@ -1813,9 +1827,10 @@ def find_peak_intensity(sc_dict, data_path, date, window_length=10):
 
     peak_data_results = peak_data_dict | peak_fit_results #combine the results to the given values.
 
+
     return peak_data_results
 
-def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_range_label, reference, flare_loc, plot_foot_sep_limits):
+def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_range_label, reference, flare_loc, plot_foot_sep_limits, excluded_observers, window_length=10):
     """Plotting the results of the find_peak_intensity function."""
 
     # Plot
@@ -1874,6 +1889,34 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
                                 y1=sc_dict[sc]['Flux'] - sc_dict[sc]['Uncertainty'],
                                 y2=sc_dict[sc]['Flux'] + sc_dict[sc]['Uncertainty'],
                                 alpha=0.3, color=mrkr['color'])
+
+    peak_window_end = date + dt.timedelta(hours=window_length)
+    for sc in excluded_observers:
+        mrkr = marker_settings[sc]
+
+        # Find peak for excluded observer
+        pk_i = sc_dict[sc].loc[date:peak_window_end, 'Flux'].idxmax()
+        pk_x = sc_dict[sc].loc[pk_i, x_col_label]
+        pk_xr = sc_dict[sc].loc[pk_i, 'foot_long_error']
+        pk_y = sc_dict[sc].loc[pk_i, 'Flux']
+        pk_yr = sc_dict[sc].loc[pk_i, 'Uncertainty']
+
+        # plot the hollow marker in both plots
+        gauss_ax.errorbar(pk_x, pk_y,
+                          xerr=pk_xr, yerr=pk_yr,
+                          mec=mrkr['color'], mfc='white', mew=1.2,
+                          ecolor=mrkr['color'],
+                          marker=mrkr['marker'])
+        tseries_ax.plot(pk_i, pk_y, mec=mrkr['color'], mfc='white',
+                        marker=mrkr['marker'], mew=1.2,
+                        label=f"{mrkr['label']} excl. ({pk_i.strftime('%H:%M %d %b. %y')})")
+
+        # Plot the full time series
+        tseries_ax.semilogy(sc_dict[sc]['Flux'], color=mrkr['color'], linestyle='dotted')
+        tseries_ax.fill_between(x=sc_dict[sc].index,
+                                y1=sc_dict[sc]['Flux'] - sc_dict[sc]['Uncertainty'],
+                                y2=sc_dict[sc]['Flux'] + sc_dict[sc]['Uncertainty'],
+                                alpha=0.3, color='slategray') #mrkr['color'])
 
     tseries_ax.legend(loc='upper center', bbox_to_anchor=(0.5,1.2), ncols=2, fontsize=8)
 
@@ -1943,7 +1986,7 @@ def log_gauss_error_range_calc(x_arr, y_arr, peak_fit, flarelong):
     return y_err
 
 
-def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep, reference, flare_loc, energy_range_label, plot_foot_sep_limits):
+def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep, reference, flare_loc, energy_range_label, plot_foot_sep_limits, excl_dict):
     """Plotting two subplots, left the fitted gaussian curve, right the time series."""
 
     fig = plt.figure(figsize=[10,3], dpi=250)
@@ -2023,7 +2066,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
 
 
 
-
+    # Show the obs markers
     for n in range(len(sc_df['sc'])):
         markers = marker_settings[sc_df['sc'][n]]
         # gauss_ax.semilogy(sc_df[gauss_xlabel][n], 10**(sc_df['y'][n]), label=sc_df['sc'][n],
@@ -2043,6 +2086,25 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
                                 y1=full_df[sc_df['sc'][n]]['Flux'] - full_df[sc_df['sc'][n]]['Uncertainty'],
                                 y2=full_df[sc_df['sc'][n]]['Flux'] + full_df[sc_df['sc'][n]]['Uncertainty'],
                             color=markers['color'], alpha=0.3)
+    if len(excl_dict.keys()) > 0:
+        for sc in excl_dict.keys():
+            mrkr = marker_settings[sc]
+            gauss_ax.errorbar(excl_dict[sc][gauss_xlabel],
+                              10**(excl_dict[sc]['y']),
+                              xerr=excl_dict[sc]['xerr'],
+                              yerr=10**(excl_dict[sc]['yerr']),
+                              label=mrkr['label']+' (excl)',
+                              marker=mrkr['marker'], ecolor=mrkr['color'],
+                              mec=mrkr['color'], mfc='white', mew=1.2)
+            tseries_ax.semilogy(full_df[sc]['Flux'], linestyle='dotted',
+                                color=mrkr['color'], label=sc)
+            tseries_ax.fill_between(x=full_df[sc].index,
+                                    y1=full_df[sc]['Flux'] - full_df[sc]['Uncertainty'],
+                                    y2=full_df[sc]['Flux'] + full_df[sc]['Uncertainty'],
+                                    color='slategray', alpha=0.3)
+
+
+
     gauss_ax.legend(loc='upper left', bbox_to_anchor=(0.02,1.15), ncols=6, fontsize=8)
     #bbox_to_anchor=(0.2, 1.03, 1.0, 0.1), loc='upper left', ncols=6, fontsize=9)
 
@@ -2060,7 +2122,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
     plt.close("all")
 
 
-def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_loc, reference, energy_range_label, foot_sep_limits_bool, **kwargs):
+def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_loc, reference, energy_range_label, foot_sep_limits_bool, excluded_observers, **kwargs):
     """Plots only the curve at the given timestep."""
     fig, ax = plt.subplots(1,1, figsize=[3,3], dpi=300)
 
@@ -2090,17 +2152,21 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
         if sc=='Gauss':
             continue
         mrkr = marker_settings[sc]
-        # print(timestep)
-        # print(x_col_label)
-        # print(sdf)
-        # ax.semilogy(sdf.loc[timestep, x_col_label], sdf.loc[timestep, 'Flux'],
-        #             label=mrkr['label'], color=mrkr['color'], marker=mrkr['marker'])
+        if sc in excluded_observers:
+            mfc = 'white'
+            mew = 1.2
+            label = mrkr['label'] + ' (excl.)'
+        else:
+            mfc = mrkr['color']
+            mew = 0
+            label = mrkr['label']
         ax.errorbar(sdf.loc[timestep, x_col_label],
                     sdf.loc[timestep, 'Flux'],
                     xerr=sdf.loc[timestep, 'foot_long_error'],
                     yerr=sdf.loc[timestep, 'Uncertainty'],
-                    label=mrkr['label'], marker=mrkr['marker'],
-                    color=mrkr['color'], ecolor=mrkr['color'])
+                    label=label, marker=mrkr['marker'], mew=mew,
+                    color=mrkr['color'], mfc=mfc,
+                    mec=mrkr['color'], ecolor=mrkr['color'])
 
         ylimits[0] = np.nanmin([ylimits[0], np.nanmin(sdf.loc[timestep,'Flux'])])
         ylimits[1] = np.nanmax([ylimits[1], np.nanmax(sdf.loc[timestep,'Flux'])])
@@ -2187,7 +2253,7 @@ def copy_fig_axs(fig): # Taken from multi_inst_plots
 
 
 
-def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, flare_loc, **kwargs):
+def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, flare_loc, excluded_observers, **kwargs):
     """Plots the following time series: intensity, gauss center, and gauss sigma."""
 
     fig, ax = plt.subplots(3, 1, figsize=[6,6], dpi=300, sharex=True)
@@ -2210,12 +2276,18 @@ def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, fl
             continue
         mrkr = marker_settings[sc]
 
-        ax[0].semilogy(s_df['Flux'], color=mrkr['color'],
+        if sc in excluded_observers:
+            lstyle = 'dotted'
+            ecolor = 'slategray'
+        else:
+            lstyle='solid'
+            ecolor = mrkr['color']
+        ax[0].semilogy(s_df['Flux'], color=mrkr['color'], linestyle=lstyle,
                        label=f"{mrkr['label']} ({channel_labels[sc]})")
         ax[0].fill_between(x=s_df.index,
                            y1=s_df['Flux'] - s_df['Uncertainty'],
                            y2=s_df['Flux'] + s_df['Uncertainty'],
-                           alpha=0.3, color=mrkr['color'])
+                           alpha=0.3, color=ecolor)
 
         ylimits['intensity'][0] = np.nanmin([ylimits['intensity'][0], np.nanmin(s_df['Flux'])] )
         ylimits['intensity'][1] = np.nanmax([ylimits['intensity'][1], np.nanmax(s_df['Flux'])] )
