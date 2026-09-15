@@ -63,7 +63,7 @@ def test_SEP_Spatial_Distribution(obs_vsw, resampling, process_background_subtra
     # resampling = '15min'
 
     # Load the observed intensity data
-    solar_event.load_spacecraft_data(channels=spacecraft_channels, resampling=resampling)
+    solar_event.load_spacecraft_data(channels=spacecraft_channels, resampling=resampling, species='protons')
 
     # Plot a quickview of the observed intensities
     solar_event.plot_intensities()
