@@ -18,12 +18,15 @@ from IPython.display import display, Image
 #from sunpy.time import parse_time
 import astropy.constants as aconst
 import astropy.units as u
+# import speasy as spz
 from sunpy.coordinates import get_horizons_coord
 
 from seppy.loader.psp import psp_isois_load
 from seppy.loader.soho import soho_load
 from seppy.loader.stereo import stereo_load
 from solo_epd_loader import epd_load
+from seppy.loader.wind import wind3dp_load
+from seppy.loader.bepi import bepi_sixsp_l3_loader as bepi_load
 
 from solarmach import SolarMACH
 
@@ -39,22 +42,32 @@ warnings.filterwarnings(action='ignore', message='The variable "HET_', category=
 # warnings.filterwarnings(action='ignore', message="Note that for the Dataframes containing the flow direction and SC coordinates timestamp position will not be adjusted by 'pos_timestamp'!", module='solo_epd_loader')
 # warnings.filterwarnings(action='once', message="Mean of empty slice", category=RuntimeWarning)
 
-warnings.filterwarnings(action='ignore', category=OptimizeWarning, message='Covariance of the parameters could not be estimated')
-
 # disable unused speasy data provider before importing to speed it up
 os.environ['SPEASY_CORE_DISABLED_PROVIDERS'] = "sscweb,archive,csa"
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message="Non compliant ISTP file*", category=UserWarning, module="speasy.*")
     import speasy as spz
 
+warnings.filterwarnings(action='ignore', category=OptimizeWarning, message='Covariance of the parameters could not be estimated')
+
 marker_settings = {
-    'Solar Orbiter': {'marker': 's', 'color': 'dodgerblue', 'label': 'Solar Orbiter / EPD - HET'},
-    'SOHO': {'marker': 'o', 'color': 'darkgreen', 'label': 'SOHO / ERNE - HED'},
-    'STEREO A': {'marker': '^', 'color': 'red', 'label': 'STEREO A / HET'},
-    'PSP':  {'marker': 'p', 'color': 'purple', 'label': 'PSP / EpiHi - HET'},
-    # 'Wind': {'marker': '*', 'color': 'slategray', 'label': 'Wind'},
+    'Solar Orbiter': {'marker': 's', 'color': 'dodgerblue',
+                      'label': {'e': 'Solar Orbiter / EPD - EPT',
+                                'p': 'Solar Orbiter / EPD - HET'}},
+    'SOHO': {'marker': 'o', 'color': 'darkgreen',
+             'label': {'e': 'Wind-3DP',
+                       'p': 'SOHO / ERNE - HED'}},
+    'STEREO A': {'marker': '^', 'color': 'red',
+                 'label': {'e': 'STEREO A / SEPT',
+                           'p': 'STEREO A / HET'}},
+    'PSP':  {'marker': 'p', 'color': 'purple',
+             'label': {'e': 'PSP / EPI-Lo',
+                       'p': 'PSP / EPI-Hi - HET'}},
+    # 'Wind': {'marker': '*', 'color': 'slategray', 'label': {}},
     # 'STEREO-B': {'marker': 'v', 'color': 'blue', 'label': 'STEREO-B'},
-    # 'BepiColombo': {'marker': 'd', 'color': 'orange', 'label': 'BepiColombo'}
+    'BepiColombo': {'marker': 'd', 'color': 'orange',
+                    'label': {'e': 'BepiColombo / SIXS-P',
+                              'p': 'BepiColombo / SIXS-P'}}
     }
 
 
@@ -116,6 +129,7 @@ class SpatialEvent:
 
         self.start = dates[0]
         self.end = dates[1]
+        self.species = ""
         self.channels = {}
         self.channel_labels = {}
         self.energy_range_label = ""
@@ -143,6 +157,7 @@ class SpatialEvent:
 
         # List and load the data
         self.spacecraft_list = []
+        self.excluded_observers = [] # sc that are excluded from fitting but still plotted
 
         # Define the solar wind speed list
         self.vsw_list = []
@@ -230,29 +245,43 @@ class SpatialEvent:
             print("Please run '*.load_spacecraft_data()' first.")
 
 
-    def load_spacecraft_data(self, channels, resampling, offline=False): # Step 2
+    def load_spacecraft_data(self, channels, resampling, species, offline=False): # Step 2
         """Download the data for each sc"""
         self.channels = channels
         self.resampling = resampling
         self.spacecraft_list = list(channels.keys())
+        self.species = species
         self.offline = offline
 
         full_energy_range = [np.nan, np.nan]
-        for sc in tqdm(self.spacecraft_list):
-            self.sc_data[sc], self.channel_labels[sc] = load_sc_data(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling, self.offline)
+        for sc in tqdm(list(channels.keys())):
+            # self.sc_data[sc], self.channel_labels[sc] = load_sc_data(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling, self.offline)
 
-            # Collecting the full energy range
-            lbl_tmp = (self.channel_labels[sc]).split('-')
-            s_tmp = float(lbl_tmp[0])
-            e_tmp = float( (lbl_tmp[1]).split(' M')[0])
-            if np.isnan(full_energy_range[0]):
-                full_energy_range[0] = s_tmp
-                full_energy_range[1] = e_tmp
+            if species[0].lower() == 'p':
+                sc_df, chn_lbls = load_sc_data_proton(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling, self.offline)
             else:
-                if (s_tmp < full_energy_range[0]):
+                sc_df, chn_lbls = load_sc_data_electron(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling, self.offline)
+
+            if isinstance(sc_df , list):
+                print(f"Skipping the {sc} dataset, no measurements found.")
+                self.spacecraft_list.remove(sc)
+            else:
+                self.sc_data[sc] = sc_df
+                self.channel_labels[sc] = chn_lbls
+
+
+                # Collecting the full energy range
+                lbl_tmp = (self.channel_labels[sc]).split('-')
+                s_tmp = float(lbl_tmp[0])
+                e_tmp = float( (lbl_tmp[1]).split(' M')[0])
+                if np.isnan(full_energy_range[0]):
                     full_energy_range[0] = s_tmp
-                if (e_tmp > full_energy_range[1]):
                     full_energy_range[1] = e_tmp
+                else:
+                    if (s_tmp < full_energy_range[0]):
+                        full_energy_range[0] = s_tmp
+                    if (e_tmp > full_energy_range[1]):
+                        full_energy_range[1] = e_tmp
         self.energy_range_label = f"{full_energy_range[0]:.1f}-{full_energy_range[1]:.1f} MeV"
 
         print("Data loading complete.")
@@ -328,16 +357,17 @@ class SpatialEvent:
 
     def intercalibrate(self, intercalibration_factors, perform_process=True): # Step 4
         """Adjusts the data based on the given intercalibration values."""
-        for ick in intercalibration_factors.keys():
-            if ick not in self.spacecraft_list:
-                print("This spacecraft is not recognised in this event run:")
-                print(ick)
-                perform_process=False
-        if len(intercalibration_factors) != len(self.spacecraft_list):
-            print("The number of IC factors doesn't match the number of spacecraft.")
-            print('Factors for: ', list(intercalibration_factors.keys()))
-            print('Spacecraft included in event run: ', self.spacecraft_list)
-            perform_process = False
+
+        if perform_process:
+            if len(intercalibration_factors) != len(self.spacecraft_list):
+                for scl in self.spacecraft_list:
+                    if scl not in intercalibration_factors.keys():
+                        print(f'Missing IC factor for {scl}. Unable to perform intercalibration.')
+                        perform_process = False
+                if not perform_process:
+                    print("The number of IC factors doesn't match the number of spacecraft.")
+                    print('Factors for: ', list(intercalibration_factors.keys()))
+                    print('Spacecraft included in event run: ', self.spacecraft_list)
 
         if perform_process:
             for sc in self.spacecraft_list:
@@ -370,6 +400,8 @@ class SpatialEvent:
 
 
         if perform_process:
+            print('Starting Radial Scaling function')
+
             for sc in self.spacecraft_list:
                 self.sc_data_rs[sc] = radial_scaling_calculation(self.sc_data_ic.get(sc), radial_scaling_factors)
 
@@ -410,7 +442,7 @@ class SpatialEvent:
             scdata = self.sc_data
 
         if len(scdata) != 0:
-            plot_timeseries_result(scdata, self.out_path, [self.start, self.end], self.channel_labels, bg_zone)
+            plot_timeseries_result(scdata, self.out_path, [self.start, self.end], self.channel_labels, self.species, bg_zone)
         else:
             print("Please run '*.load_spacecraft_data()' first.")
             return None, None
@@ -421,10 +453,13 @@ class SpatialEvent:
         if len(self.sm_data) == 0:
             self._load_solarmach_loop()
 
-        self.peak_data = find_peak_intensity(scdata, self.out_path, self.start, window_length)
+        self.peak_data = find_peak_intensity(scdata, self.out_path, self.start, self.excluded_observers, window_length)
 
-    def plot_peak_fits(self, window_length=10): # Step 6
-        """Plots the Gaussian curve fitted to the peak intensities."""
+    def plot_peak_fits(self, window_length=10, excluded_observers=[]): # Step 6
+        """Plots the Gaussian curve fitted to the peak intensities.
+            Doesn't fit the excluded_observers but still plots them with white mfc."""
+
+        self.excluded_observers = excluded_observers
 
         if not isinstance(window_length, (float, int)):
             print("Wrong data type for 'window_length'.")
@@ -443,7 +478,7 @@ class SpatialEvent:
                 print("Please run '*.load_spacecraft_data() first.")
             else:
                 self._get_peak_fits(scdata, window_length=window_length)
-                plot_peak_intensity(scdata, self.out_path, self.start, self.peak_data, self.energy_range_label, self.reference, self.flare_loc, self.plot_foot_sep_limits)
+                plot_peak_intensity(scdata, self.out_path, self.start, self.peak_data, self.energy_range_label, self.species, self.reference, self.flare_loc, self.plot_foot_sep_limits, self.excluded_observers, window_length=window_length)
 
     def _get_reference_point(self):
         """Function to find a reference point for the Gaussian calculations.
@@ -458,8 +493,11 @@ class SpatialEvent:
         self.reference = find_reference_loc(scdata, self.sm_data_short)
 
 
-    def calc_Gaussian_fit(self): # Step 7
+    def calc_Gaussian_fit(self, excluded_observers=[]): # Step 7
         """Calculates the Gaussian fits at each time interval."""
+
+        # in case it changes
+        self.excluded_observers = excluded_observers
 
         if len(self.peak_data) == 0:
             self._get_peak_fits()
@@ -467,16 +505,18 @@ class SpatialEvent:
         self.sc_data_rs['Gauss'] = fit_gauss_curves_to_data(self.sc_data_rs, self.out_path,
                                                             self.reference, self.flare_loc,
                                                             self.peak_data, self.energy_range_label,
-                                                            self.plot_foot_sep_limits)
+                                                            self.species,
+                                                            self.plot_foot_sep_limits,
+                                                            self.excluded_observers)
 
         print(f"Calculations for Gaussian curves complete.")
 
     # Final Results
     def plot_Gauss_results(self): # Step 8
         if len(self.sc_data_rs.get('Gauss')) == 0:
-            self.calc_Gaussian_fit()
+            self.calc_Gaussian_fit(self.excluded_observers)
 
-        fig, ax = plot_gauss_fits_timeseries(self.sc_data_rs, self.out_path, self.start, self.reference, self.channel_labels, self.flare_loc)
+        fig, ax = plot_gauss_fits_timeseries(self.sc_data_rs, self.out_path, self.start, self.reference, self.channel_labels, self.species, self.flare_loc, self.excluded_observers)
         return fig, ax
 
 
@@ -506,7 +546,7 @@ class SpatialEvent:
             calculated."""
 
             # Add check for timestep data type
-        fig, ax = plot_one_timestep_curve(self.sc_data_rs, self.out_path, timestep, self.channel_labels, self.flare_loc, self.reference, self.energy_range_label, self.plot_foot_sep_limits)
+        fig, ax = plot_one_timestep_curve(self.sc_data_rs, self.out_path, timestep, self.channel_labels, self.flare_loc, self.reference, self.energy_range_label, self.species, self.plot_foot_sep_limits, self.excluded_observers)
 
         return fig, ax
 
@@ -560,6 +600,12 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
         cda_tree = spz.inventories.data_tree.cda
 
         #Download vsw for each observer; convert to df with time index; resample to 15min; add to dict
+        if 'BepiColombo' in observers:
+            # https://cdaweb.gsfc.nasa.gov/misc/NotesB.html#BEPICOLOMBO_HELIO1HR_POSITION
+            # There is no data source for this yet, using default df
+            hc_dict['BepiColombo'] = vsw_df_default
+
+
         if 'PSP' in observers:
             vswd = amda_tree.Parameters.PSP.SWEAP_SPC.psp_spc_mom.psp_spc_vp_mom_nrm
             vswdf = spz.get_data(vswd, start, end, output_format="CDF_ISTP").replace_fillval_by_nan().to_dataframe()
@@ -773,7 +819,7 @@ def solarmach_loop(observers, dates, data_path, resampling, source_loc, vsw_list
             if "Longitudinal separation between body's magnetic footpoint and reference_long" not in tmp_df.columns:
                 print(tmp_df)
                 print(tmp_df.columns)
-                jax=input("There's a problem with the label for the magnetic footpoint. Please contact JT Lang.")
+                jax=input("There's a problem with the label for the magnetic footpoint. Please contact JT Lang: jtlang(at)utu.fi .")
             long_sep.append(tmp_df["Longitudinal separation between body's magnetic footpoint and reference_long"][obs])
 
 
@@ -868,7 +914,7 @@ def move_along_parker_spiral(r_dist, loc, vsw, towards, err_calc):
 ################################################
 ## Data loaders
 ################################################
-def weighted_bin_merge(df0, spacecraft, species, channel_list, header_label, binwidths):
+def weighted_bin_merge(df0, spacecraft, species, channel_list, header_label, binwidths, **kwargs):
     """
     Input:
         - dataframe: with simple columns and time index
@@ -887,15 +933,30 @@ def weighted_bin_merge(df0, spacecraft, species, channel_list, header_label, bin
 
     Parts of this function were improved using AI/ChatGPT on 26 June 2026."""
 
+    PA = np.nan
+    if 'pa' in kwargs:
+        PA = kwargs['pa']
+
+        if spacecraft in ['bepi', 'bepicolombo', 'Bepi', 'BepiColombo'] and species[0].lower() == 'p': # create an array of the required bin widths
+            new_bw = []
+            for bnn in binwidths.keys():
+                new_bw.append(binwidths[bnn][PA])
+            binwidths = new_bw
+
     # Confirm the species type (electrons hopefully introduced in later versions)
-    species = 'protons' if species.lower() == 'p' else 'electrons'
+    species = 'protons' if species[0].lower() == 'p' else 'electrons'
 
     full_channel_list = range(channel_list[0], channel_list[1]+1)
 
     # Collect all relevant header labels.
-    if isinstance(header_label, list):
+    if isinstance(header_label, list) and (spacecraft in ['bepi', 'bepicolombo', 'Bepi', 'BepiColombo']):
+        # Bepi has two parts to the single header value
+        cols = [f"{header_label[0]}{n}{header_label[1]}" for n in full_channel_list]
+    elif isinstance(header_label, list):
         # MultiIndex Columns: (header_label[0], f"{header_label[1]}{n}")
         cols = [(header_label[0], f"{header_label[1]}{n}") for n in full_channel_list]
+    elif 'pa' in kwargs:
+        cols = [f"{header_label}{n}_P{PA}" for n in full_channel_list]
     else:
         # Columns: f"{header_label}{n}"
         cols = [f"{header_label}{n}" for n in full_channel_list]
@@ -923,24 +984,23 @@ def rms_mean(x_arr):
 
 ################################################
 
-def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling, offline):
+def load_sc_data_proton(spacecraft, proton_channels, dates, data_path, resampling, offline):
     """Load the data, merge the bins, make omnidirectional, resample, and return one df:
         -index: times
         - header1: sc-ins
-        - [Flux, Uncertainty, Radial Distance, Longitude]"""
+        - [Flux, Uncertainty]"""
 
     if len(resampling) == 0:
         resampling = "15min"
 
 
 
-    # Check if the file is already made and just load that one
-    filename = f"SEP_intensities_{dates[0].strftime('%d%m%Y')}.csv"
+    # # Check if the file is already made and just load that one
+    # filename = f"SEP_intensities_{dates[0].strftime('%d%m%Y')}.csv"
 
 
 
-    # Download the data and load into a dictionary with the key as the spacecraft-instrument label
-    #sc_dict = {}
+    # Download the data and return the processed df with the energy_range_label
     spacecraft = spacecraft.lower()
 
     if 'psp' == spacecraft:
@@ -1217,6 +1277,473 @@ def load_sc_data(spacecraft, proton_channels, dates, data_path, resampling, offl
 
         return solo, energy_range_lbl
 
+    if 'bepicolombo' == spacecraft:
+        spec = 'Proton' # JAX: update when including electrons
+        bepi_df, bepi_meta = bepi_load(startdate=dates[0].date(),
+                                       enddate=dates[1].date() + dt.timedelta(days=1),
+                                       resample=None,
+                                       path=data_path,
+                                       pos_timestamp='start',
+                                       offline=offline)
+
+        if isinstance(bepi_df, list):
+            print(f"Nothing downloaded for {spacecraft}.")
+            return [], []
+
+        # Remove the specified timezone provided by the data loader
+        bepi_df.index = bepi_df.index.tz_localize(None)
+
+        # Find channels and bin widths
+        bin_list = proton_channels['BepiColombo']
+
+        if len(bin_list) == 1:
+            bin_label = f"{bin_list[0]}"
+            bin_list.append(bin_list[0])
+        else:
+            bin_label = f"{bin_list[0]}-{bin_list[1]}"
+
+        bin_width = {}
+        energy_range = []
+
+        for n in range(bin_list[0], bin_list[1]+1):
+            bin_start, bin_end = ([] for i in range(2))
+            bin_width[n] = {}
+            for s in range(5):
+                if f"Side{s}_{spec}_Bins_Low_Energy" in bepi_meta.keys():
+                    bin_s = float(bepi_meta[f"Side{s}_{spec}_Bins_Low_Energy"][f"{spec[0]}{n}"])
+                    bin_e = float(bepi_meta[f"Side{s}_{spec}_Bins_High_Energy"][f"{spec[0]}{n}"])
+
+                    bin_width[n][s] = bin_e - bin_s
+                    bin_start.append(bin_s)
+                    bin_end.append(bin_e)
+
+            if len(energy_range) == 0:
+                energy_range.append(np.nanmean(bin_start))
+        energy_range.append(np.nanmean(bin_end))
+
+        # Get the energy range for labels
+        energy_range_lbl = f"{energy_range[0]:.1f}-{energy_range[1]:.1f} MeV"
+
+        # Merge the channels
+        print( bepi_df['Side1_P7'].head() )
+        for vw in bin_width[bin_list[0]].keys(): # getting the sides
+            bepi_df[f"{vw}_F_{bin_label}"] = weighted_bin_merge(bepi_df, 'bepi', 'p', bin_list, f"Side{vw}_{spec[0]}", bin_width, pa=vw)
+            bepi_df[f"{vw}_Func_{bin_label}"] = weighted_bin_merge(bepi_df, 'bepi', 'p', bin_list, [f"Side{vw}_{spec[0]}", '_stat_err'], bin_width, pa=vw)
+
+        # Make omnidirectional
+        flux_arr, unc_arr = ([] for i in range(2))
+        for tt in bepi_df.index:
+            farr, uarr = ([] for i in range(2))
+            for vw in bin_width[bin_list[0]].keys():
+                farr.append(bepi_df.loc[tt, f"{vw}_F_{bin_label}"])
+                uarr.append(bepi_df.loc[tt, f"{vw}_Func_{bin_label}"])
+            flux_arr.append(np.nanmean(farr))
+            unc_arr.append(np.nanmean(uarr))
+
+        bepi_dct = {'Time': bepi_df.index,
+                    'Flux': flux_arr,
+                    'Uncertainty': unc_arr}
+        bepi_df1 = pd.DataFrame.from_dict(bepi_dct)
+        bepi_df1.set_index('Time', inplace=True)
+
+
+        # Resample
+        bepi = bepi_df1.resample(resampling).agg({'Flux':'mean', 'Uncertainty': rms_mean})
+
+        return bepi, energy_range_lbl
+
+def load_sc_data_electron(spacecraft, electron_channels, dates, data_path, resampling, offline):
+    """Loads the electron data, merge the bins, make the data omnidirection, resample, return one df:
+        - index: times
+        - header: [Flux, Uncertainty]"""
+
+    if len(resampling) == 0:
+        resampling = "15min"
+
+    # Download the data and return the processed df with the energy_range_label
+    spacecraft = spacecraft.lower()
+
+    # PSP
+    if spacecraft == 'psp':
+
+        # For HET - JTL: to do
+        #psp_df, psp_meta = psp_isois_load(dataset="PSP_ISOIS-EPIHI_L2-HET-RATES60", startdate=dates[0], enddate=dates[1], path=data_path, resample=None, offline=offline)
+
+        # For EPI-Lo
+        psp_df, psp_meta = psp_isois_load(dataset="PSP_ISOIS-EPILO_L2-PE",
+                                          startdate=dates[0],
+                                          enddate=dates[1],
+                                          epilo_channel='E',
+                                          all_columns=False,
+                                          path=data_path)
+
+
+        # Find channels and bin widths
+        bin_list = electron_channels['PSP']
+
+        if len(bin_list) == 1:
+            bin_label = f"{bin_list[0]}"
+            bin_list.append(bin_list[0])
+        else:
+            bin_label = f"{bin_list[0]}-{bin_list[1]}"
+
+        bin_width = []
+        energy_range = []
+        for n in range(bin_list[0], bin_list[1]+1):
+            all_pa_en = [] # all pitch angle average energies
+            all_pa_min = [] # all pitch angle minimum energies
+            all_pa_max = [] # all pitch angle maximum energies
+            for pa in range(8):
+                if psp_meta['Electron_ChanE_Energy_DELTAMINUS'][f"Electron_ChanE_Energy_DELTAMINUS_E{n}_P{pa}"] > 0: # if something has been recorded
+                    all_pa_en.append(float(psp_meta['Electron_ChanE_Energy'][f'Electron_ChanE_Energy_E{n}_P{pa}']))
+                    all_pa_min.append(float(psp_meta['Electron_ChanE_Energy_DELTAMINUS'][f'Electron_ChanE_Energy_DELTAMINUS_E{n}_P{pa}']))
+                    all_pa_max.append(float(psp_meta['Electron_ChanE_Energy_DELTAPLUS'][f'Electron_ChanE_Energy_DELTAPLUS_E{n}_P{pa}']))
+            avg_en = np.nanmean(all_pa_en)
+            avg_min = np.nanmean(all_pa_min)
+            avg_max = np.nanmean(all_pa_max)
+
+            bin_width.append(avg_min+avg_max)
+
+            if n == bin_list[0]:
+                energy_range_lbl = (avg_en - avg_min)*1e-3 # Given in keV
+            elif n == bin_list[1]:
+                energy_range_lbl = f"{energy_range_lbl:.2f}-{(avg_en+avg_max)*1e-3:.2f} MeV"
+
+
+        # Merge the channels
+        psp_dct = {}
+        for p in [3,7]: # only looking in sun/asun directions
+            tmp_dct = {'Time': psp_df.index}
+
+            tmp_dct['Flux'] = weighted_bin_merge(psp_df, 'psp', 'electrons', bin_list, 'Electron_Flux_ChanE_E', bin_width, pa=p)
+            tmp_dct['Unc'] = weighted_bin_merge(psp_df, 'psp', 'electrons',  bin_list, 'Electron_Flux_ChanE_DELTA_E', bin_width, pa=p)
+
+            tmp_df = pd.DataFrame.from_dict(tmp_dct)
+            tmp_df.set_index('Time', inplace=True)
+            psp_dct[p] = tmp_df
+
+        # Make omnidirectional
+        flux_arr, unc_arr = ([] for i in range(2))
+
+        for tt in psp_df.index:
+            ftmp, utmp = ([] for i in range(2))
+            for p in [3,7]:
+                ftmp.append( (psp_dct[p].loc[tt, 'Flux']) )
+                utmp.append( (psp_dct[p].loc[tt, 'Unc']) )
+            flux_arr.append( np.nanmean(ftmp) )
+            unc_arr.append( np.nanmean(utmp) )
+
+        omni_psp = {'Time': psp_df.index,
+                    'Flux': flux_arr,
+                    'Uncertainty': unc_arr}
+        omni_psp_df = pd.DataFrame.from_dict(omni_psp)
+        omni_psp_df.set_index('Time', inplace=True)
+
+        omni_psp_df['Flux'] = (omni_psp_df['Flux']) * 1e3 # convert from pfu/keV to pfu/MeV
+        omni_psp_df['Uncertainty'] = (omni_psp_df['Uncertainty']) * 1e3
+
+
+        # Resample
+        psp_df_final = omni_psp_df.resample(resampling).agg({'Flux':'mean', 'Uncertainty':rms_mean})
+
+        return psp_df_final, energy_range_lbl
+
+
+    if spacecraft in ['soho', 'wind']:
+        print("Using Wind-3DP data for low-energy electron data near Earth.")
+
+        # Geometric factor for uncertainty calculations
+        GF = 1.7 # cm^2 sr - wind3dp-sst-foilf
+
+        # Download
+        wind_df, wind_meta = wind3dp_load(dataset="WI_SFSP_3DP", # downloads the omnidirectional data
+                                          startdate=dates[0],
+                                          enddate=dates[1],
+                                          multi_index=False,
+                                          path=data_path,
+                                          resample='1min')
+
+        # Find channels and bin widths
+        wmeta = wind_meta['channels_dict_df']
+
+        bin_width, energy_range = ([] for i in range(2))
+
+        if 'Wind' in electron_channels.keys():
+            bin_list = electron_channels['Wind']
+        else:
+            bin_list = electron_channels['SOHO']
+
+        if len(bin_list) == 1:
+            bin_list.append(bin_list[0])
+            bin_label = f"{bin_list[0]}"
+        else:
+            bin_label = f"{bin_list[0]}-{bin_list[1]}"
+
+        for n in range(bin_list[0], bin_list[1]+1):
+            bin_start = float(wmeta.loc[f"ENERGY_{n}", 'lower_E'])
+            bin_end = float(wmeta.loc[f"ENERGY_{n}", 'upper_E'])
+
+            bin_width.append(bin_end - bin_start)
+
+            if len(energy_range) == 0:
+                energy_range.append(bin_start)
+            if n == bin_list[1]:
+                energy_range.append(bin_end)
+
+        energy_range_lbl = f"{energy_range[0]:.2f}-{energy_range[1]:.2f} MeV"
+
+
+        # Convert the flux from /eV to /MeV and calculate the uncertainty
+        wdct = {'Time': wind_df.index}
+        for i, n in enumerate(range(bin_list[0], bin_list[1]+1)):
+            wdct[f"Flux_{n}"] = (wind_df[f"FLUX_{n}"]) * 1e6 # Convert the flux from /eV to /MeV
+
+            wdct[f"Unc_{n}"] = np.sqrt( (wdct[f"Flux_{n}"]) / (GF * bin_width[i]) ) # Calc uncertainty
+
+
+        wdf = pd.DataFrame.from_dict(wdct)
+        wdf.set_index('Time', inplace=True)
+
+        # Merge channels
+        wdct1 = {'Time':wdf.index}
+        wdct1['Flux'] = weighted_bin_merge(wdf, 'wind', 'electrons', bin_list, 'Flux_', bin_width)
+        wdct1['Uncertainty'] = weighted_bin_merge(wdf, 'wind', 'electrons', bin_list, 'Unc_', bin_width)
+
+        wdf1 = pd.DataFrame.from_dict(wdct1)
+        wdf1.set_index('Time', inplace=True)
+
+
+        # Resample
+        wdf2 = wdf1.resample(resampling).agg({'Flux':'mean', 'Uncertainty':rms_mean})
+
+
+        return wdf2, energy_range_lbl
+
+
+
+
+    if spacecraft == 'solar orbiter':
+        df, df_rtn, df_hci, energy, meta = epd_load(sensor='ept',
+                                                    level='l3',
+                                                    startdate=dates[0],
+                                                    enddate=dates[1],
+                                                    autodownload=True,
+                                                    pos_timestamp='start',
+                                                    path=data_path)
+
+        # Quick (incorrect) resampling to reduce runtime
+        df1 = df.resample('1min').mean()
+
+        # Find channels and bin widths
+        bin_list = electron_channels['Solar Orbiter']
+
+        if len(bin_list) == 1:
+            bin_list.append(bin_list[0])
+
+        meta = energy['Electron_Bins_Text']
+        bin_width, energy_range = ([] for i in range(2))
+
+        for n in range(bin_list[0], bin_list[1]+1):
+            # Starting with a string like " 3.8 - 4.5 MeV"
+            ch_str = meta[n].split(' M')[0] # Removing the units
+            bin_start = float(ch_str.split('-')[0])
+            bin_end = float(ch_str.split('-')[1])
+
+            bin_width.append( bin_end - bin_start )
+
+            if len(energy_range) == 0:
+                energy_range.append(bin_start)
+        energy_range.append(bin_end)
+
+        energy_range_lbl = f"{energy_range[0]:.2f}-{energy_range[1]:.2f} MeV"
+
+        # Merge channels
+        dct = {} # Every view has its own df
+        solo_views = ['S','A','N','D']
+
+        for vw in solo_views:
+            tmp_df = {'Time':df1.index}
+
+            tmp_df['Flux'] = weighted_bin_merge(df1, 'solar orbiter', 'electrons', bin_list, f"Electron_Corrected_Flux_{vw}_", bin_width)
+            tmp_df['Unc'] = weighted_bin_merge(df1, 'solar orbiter', 'electrons', bin_list, f"Electron_Corrected_Uncertainty_{vw}_", bin_width)
+
+            df_tmp = pd.DataFrame.from_dict(tmp_df)
+            df_tmp.set_index('Time', inplace=True)
+            dct[vw] = df_tmp
+
+        # Make omnidirectional
+        flux_arr, unc_arr = ([] for i in range(2))
+
+        for tt in df1.index:
+            ftmp, utmp = ([] for i in range(2))
+
+            for vw in solo_views:
+                ftmp.append( dct[vw].loc[tt, 'Flux'] )
+                utmp.append( dct[vw].loc[tt, 'Unc'] )
+
+            flux_arr.append( np.nanmean(ftmp) )
+            unc_arr.append( np.nanmean(utmp) )
+
+        omni_df = {'Time': df1.index,
+                   'Flux': flux_arr,
+                   'Uncertainty': unc_arr}
+        omni_df1 = pd.DataFrame.from_dict(omni_df)
+        omni_df1.set_index('Time', inplace=True)
+
+
+        # Resample
+        solo_df0 = omni_df1.resample(resampling).agg({'Flux':'mean', 'Uncertainty':rms_mean})
+
+
+        return solo_df0, energy_range_lbl
+
+
+    if spacecraft == 'stereo a':
+        sta_views  = ['sun','asun','north','south']
+
+        dct = {}
+        for vw in sta_views:
+            df, meta = stereo_load(spacecraft='ahead',
+                                   instrument='sept',
+                                   sept_viewing=vw,
+                                   startdate=dates[0],
+                                   enddate=dates[1] + dt.timedelta(hours=23), # cuts to the start of this given date
+                                   path=data_path,
+                                   pos_timestamp='start',
+                                   sept_species='e')
+
+            # Find channels and bin widths
+            meta = meta['channels_dict_df_e']
+
+            bin_width, energy_range = ([] for i in range(2))
+            bin_list = electron_channels['STEREO A']
+
+            if len(bin_list) == 1:
+                bin_list.append(bin_list[0])
+
+            for n in range(bin_list[0], bin_list[1]+1):
+                ch_str = meta.loc[n, 'ch_strings']
+                ch_str = (ch_str.split(' '))[0] # Removes ' keV'
+
+                bin_start = float((ch_str.split('-'))[0]) * 1e-3
+                bin_end = float((ch_str.split('-'))[1]) * 1e-3
+
+                bin_width.append(bin_end - bin_start)
+
+                if len(energy_range) == 0:
+                    energy_range.append(bin_start)
+            energy_range.append(bin_end)
+
+            energy_range_lbl = f"{energy_range[0]:.2f}-{energy_range[1]:.2f} MeV"
+
+            # Merge channels
+            dct_tmp = {'Time':df.index}
+            dct_tmp['Flux'] = weighted_bin_merge(df, 'STEREO A', 'electrons', bin_list, 'ch_', bin_width)
+            dct_tmp['Unc'] = weighted_bin_merge(df, 'STEREO A', 'electrons', bin_list, 'err_ch_', bin_width)
+
+            # Make a df for each viewing direction and store
+            df_tmp = pd.DataFrame.from_dict(dct_tmp)
+            df_tmp.set_index('Time', inplace=True)
+            dct[vw] = df_tmp
+
+        # Make omnidirectional
+        flux_arr, unc_arr = ([] for i in range(2))
+        for tt in df.index:
+            ftmp, utmp = ([] for i in range(2))
+            for vw in sta_views:
+                ftmp.append( dct[vw].loc[tt, 'Flux'] )
+                utmp.append( dct[vw].loc[tt, 'Unc'] )
+            flux_arr.append( np.nanmean(ftmp) )
+            unc_arr.append( np.nanmean(utmp) )
+
+        omni_dct = {'Time': df.index,
+                    'Flux': flux_arr,
+                    'Uncertainty': unc_arr}
+        omni_df = pd.DataFrame.from_dict(omni_dct)
+        omni_df.set_index('Time', inplace=True)
+
+        # Resample
+        df3 = omni_df.resample(resampling).agg({'Flux':'mean', 'Uncertainty':rms_mean})
+
+
+        return df3, energy_range_lbl
+
+    if spacecraft == 'bepicolombo':
+        df, meta = bepi_load(startdate=dates[0].strftime("%Y-%m-%d"),
+                             enddate=dates[1].strftime("%Y-%m-%d"),
+                             path=data_path)
+
+        if isinstance(df, list):
+            print(f"Nothing downloaded for {spacecraft}.")
+            return [], []
+
+        print("Bepi df:")
+        print(df)
+        # Shorten the df to just the dates we want (provides the whole month)
+        # and also remove the timezone
+        start = dates[0].replace(tzinfo=dt.timezone.utc)
+        end = dates[1].replace(tzinfo=dt.timezone.utc)
+        df0 = df.loc[start:end]
+
+        print("\nAfter, bepi:")
+        print(df0)
+
+        # Find channels and bin widths
+        bin_list = electron_channels['BepiColombo']
+
+        if len(bin_list) == 1:
+            bin_list.append(bin_list[0])
+
+        spec = 'Electron'
+
+        bin_width = {}
+        bin_min = 100
+        bin_max = 0
+        for side in range(4): # Side 4 to be included in the mission later
+            bin_width[side] = []
+            for n in range(bin_list[0], bin_list[1]+1):
+                bstart = float(meta[f"Side{side}_{spec}_Bins_Low_Energy"][f"{spec[0]}{n}"])
+                bend = float(meta[f"Side{side}_{spec}_Bins_High_Energy"][f"{spec[0]}{n}"])
+
+                bin_width[side].append(bend - bstart)
+                if bstart < bin_min:
+                    bin_min = bstart
+                if bend > bin_max:
+                    bin_max = bend
+
+        energy_range_lbl = f"{bin_min:.2f}-{bin_max:.2f} MeV"
+
+        # Merge the channels for each side
+        dct = {'Time': df0.index}
+        for side in range(4):
+            dct[f"{side}_Flux"] = weighted_bin_merge(df0, 'bepi', spec, bin_list, f"Side{side}_{spec[0]}", bin_width[side])
+            dct[f"{side}_Unc"] = weighted_bin_merge(df0, 'bepi', spec, bin_list, [f"Side{side}_{spec[0]}", "_stat_err"], bin_width[side])
+        df1 = pd.DataFrame.from_dict(dct)
+        df1.set_index('Time', inplace=True)
+
+        # Make omnidirectional
+        flux_arr, unc_arr = ([] for i in range(2))
+        for tt in df1.index:
+            ftmp, utmp = ([] for i in range(2))
+            for side in range(4):
+                ftmp.append(df1.loc[tt, f"{side}_Flux"])
+                utmp.append(df1.loc[tt, f"{side}_Unc"])
+            flux_arr.append(np.nanmean(ftmp))
+            unc_arr.append(np.nanmean(utmp))
+
+        dct1 = {'Time': df1.index,
+                'Flux': flux_arr,
+                'Uncertainty': unc_arr}
+        df2 = pd.DataFrame.from_dict(dct1)
+        df2.set_index('Time', inplace=True)
+
+        # Resample
+        df3 = df2.resample(resampling).agg({'Flux':'mean', 'Uncertainty':rms_mean})
+
+        return df3, energy_range_lbl
+
+
+
 
 
 ################################################
@@ -1488,7 +2015,7 @@ def odr_gauss_fit(dict_1timestep, prev_results={'A': np.nan, 'X0': np.nan, 'sigm
 
 
 
-def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data, energy_range_label, plot_foot_sep_limits):
+def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data, energy_range_label, species, plot_foot_sep_limits, excluded_observers):
     """Read in the full df, calculate the curve at each timestep, save the results to new columns."""
     # Create a folder to save the gaussian timestep figures in
     try:
@@ -1505,14 +2032,30 @@ def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data
 
     for i in tqdm(sc_dict[obs[0]].index): # iterate through each timestep
         x, xerr, y, yerr, sc_arr, x_real = ([] for i in range(6))
+        excl_dict = {}
 
         for sc, df in sc_dict.items():
-            sc_arr.append(sc)
-            y.append(float(np.log10(df.loc[i, 'Flux'])))
-            yerr.append(float(np.log10(df.loc[i, 'Uncertainty'])))
-            x.append(float(df.loc[i, 'long_sep'])) #x.append(float(df.loc[i, 'foot_long']))
-            xerr.append(float(df.loc[i, 'foot_long_error']))
-            x_real.append(float(df.loc[i, 'foot_long']))
+            if sc not in excluded_observers:
+                sc_arr.append(sc)
+                if i not in df.index:
+                    y.append(np.nan)
+                    yerr.append(np.nan)
+                    x.append(np.nan) #x.append(float(df.loc[i, 'foot_long']))
+                    xerr.append(np.nan)
+                    x_real.append(np.nan)
+                else:
+                    y.append(float(np.log10(df.loc[i, 'Flux'])))
+                    yerr.append(float(np.log10(df.loc[i, 'Uncertainty'])))
+                    x.append(float(df.loc[i, 'long_sep'])) #x.append(float(df.loc[i, 'foot_long']))
+                    xerr.append(float(df.loc[i, 'foot_long_error']))
+                    x_real.append(float(df.loc[i, 'foot_long']))
+            else:
+                if i in df.index:
+                    excl_dict[sc] = {'x': float(df.loc[i, 'long_sep']),
+                                    'xerr': float(df.loc[i, 'foot_long_error']),
+                                    'xreal': float(df.loc[i, 'foot_long']),
+                                    'y': float(np.log10(df.loc[i, 'Flux'])),
+                                    'yerr': float(np.log10(df.loc[i, 'Uncertainty']))}
 
         # Calculate the fit now
         timestep_dict = {'x':x, 'y':y, 'sc':sc_arr, 'xerr':xerr, 'yerr':yerr, 'xreal': x_real}
@@ -1536,7 +2079,7 @@ def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data
 
         # Plot the fit for this timestep
         if not np.isnan(x).any() and not np.isnan(gauss_results['X0']):
-            plot_curve_and_timeseries(gauss_results, timestep_dict, sc_dict, data_path+f'Gauss_fits{os.sep}', i, reference, flare_loc, energy_range_label, plot_foot_sep_limits)
+            plot_curve_and_timeseries(gauss_results, timestep_dict, sc_dict, data_path+f'Gauss_fits{os.sep}', i, reference, flare_loc, energy_range_label, species, plot_foot_sep_limits, excl_dict)
 
         prev_gauss = gauss_results
 
@@ -1581,7 +2124,7 @@ def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data
 ## Plotters
 ################################################
 
-def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, background_window=[]):
+def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, species, background_window=[]):
     """Plots the time series for each observer."""
     # Determine how many subplots are needed
     obs = list(sc_dict.keys())
@@ -1593,6 +2136,12 @@ def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, background
     # Title
     ax[0].set_title(dates[0].strftime("%H:%M - %d %b, %Y"), pad=9, loc='left')
     fig.supylabel(f'Intensity (s sr cm{SQUARED_TEXT} MeV){NEGPOWER_TEXT}', x=-0.04)
+
+
+    # max_Ylim = 0
+    # min_Ylim = 1e9
+    xmin = dates[0] - dt.timedelta(hours=5)
+    xmax = dates[1] + dt.timedelta(hours=22)
 
 
     for n, sc in enumerate(obs):
@@ -1636,18 +2185,20 @@ def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, background
             #              label='Background avg', color='orange', linestyle='dashed')
 
         # Plot the data
-        ax[n].semilogy(sc_dict[sc]['Flux'], color=mrkr['color'],
-                       label=f"{mrkr['label']} ({channel_labels[sc]})", linestyle='solid')
-        ax[n].fill_between(x = sc_dict[sc].index,
-                           y1= sc_dict[sc]['Flux'] - sc_dict[sc]['Uncertainty'],
-                           y2= sc_dict[sc]['Flux'] + sc_dict[sc]['Uncertainty'],
+        scdfTmp = sc_dict[sc].loc[xmin:xmax]
+        ax[n].semilogy(scdfTmp['Flux'], #sc_dict[sc]['Flux'],
+                       color=mrkr['color'],
+                       label=f"{mrkr['label'][species[0].lower()]} ({channel_labels[sc]})", linestyle='solid')
+        ax[n].fill_between(x = scdfTmp.index, #sc_dict[sc].index,
+                           y1= scdfTmp['Flux'] - scdfTmp['Uncertainty'],
+                           y2= scdfTmp['Flux'] + scdfTmp['Uncertainty'],
                            alpha=0.3, color=mrkr['color'])
         ax[n].legend(loc='upper right', alignment='left')
         ax[n].yaxis.set_major_locator(mpl.ticker.LogLocator(base=10, numticks=3))
         ax[n].minorticks_on()
 
-    xmin = dates[0] - dt.timedelta(hours=5)
-    xmax = dates[1] + dt.timedelta(hours=22)
+    # xmin = dates[0] - dt.timedelta(hours=5)
+    # xmax = dates[1] + dt.timedelta(hours=22)
     ax[0].set_xlim(left=xmin)#,xmax])
     locator = mpl.dates.AutoDateLocator(minticks=3, maxticks=6)
     ax[n-1].xaxis.set(major_locator=locator, )
@@ -1658,7 +2209,7 @@ def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, background
     plt.show()
 
 
-def find_peak_intensity(sc_dict, data_path, date, window_length=10):
+def find_peak_intensity(sc_dict, data_path, date, excluded_observers, window_length=10):
     """Reading in all the spacecraft datasets, this function finds the peak of each dataset
         and fits a Gaussian curve to the resulting set of peaks."""
 
@@ -1668,6 +2219,8 @@ def find_peak_intensity(sc_dict, data_path, date, window_length=10):
     # Iterate through each spacecraft df and save the intensity and datetime of the peak
     peak_y, peak_yerr, peak_x, peak_xerr, peak_time, peak_sc, peak_xreal = ([] for i in range(7))
     for sc, sc_df in sc_dict.items():
+        if sc in excluded_observers: # So it doesn't get added to the fitting dict.
+            continue
         peak_index = sc_df.loc[date:peak_window_end, 'Flux'].idxmax()
 
         peak_time.append(peak_index)
@@ -1692,9 +2245,10 @@ def find_peak_intensity(sc_dict, data_path, date, window_length=10):
 
     peak_data_results = peak_data_dict | peak_fit_results #combine the results to the given values.
 
+
     return peak_data_results
 
-def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_range_label, reference, flare_loc, plot_foot_sep_limits):
+def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_range_label, species, reference, flare_loc, plot_foot_sep_limits, excluded_observers, window_length=10):
     """Plotting the results of the find_peak_intensity function."""
 
     # Plot
@@ -1745,7 +2299,7 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
 
         tseries_ax.plot(peak_data_results['times'][n], 10**(peak_data_results['y'][n]),
                         color=mrkr['color'], marker=mrkr['marker'],
-                        label=f"{mrkr['label']} ({peak_data_results['times'][n].strftime('%H:%M %d %b. %y')})")
+                        label=f"{mrkr['label'][species[0].lower()]} ({peak_data_results['times'][n].strftime('%H:%M %d %b. %y')})")
 
         # Plot the full time series
         tseries_ax.semilogy(sc_dict[sc]['Flux'], color=mrkr['color'])
@@ -1753,6 +2307,34 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
                                 y1=sc_dict[sc]['Flux'] - sc_dict[sc]['Uncertainty'],
                                 y2=sc_dict[sc]['Flux'] + sc_dict[sc]['Uncertainty'],
                                 alpha=0.3, color=mrkr['color'])
+
+    peak_window_end = date + dt.timedelta(hours=window_length)
+    for sc in excluded_observers:
+        mrkr = marker_settings[sc]
+
+        # Find peak for excluded observer
+        pk_i = sc_dict[sc].loc[date:peak_window_end, 'Flux'].idxmax()
+        pk_x = sc_dict[sc].loc[pk_i, x_col_label]
+        pk_xr = sc_dict[sc].loc[pk_i, 'foot_long_error']
+        pk_y = sc_dict[sc].loc[pk_i, 'Flux']
+        pk_yr = sc_dict[sc].loc[pk_i, 'Uncertainty']
+
+        # plot the hollow marker in both plots
+        gauss_ax.errorbar(pk_x, pk_y,
+                          xerr=pk_xr, yerr=pk_yr,
+                          mec=mrkr['color'], mfc='white', mew=1.2,
+                          ecolor=mrkr['color'],
+                          marker=mrkr['marker'])
+        tseries_ax.plot(pk_i, pk_y, mec=mrkr['color'], mfc='white',
+                        marker=mrkr['marker'], mew=1.2,
+                        label=f"{mrkr['label'][species[0].lower()]} excl. ({pk_i.strftime('%H:%M %d %b. %y')})")
+
+        # Plot the full time series
+        tseries_ax.semilogy(sc_dict[sc]['Flux'], color=mrkr['color'], linestyle='dotted')
+        tseries_ax.fill_between(x=sc_dict[sc].index,
+                                y1=sc_dict[sc]['Flux'] - sc_dict[sc]['Uncertainty'],
+                                y2=sc_dict[sc]['Flux'] + sc_dict[sc]['Uncertainty'],
+                                alpha=0.3, color='slategray') #mrkr['color'])
 
     tseries_ax.legend(loc='upper center', bbox_to_anchor=(0.5,1.2), ncols=2, fontsize=8)
 
@@ -1822,7 +2404,7 @@ def log_gauss_error_range_calc(x_arr, y_arr, peak_fit, flarelong):
     return y_err
 
 
-def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep, reference, flare_loc, energy_range_label, plot_foot_sep_limits):
+def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep, reference, flare_loc, energy_range_label, species, plot_foot_sep_limits, excl_dict):
     """Plotting two subplots, left the fitted gaussian curve, right the time series."""
 
     fig = plt.figure(figsize=[10,3], dpi=250)
@@ -1902,7 +2484,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
 
 
 
-
+    # Show the obs markers
     for n in range(len(sc_df['sc'])):
         markers = marker_settings[sc_df['sc'][n]]
         # gauss_ax.semilogy(sc_df[gauss_xlabel][n], 10**(sc_df['y'][n]), label=sc_df['sc'][n],
@@ -1911,7 +2493,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
                           10**(sc_df['y'][n]),
                           xerr=sc_df['xerr'][n],
                           yerr=10**(sc_df['yerr'][n]),
-                          label=markers['label'], #sc_df['sc'][n],
+                          label=markers['label'][species[0].lower()], #sc_df['sc'][n],
                           marker=markers['marker'],
                           color=markers['color'], ecolor=markers['color'])
 
@@ -1922,6 +2504,25 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
                                 y1=full_df[sc_df['sc'][n]]['Flux'] - full_df[sc_df['sc'][n]]['Uncertainty'],
                                 y2=full_df[sc_df['sc'][n]]['Flux'] + full_df[sc_df['sc'][n]]['Uncertainty'],
                             color=markers['color'], alpha=0.3)
+    if len(excl_dict.keys()) > 0:
+        for sc in excl_dict.keys():
+            mrkr = marker_settings[sc]
+            gauss_ax.errorbar(excl_dict[sc][gauss_xlabel],
+                              10**(excl_dict[sc]['y']),
+                              xerr=excl_dict[sc]['xerr'],
+                              yerr=10**(excl_dict[sc]['yerr']),
+                              label=mrkr['label'][species[0].lower()]+' (excl)',
+                              marker=mrkr['marker'], ecolor=mrkr['color'],
+                              mec=mrkr['color'], mfc='white', mew=1.2)
+            tseries_ax.semilogy(full_df[sc]['Flux'], linestyle='dotted',
+                                color=mrkr['color'], label=sc)
+            tseries_ax.fill_between(x=full_df[sc].index,
+                                    y1=full_df[sc]['Flux'] - full_df[sc]['Uncertainty'],
+                                    y2=full_df[sc]['Flux'] + full_df[sc]['Uncertainty'],
+                                    color='slategray', alpha=0.3)
+
+
+
     gauss_ax.legend(loc='upper left', bbox_to_anchor=(0.02,1.15), ncols=6, fontsize=8)
     #bbox_to_anchor=(0.2, 1.03, 1.0, 0.1), loc='upper left', ncols=6, fontsize=9)
 
@@ -1939,7 +2540,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
     plt.close("all")
 
 
-def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_loc, reference, energy_range_label, foot_sep_limits_bool, **kwargs):
+def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_loc, reference, energy_range_label, species, foot_sep_limits_bool, excluded_observers, **kwargs):
     """Plots only the curve at the given timestep."""
     fig, ax = plt.subplots(1,1, figsize=[3,3], dpi=300)
 
@@ -1969,17 +2570,21 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
         if sc=='Gauss':
             continue
         mrkr = marker_settings[sc]
-        # print(timestep)
-        # print(x_col_label)
-        # print(sdf)
-        # ax.semilogy(sdf.loc[timestep, x_col_label], sdf.loc[timestep, 'Flux'],
-        #             label=mrkr['label'], color=mrkr['color'], marker=mrkr['marker'])
+        if sc in excluded_observers:
+            mfc = 'white'
+            mew = 1.2
+            label = mrkr['label'][species[0].lower()] + ' (excl.)'
+        else:
+            mfc = mrkr['color']
+            mew = 0
+            label = mrkr['label'][species[0].lower()]
         ax.errorbar(sdf.loc[timestep, x_col_label],
                     sdf.loc[timestep, 'Flux'],
                     xerr=sdf.loc[timestep, 'foot_long_error'],
                     yerr=sdf.loc[timestep, 'Uncertainty'],
-                    label=mrkr['label'], marker=mrkr['marker'],
-                    color=mrkr['color'], ecolor=mrkr['color'])
+                    label=label, marker=mrkr['marker'], mew=mew,
+                    color=mrkr['color'], mfc=mfc,
+                    mec=mrkr['color'], ecolor=mrkr['color'])
 
         ylimits[0] = np.nanmin([ylimits[0], np.nanmin(sdf.loc[timestep,'Flux'])])
         ylimits[1] = np.nanmax([ylimits[1], np.nanmax(sdf.loc[timestep,'Flux'])])
@@ -2066,7 +2671,7 @@ def copy_fig_axs(fig): # Taken from multi_inst_plots
 
 
 
-def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, flare_loc, **kwargs):
+def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, species, flare_loc, excluded_observers, **kwargs):
     """Plots the following time series: intensity, gauss center, and gauss sigma."""
 
     fig, ax = plt.subplots(3, 1, figsize=[6,6], dpi=300, sharex=True)
@@ -2089,12 +2694,18 @@ def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, fl
             continue
         mrkr = marker_settings[sc]
 
-        ax[0].semilogy(s_df['Flux'], color=mrkr['color'],
-                       label=f"{mrkr['label']} ({channel_labels[sc]})")
+        if sc in excluded_observers:
+            lstyle = 'dotted'
+            ecolor = 'slategray'
+        else:
+            lstyle='solid'
+            ecolor = mrkr['color']
+        ax[0].semilogy(s_df['Flux'], color=mrkr['color'], linestyle=lstyle,
+                       label=f"{mrkr['label'][species[0].lower()]} ({channel_labels[sc]})")
         ax[0].fill_between(x=s_df.index,
                            y1=s_df['Flux'] - s_df['Uncertainty'],
                            y2=s_df['Flux'] + s_df['Uncertainty'],
-                           alpha=0.3, color=mrkr['color'])
+                           alpha=0.3, color=ecolor)
 
         ylimits['intensity'][0] = np.nanmin([ylimits['intensity'][0], np.nanmin(s_df['Flux'])] )
         ylimits['intensity'][1] = np.nanmax([ylimits['intensity'][1], np.nanmax(s_df['Flux'])] )
