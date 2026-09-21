@@ -163,4 +163,5 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
     #print(results.columns)
     print('STOP REASON : ', fit.stopreason)
     sf.print_results(results)
-    
+
+    return f, ax, results
