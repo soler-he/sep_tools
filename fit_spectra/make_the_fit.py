@@ -1,7 +1,7 @@
 # solo_functions.py
 import numpy as np
 import pandas as pd
-import odrpack_functions as pl_fit
+import fit_spectra.odrpack_functions as pl_fit
 from scipy.stats import t as studentt
 import pickle
 
