@@ -819,7 +819,7 @@ class Event:
                     self.final_unc = np.zeros(len(I_spec)) * np.nan  # TODO: implement correct uncerstainties for Wind/3DP
                 else:
                     # bg_unc_spec = np.nanmean(df_uncs.iloc[ind_bg], axis=0)  # !!! check if implemented correctly
-                    bg_unc_spec = propagated_mean_uncertainty(df_uncs.iloc[ind_bg])
+                    bg_unc_spec = propagated_mean_uncertainty(df_uncs.iloc[ind_bg]).values
                     # unc_spec = np.nanmax(df_uncs.iloc[ind_bg], axis=0)
                     self.final_unc = np.sqrt(bg_unc_spec**2 + unc_spec**2)
             else:
