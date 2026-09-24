@@ -119,7 +119,7 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
     fit = fitting.MAKE_THE_FIT(x_data, y_data, x_err, y_err, ax, direction='sun', e_min = e_min, e_max = e_max, 
                                which_fit=which_fit, g1_guess=g1_guess, g2_guess=g2_guess, g3_guess = g3_guess, 
                                alpha_guess=alpha_guess, beta_guess = beta_guess, break_low_guess=break_guess_low, 
-                               break_high_guess = break_guess_high, cut_guess = cut_guess, I0_guess = I0_guess, E_0=E_0, 
+                               break_high_guess = break_guess_high, cut_guess = cut_guess, c1_guess = I0_guess, 
                                exponent_guess = exponent_guess, use_random = use_random, iterations = iterations, 
                                path = None, path2 = fit_var_path, detailed_legend = legend_details)
 

@@ -4,6 +4,7 @@ jupyter
 lmfit
 numba
 numpy
+odrpack
 pandas
 piecewise_regression
 pillow>=11.0.0
