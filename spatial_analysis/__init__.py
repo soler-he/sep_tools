@@ -89,7 +89,7 @@ SQUARED_TEXT = r"$^{2}$"
 NEGPOWER_TEXT = r"$^{-1}$"
 
 ####### ODRPACK NOT AVAILABLE IN HUB YET
-use_old_odr_method = True
+use_old_odr_method = False
 if not use_old_odr_method:
     from odrpack import odr_fit
 
@@ -282,7 +282,7 @@ class SpatialEvent:
                         full_energy_range[0] = s_tmp
                     if (e_tmp > full_energy_range[1]):
                         full_energy_range[1] = e_tmp
-        self.energy_range_label = f"{full_energy_range[0]:.1f}-{full_energy_range[1]:.1f} MeV"
+        self.energy_range_label = f"{full_energy_range[0]:.2f}-{full_energy_range[1]:.2f} MeV"
 
         print("Data loading complete.")
 
@@ -570,7 +570,7 @@ def horizons_speasy_location_loader(observers, dates, data_path, resampling, sou
                                       index_col=0, header=[0,1],
                                       parse_dates=True, na_values='nan')
             else:
-                sm_loop = pd.read_csv(raw_path+filename, 
+                sm_loop = pd.read_csv(raw_path+filename,
                                       index_col=0, header=[0,1],
                                       parse_dates=True, na_values='nan')
 
@@ -1375,11 +1375,17 @@ def load_sc_data_electron(spacecraft, electron_channels, dates, data_path, resam
                                           enddate=dates[1],
                                           epilo_channel='E',
                                           all_columns=False,
-                                          path=data_path)
+                                          path=data_path,
+                                          offline=offline)
 
 
         # Find channels and bin widths
         bin_list = electron_channels['PSP']
+        # print(bin_list)
+        # print(psp_meta)
+        # ddf = pd.DataFrame.from_dict(psp_meta)
+        # ddf.to_csv(data_path+f"psp_epilo_meta_{dates[0].strftime('%d%b%Y')}.csv")
+        # psp_df.to_csv(data_path+"psp_epilo_data_26march2025.csv")
 
         if len(bin_list) == 1:
             bin_label = f"{bin_list[0]}"
@@ -1401,6 +1407,10 @@ def load_sc_data_electron(spacecraft, electron_channels, dates, data_path, resam
             avg_en = np.nanmean(all_pa_en)
             avg_min = np.nanmean(all_pa_min)
             avg_max = np.nanmean(all_pa_max)
+            # print(all_pa_en)
+            # print(avg_en)
+            # print(avg_min)
+            # print(avg_max)
 
             bin_width.append(avg_min+avg_max)
 
@@ -1408,11 +1418,11 @@ def load_sc_data_electron(spacecraft, electron_channels, dates, data_path, resam
                 energy_range_lbl = (avg_en - avg_min)*1e-3 # Given in keV
             elif n == bin_list[1]:
                 energy_range_lbl = f"{energy_range_lbl:.2f}-{(avg_en+avg_max)*1e-3:.2f} MeV"
-
+        # print(energy_range_lbl)
 
         # Merge the channels
         psp_dct = {}
-        for p in [3,7]: # only looking in sun/asun directions
+        for p in [3,7]: # only looking in sun/asun directions, otherwise... range(8):
             tmp_dct = {'Time': psp_df.index}
 
             tmp_dct['Flux'] = weighted_bin_merge(psp_df, 'psp', 'electrons', bin_list, 'Electron_Flux_ChanE_E', bin_width, pa=p)
@@ -1948,7 +1958,7 @@ def odr_gauss_fit(dict_1timestep, prev_results={'A': np.nan, 'X0': np.nan, 'sigm
     # print(prev_results)
     # jax=input('yah')
     if not use_old_odr_method: # Using new odrpack function
-        print('Using odrpack, good?')
+        #print('Using odrpack, good?')
         if np.isnan(df['yerr']).any(): # If there are any nans then it might break
             out = odr_fit(log_gauss_function_beta_odrpack, # function
                         df['x'], df['y'], # x and y arrays
