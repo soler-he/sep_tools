@@ -59,7 +59,7 @@ class Options:
     A class for displaying and storing plot options.
     """
     def __init__(self):
-
+        self.offline = False
         self.spacecraft = w.Dropdown(value=None, description="Spacecraft", 
                                      options=["Parker Solar Probe", "Solar Orbiter", "L1 (Wind/SOHO)", "STEREO"], 
                                      style=_style)

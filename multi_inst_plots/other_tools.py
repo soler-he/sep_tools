@@ -12,6 +12,7 @@ from matplotlib import cm
 from matplotlib import ticker
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from stixdcpy.quicklook import LightCurves
+from requests.exceptions import ConnectionError as RequestsConnectionError
 from seppy.tools import resample_df
 from sunpy import timeseries as ts
 from sunpy.net import Fido
@@ -174,8 +175,11 @@ def load_solo_stix(start, end, ltc=True, resample=None):
         if resample != "0min" and resample is not None:
             df_stix = resample_df(df_stix, resample=resample, pos_timestamp=None, cols_unc=[])
 
-    except (TypeError, KeyError):
-        print("Unable to load STIX data!")
+    except RequestsConnectionError:
+        print("Unable to obtain SolO/STIX data: no internet connection or host unreachable.")
+        df_stix = []
+    except (TypeError, KeyError) as e:
+        print(f"Unable to obtain SolO/STIX data: {e}")
         df_stix = []
 
     return df_stix
@@ -222,7 +226,13 @@ def load_goes_xrs(start, end, man_select=False, resample=None, path=None):
         satellite number for which data was returned
     """
     
-    result_goes = Fido.search(a.Time(start, end), a.Instrument("XRS"), a.Resolution("flx1s"))
+    try:
+        result_goes = Fido.search(a.Time(start, end), a.Instrument("XRS"), a.Resolution("flx1s"))
+    except ConnectionError:
+        print("Unable to obtain GOES/XRS data: no internet connection or VSO mirrors unreachable.")
+        df_goes = []
+        sat = ''
+        return df_goes, sat
 
     # No data found
     if len(result_goes["xrs"]) == 0:

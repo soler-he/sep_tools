@@ -21,6 +21,7 @@ from seppy.loader.wind import wind3dp_load
 from seppy.loader.soho import soho_load
 from seppy.tools import resample_df
 # from other_loaders_py3 import wind_3dp_av_en  #, wind_mfi_loader, ERNE_HED_loader
+from urllib.error import URLError
 
 from multi_inst_plots.other_tools import polarity_rtn, mag_angles, load_goes_xrs, \
     load_solo_stix, plot_goes_xrs, plot_solo_stix, make_fig_axs
@@ -105,7 +106,7 @@ def download_wind_waves_cdf(freq, startdate, enddate, path=None):
             if not os.path.exists(f):
                 dl.download(url=url, path=f)
 
-    except (RuntimeError, IndexError):
+    except (RuntimeError, IndexError, URLError):
         print(f'Unable to obtain Wind WAVES {freq} data for {startdate}-{enddate}!')
         downloaded_files = []
 
@@ -253,6 +254,7 @@ def load_data(options):
     enddate = options.enddt
     path = options.path
     stix_ltc = options.stix_ltc.value
+    offline = options.offline
 
     options.plot_start = None
     options.plot_end = None
@@ -285,14 +287,16 @@ def load_data(options):
                             resample=None,
                             multi_index=False,
                             path=path,
-                            threshold=options.wind_flux_thres_e)
+                            threshold=options.wind_flux_thres_e,
+                            offline=offline)
         pdic_, meta_p = wind3dp_load(dataset="WI_SOSP_3DP",
                             startdate=startdate,
                             enddate=enddate,
                             resample=None,
                             multi_index=False,
                             path=path,
-                            threshold=options.wind_flux_thres_p)
+                            threshold=options.wind_flux_thres_p,
+                            offline=offline)
 
         data["3dp_e"] = edic_
         data["3dp_p"] = pdic_
@@ -322,7 +326,7 @@ def load_data(options):
         print(f"Loading SOHO/EPHIN data... (dataset {dataset_index}/{dataset_num})")
         try: 
             ephin_, meta_ephin = soho_load(dataset="SOHO_COSTEP-EPHIN_L2-1MIN", startdate=startdate, enddate=enddate,
-                            path=path, resample=None)
+                            path=path, resample=None, offline=offline)
         except UnboundLocalError:   
             # soho_ephin_loader throws this error since it 
             # tries to access a variable (cs_e300) that hasn't been set
@@ -337,7 +341,7 @@ def load_data(options):
     if options.l1_erne.value == True:
         print(f"Loading SOHO/ERNE data... (dataset {dataset_index}/{dataset_num})")
         erne_p_, meta_erne = soho_load(dataset="SOHO_ERNE-HED_L2-1MIN", startdate=startdate, enddate=enddate,
-                            path=path, resample=None)
+                            path=path, resample=None, offline=offline)
         
         data["erne"] = erne_p_
         metadata["erne"] = meta_erne

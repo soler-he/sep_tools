@@ -164,6 +164,7 @@ def load_data(options):
     sept_viewing = options.ster_sept_viewing.value
     sc = options.ster_sc.value
     stix_ltc = options.stix_ltc.value
+    offline = options.offline
     goes_man_select = options.goes_man_select.value
     startdate = options.startdt
     enddate = options.enddt
@@ -186,13 +187,13 @@ def load_data(options):
         print(f"Loading SEPT... (dataset {dataset_index}/{dataset_num})")
         df_sept_electrons_orig, meta_se = stereo_load(instrument='SEPT', startdate=startdate, enddate=enddate, 
                                                       sept_species='e', sept_viewing=sept_viewing,
-                                                      path=path, spacecraft=sc)
+                                                      path=path, spacecraft=sc, offline=offline)
         data["sept_electrons"] = df_sept_electrons_orig
         metadata["sept_electrons"] = meta_se
         
         df_sept_protons_orig, meta_sp = stereo_load(instrument='SEPT', startdate=startdate, enddate=enddate, 
                                                     sept_species='p', sept_viewing=sept_viewing,
-                                                    path=path, spacecraft=sc)
+                                                    path=path, spacecraft=sc, offline=offline)
         
         data["sept_protons"] = df_sept_protons_orig
         metadata["sept_protons"] = meta_sp
@@ -202,7 +203,7 @@ def load_data(options):
     if options.ster_het_e.value == True or options.ster_het_p.value == True:
         print(f"Loading HET... (dataset {dataset_index}/{dataset_num})")
         df_het_orig, meta_het = stereo_load(instrument='HET', startdate=startdate, enddate=enddate, 
-                                            path=path, spacecraft=sc)
+                                            path=path, spacecraft=sc, offline=offline)
         
         data["het"] = df_het_orig
         metadata["het"] = meta_het
@@ -212,7 +213,7 @@ def load_data(options):
     if options.mag.value == True or options.mag_angles.value == True:
         print(f"Loading MAG... (dataset {dataset_index}/{dataset_num})")
         df_mag_orig, meta_mag = stereo_load(spacecraft=sc, instrument='MAG', startdate=startdate, enddate=enddate, 
-                                            mag_coord='RTN', path=path)
+                                            mag_coord='RTN', path=path, offline=offline)
         
         data["mag"] = df_mag_orig
         metadata["mag"] = meta_mag
@@ -222,7 +223,7 @@ def load_data(options):
     if options.Vsw.value or options.N.value or options.T.value or options.p_dyn.value or options.polarity.value:
         print(f"Loading MAGPLASMA... (dataset {dataset_index}/{dataset_num})")
         df_magplasma, meta_magplas = stereo_load(instrument='MAGPLASMA', startdate=startdate, enddate=enddate, 
-                            path=path, spacecraft=sc)
+                                                 path=path, spacecraft=sc, offline=offline)
         
         data["magplasma"] = df_magplasma
         metadata["magplasma"] = meta_magplas
