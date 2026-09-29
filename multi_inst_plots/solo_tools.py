@@ -106,7 +106,7 @@ def load_data(options):
     ion_conta_corr = True
     viewing = options.solo_viewing.value
     stix_ltc = options.stix_ltc.value
-
+    offline = options.offline
 
     if not options.mag.value:
         options.polarity.value = False
@@ -123,8 +123,8 @@ def load_data(options):
         if ept_l3:
             try:
                 df_ept_org, df_rtn_ept, df_hci_ept, energies_ept, metadata_ept = epd_load(sensor='ept', level='l3', pos_timestamp=None,
-                                                                                        startdate=startdate, enddate=enddate,
-                                                                                        autodownload=True, path=path)
+                                                                                          startdate=startdate, enddate=enddate,
+                                                                                          autodownload=not offline, path=path)
             except UnboundLocalError:
                 df_ept_org, df_rtn_ept, df_hci_ept, energies_ept, metadata_ept = [], [], [], [], []
             
@@ -134,7 +134,7 @@ def load_data(options):
 
         else:
             protons_ept, electrons_ept, energies_ept = epd_load(sensor='ept', level='l2', startdate=startdate, enddate=enddate, 
-                                                                pos_timestamp=None,viewing=viewing, path=path, autodownload=True)
+                                                                pos_timestamp=None,viewing=viewing, path=path, autodownload=not offline)
             # correct EPT level 2 electron data for ion contamination:
             if ion_conta_corr:
                 # df_electrons_ept2 = calc_EPT_corrected_e(df_electrons_ept['Electron_Flux'], df_protons_ept['Ion_Flux'])
@@ -150,7 +150,7 @@ def load_data(options):
     if options.solo_het_e.value or options.solo_het_p.value:
         print(f"Loading EPD/HET... (dataset {dataset_index}/{dataset_num})")
         protons_het, electrons_het, energies_het = epd_load(sensor='het', level='l2', startdate=startdate, enddate=enddate, 
-                                                            pos_timestamp=None,viewing=viewing, path=path, autodownload=True)
+                                                            pos_timestamp=None,viewing=viewing, path=path, autodownload=not offline)
         
         data["het_e"] = electrons_het
         data["het_p"] = protons_het
