@@ -1629,20 +1629,21 @@ class SEPevent:
         ax.set_ylabel(intensity_label,fontsize=font_size)
         ax.yaxis.set_label_coords(-0.08,1.0)
         ax.set_ylim(axes[axnum-1].get_ylim())
-        
+
         axnum += 1
         ax = axes[axnum]
         ax.fill_between(coverage.index,-3,max_ani,color="black",alpha=0.3,edgecolor=None)
         ax.fill_between(coverage.index,min_ani,3,color="black",alpha=0.3,edgecolor=None)
+        after_background_end = (I_times >= bg_end)
+        ind = (I_times >= bg_end) & (I_times <= corr_window_end)
         if ani_method == 'weighted_sum_bootstrap':
-            ax.plot(I_times, Ani[:,0], label="w/o background substraction", color="black", linewidth=1)
-            ax.fill_between(I_times, Ani[:,2], Ani[:,3], alpha=0.2, zorder=1, edgecolor=None, facecolor="black")
-            ind = (I_times >= bg_end) & (I_times <= corr_window_end)
+            ax.plot(I_times[after_background_end], Ani[after_background_end, 0], label="w/o background substraction", color="black", linewidth=1)
+            ax.fill_between(I_times[after_background_end], Ani[after_background_end, 2], Ani[after_background_end, 3], alpha=0.2, zorder=1, edgecolor=None, facecolor="black")
             ax.fill_between(I_times[ind], Ani_bgsub[ind,2], Ani_bgsub[ind,3], alpha=0.3, zorder=1, edgecolor=None, facecolor="magenta")
-            ax.plot(I_times[(I_times >= bg_end) & (I_times <= corr_window_end)], Ani_bgsub[(I_times >= bg_end) & (I_times <= corr_window_end), 0], label="with background substraction", color="magenta", linewidth=1)
+            ax.plot(I_times[ind], Ani_bgsub[ind, 0], label="with background substraction", color="magenta", linewidth=1)
         else:
-            ax.plot(I_times, Ani, label="w/o background substraction", color="black", linewidth=1)
-            ax.plot(I_times[(I_times >= bg_end) & (I_times <= corr_window_end)], Ani_bgsub[(I_times >= bg_end) & (I_times <= corr_window_end)], label="with background substraction", color="magenta", linewidth=1)
+            ax.plot(I_times[after_background_end], Ani[after_background_end], label="w/o background substraction", color="black", linewidth=1)
+            ax.plot(I_times[ind], Ani_bgsub[ind], label="with background substraction", color="magenta", linewidth=1)
 
         ax.text(0.02, 0.92, "background subtracted", color="magenta",horizontalalignment='left', verticalalignment='top', transform = ax.transAxes,fontsize=font_size-1)
         ax.set_ylabel("$A_1$")

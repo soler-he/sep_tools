@@ -83,6 +83,7 @@ def load_data(options):
     file_path = options.path
 
     stix_ltc = options.stix_ltc.value
+    offline = options.offline
 
     options.plot_start = None
     options.plot_end = None
@@ -118,7 +119,7 @@ def load_data(options):
         print(f"Loading EPI-Hi... (dataset {dataset_index}/{dataset_num})")
 
         psp_het_org, psp_het_energies = psp_isois_load('PSP_ISOIS-EPIHI_L2-HET-RATES60', startdate, enddate, 
-                                                                    path=file_path, resample=None)
+                                                       path=file_path, resample=None, offline=offline)
         
         if isinstance(psp_het_org, str) or len(psp_het_org) == 0:
             psp_het_org = []
@@ -154,8 +155,8 @@ def load_data(options):
         print(f"Loading EPI-Lo PE... (dataset {dataset_index}/{dataset_num})")
 
         psp_epilo_org, psp_epilo_energies = psp_isois_load('PSP_ISOIS-EPILO_L2-PE', startdate, enddate, 
-                                                                            path=file_path, resample=None, epilo_channel=epilo_pe_channel, 
-                                                                            epilo_threshold=None)
+                                                           path=file_path, resample=None, epilo_channel=epilo_pe_channel, 
+                                                           epilo_threshold=None, offline=offline)
         
         if isinstance(psp_epilo_org, pd.DataFrame):
             electron_countrate_keys = psp_epilo_org.filter(like='Electron_CountRate_ChanF_E').keys()
@@ -171,8 +172,8 @@ def load_data(options):
         print(f"Loading EPI-Lo IC... (dataset {dataset_index}/{dataset_num})")
 
         psp_epilo_ic_org, psp_epilo_ic_energies = psp_isois_load('PSP_ISOIS-EPILO_L2-IC', startdate, enddate, 
-                                                                                    path=file_path, resample=None, epilo_channel=epilo_ic_channel, 
-                                                                                    epilo_threshold=None)
+                                                                 path=file_path, resample=None, epilo_channel=epilo_ic_channel, 
+                                                                 epilo_threshold=None, offline=offline)
         
         data["epilo_ic"] = psp_epilo_ic_org
         metadata["epilo_ic"] = psp_epilo_ic_energies
