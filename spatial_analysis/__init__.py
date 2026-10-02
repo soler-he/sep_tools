@@ -1,9 +1,8 @@
 """
     Code developed by Jaclyn T. Lang as part of the SOLER Horizon Europe project, under the supervision of Nina Dresing.
 
-If you need to contact the authors about this code or process, you can email the following:
+If you need to contact the authors about this code or process, you can email:
 - Jaclyn Lang - jtlang@utu.fi
-- Nina Dresing - nina.dresing@utu.fi
 """
 
 import os
