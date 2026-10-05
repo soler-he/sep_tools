@@ -1,3 +1,10 @@
+"""
+    Code developed by Jaclyn T. Lang as part of the SOLER Horizon Europe project, under the supervision of Nina Dresing.
+
+If you need to contact the authors about this code or process, you can email:
+- Jaclyn Lang - jtlang@utu.fi
+"""
+
 import os
 import datetime as dt
 import numpy as np
@@ -5,8 +12,8 @@ import pandas as pd
 from copy import deepcopy
 
 from scipy.optimize import curve_fit, OptimizeWarning
-from scipy import odr # Depreciated
-#from odrpack import odr_fit
+#from scipy import odr # Depreciated
+from odrpack import odr_fit
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -52,22 +59,22 @@ warnings.filterwarnings(action='ignore', category=OptimizeWarning, message='Cova
 
 marker_settings = {
     'Solar Orbiter': {'marker': 's', 'color': 'dodgerblue',
-                      'label': {'e': 'Solar Orbiter / EPD - EPT',
-                                'p': 'Solar Orbiter / EPD - HET'}},
+                      'label': {'e': 'Solar Orbiter/EPD EPT',
+                                'p': 'Solar Orbiter/EPD HET'}},
     'SOHO': {'marker': 'o', 'color': 'darkgreen',
              'label': {'e': 'Wind-3DP',
-                       'p': 'SOHO / ERNE - HED'}},
+                       'p': 'SOHO/ERNE HED'}},
     'STEREO A': {'marker': '^', 'color': 'red',
-                 'label': {'e': 'STEREO A / SEPT',
-                           'p': 'STEREO A / HET'}},
+                 'label': {'e': 'STEREO A/SEPT',
+                           'p': 'STEREO A/HET'}},
     'PSP':  {'marker': 'p', 'color': 'purple',
-             'label': {'e': 'PSP / EPI-Lo',
-                       'p': 'PSP / EPI-Hi - HET'}},
+             'label': {'e': 'PSP/EPI-Lo',
+                       'p': 'PSP/EPI-Hi HET'}},
     # 'Wind': {'marker': '*', 'color': 'slategray', 'label': {}},
     # 'STEREO-B': {'marker': 'v', 'color': 'blue', 'label': 'STEREO-B'},
     'BepiColombo': {'marker': 'd', 'color': 'orange',
-                    'label': {'e': 'BepiColombo / SIXS-P',
-                              'p': 'BepiColombo / SIXS-P'}}
+                    'label': {'e': 'BepiColombo/SIXS-P',
+                              'p': 'BepiColombo/SIXS-P'}}
     }
 
 
@@ -88,10 +95,12 @@ PM_SYMB = r"$\pm$"
 SQUARED_TEXT = r"$^{2}$"
 NEGPOWER_TEXT = r"$^{-1}$"
 
-####### ODRPACK NOT AVAILABLE IN HUB YET
+PFU_TEXT = f"(s sr cm{SQUARED_TEXT} MeV){NEGPOWER_TEXT}"
+
+####### ODRPACK
 use_old_odr_method = False
-if not use_old_odr_method:
-    from odrpack import odr_fit
+
+
 
 
 
@@ -105,30 +114,60 @@ class SpatialEvent:
         dates: [start, end] dates (flare start time in the 'start')
         filepaths: [outpath, rawdatapath] for files the user can access and a space to load raw data.
         flare_loc (optional): for adding a reference to plots
+        V_sw (optional): the solar wind speed to plot the initial solarmach diagram, if not given or provided incorrectly, solarmach will search for the individual Vsw.
 
     Provided later:
         resampling: the time interval to resample the data to.
         channels: dict of the channels [start, end] to be used for each spacecraft (given as keys)
         spacecraft list: the keys from 'channels'
+        species: either electrons or protons, only reads the first letter in lowercase to determine which.
+        excluded_observers: a list of observers to exclude from fitting but still get plotted. Starts empty and can be updated at two different points: plot_peak_fits and calc_Gaussian_fit.
 
     FUNCTIONS:
         load_spacecraft_data: downloads data using seppy data_loader functions.
         background_subtract: reads in a window period for the background and reduce the intensity
-            data by the average of this window.
+            data by the average of this window. Can be customised to each observer or even not done for certain
+            observers using a dict. Otherwise a list of 2 units is expected: (start, end) of the window.
         intercalibrate: reads in dict of ic values and adjusts the data by this factor.
         radial_scale: reads in list of radial scaling values (a +- b) and scaled the data
             based on its radial position and these scaling values.
-        plot_peak_fits: finds the peak intensity for each observer and plots the Gaussian fit to it.
+        plot_peak_fits: finds the peak intensity for each observer and plots the Gaussian fit to it. Can provide a
+            window_length (in hours) that will find the peak intensity from the given start of the event to the
+            point that many hours later, default is 10 hours. Can opt to exclude observers from this process while
+            still plotting them.
         calc_Gaussian_fit: calculates the fitted Gaussian curve to the observers intensity
-            as a function of longitudinal position for each time step. This plots each result and provides it to the user as a gif.
+            as a function of longitudinal position for each time step. This plots each result and provides it to
+            the user as a gif. Excluded observers can be updated at this step or else the same list from the peak
+            fitting will be used.
         plot_Gauss_results: plots the time profiles of the intensity, Gaussian center values,
-            and Gaussian width values.
+            and Gaussian width values. Returns the figure for the user to make custom changes to.
+        save_df_to_csv: allows the current state of all the data to be saved to csv for the user to peruse later.
+            Can add a label to customise the csv label name to certain steps.
+        plot_simple_curve_at_timestep: Reads a specific datetime value and plots the Gaussian curve data at that
+            timestamp. Figure is also returned here for the user to customise.
+
 
         As each stage of the data set up is handled, it moves to a new df so that the user can undo or redo a certain step without having to start from the beginning.
         """
 
-        self.start = dates[0]
-        self.end = dates[1]
+
+        if isinstance(dates, list):
+            if len(dates) == 2:
+                if isinstance(dates[0], dt.datetime): # dt.datetime(2021,5,28,22,19)
+                    self.start = dates[0]
+                else:
+                    raise TypeError(f"Expected a datetime for 'startdate', got {type(dates[0])}.")
+
+                if isinstance(dates[1], dt.datetime):
+                    self.end = dates[1]
+                else:
+                    raise TypeError(f"Expected a datetime for 'enddate', got {type(dates[1])}.")
+            else:
+                raise ValueError(f"Expected 2 items, got {len(dates)}. Please provide [startdate, enddate].")
+        else:
+            raise TypeError(f"Expected a list of 2 datetime items, got {type(dates)}.")
+
+
         self.species = ""
         self.channels = {}
         self.channel_labels = {}
@@ -167,8 +206,8 @@ class SpatialEvent:
                 if isinstance(vsw, (int, float)):
                     self.vsw_list = [vsw]
                 else:
-                    print("Wrong data type provided for vsw. Using 400 km/s instead.")
-                    self.vsw_list = [400]
+                    print("Wrong data type provided for vsw. Searching for individual solar wind speeds instead.")
+                    self.vsw_list = []
 
         ## Solarmach data
         self.sm_data_short = {}
@@ -247,15 +286,26 @@ class SpatialEvent:
 
     def load_spacecraft_data(self, channels, resampling, species, offline=False): # Step 2
         """Download the data for each sc"""
+        if not isinstance(channels, dict):
+            raise TypeError(f"Expected a dict for the energy channels, got {type(channels)}.")
+        if not isinstance(offline, bool):
+            raise TypeError(f"Expected a boolean for offline status, got {type(offline)}.")
+
         self.channels = channels
         self.resampling = resampling
         self.spacecraft_list = list(channels.keys())
-        self.species = species
+
+        if species[0].lower() == 'e':
+            self.species = 'Electrons'
+        elif species[0].lower() == 'p':
+            self.species = 'Protons'
+        else:
+            raise ValueError(f"Species must be given as either 'electrons' or 'protons'.")
+
         self.offline = offline
 
         full_energy_range = [np.nan, np.nan]
         for sc in tqdm(list(channels.keys())):
-            # self.sc_data[sc], self.channel_labels[sc] = load_sc_data(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling, self.offline)
 
             if species[0].lower() == 'p':
                 sc_df, chn_lbls = load_sc_data_proton(sc, self.channels, [self.start, self.end], self.raw_path, self.resampling, self.offline)
@@ -288,10 +338,6 @@ class SpatialEvent:
 
 
     # Return data for the user
-    def get_spacecraft_list(self):
-        """Return the list of spacecraft from the dictionary."""
-        return self.spacecraft_list
-
     def get_sc_df(self, sc_name):
         """Return the df to the user"""
         if len(self.sc_data_rs) != 0:
@@ -310,44 +356,36 @@ class SpatialEvent:
             print("Please run '*.load_spacecraft_data()' first.")
             return None
 
-    def get_peak_data(self):
-        """Returns the peak data dictionary for the user to peruse."""
-        return self.peak_data
+
 
     # Data Processing
     def background_subtract(self, background_window=[], perform_process=True): # Step 3
         """Given a window by the user, the function calculates the average, reduces the
         intensity by this average, and results in a background reduced dataset."""
-        if perform_process:
-            if isinstance(background_window, list):
-                if not isinstance(background_window[0], dt.datetime) or \
-                    not isinstance(background_window[1], dt.datetime) or \
-                        len(background_window) != 2:
-                            print("Incorrect value type given to 'background_window'. Using default window of 2 hours before to 1 hour after given start time.")
-                            background_window = [self.start - dt.timedelta(hours=2),
-                                                 self.start + dt.timedelta(hours=1)]
-                elif len(background_window) == 0: # In case nothing is passed
-                    background_window = [self.start - dt.timedelta(hours=2),
-                                         self.start + dt.timedelta(hours=1)]
+        if background_window is None:
+            perform_process = False # turn off function if None is given
 
+        if perform_process:
+            if isinstance(background_window, list): # If its a list
+                if isinstance(background_window[0], dt.datetime) or \
+                    isinstance(background_window[1], dt.datetime) or \
+                        len(background_window) != 2:
+                            for sc in self.spacecraft_list:
+                                self.sc_data_bg[sc] = background_subtracting(self.sc_data.get(sc), background_window)
+
+            elif isinstance(background_window, dict): # if its a dict
                 for sc in self.spacecraft_list:
-                    self.sc_data_bg[sc] = background_subtracting(self.sc_data.get(sc), background_window)
-            elif isinstance(background_window, dict):
-                for sc in self.spacecraft_list:
-                    if not isinstance(background_window[sc], list) or \
-                        not isinstance(background_window[sc][0], dt.datetime) or \
-                            not isinstance(background_window[sc][1], dt.datetime):
-                                print(f"Incorrect value type given to {sc} 'background_window'. Using default window of 2 hours before to 1 hour after given start time.")
-                                background_window[sc] = [self.start - dt.timedelta(hours=2),
-                                                         self.start + dt.timedelta(hours=1)]
-                    else:
+                    if isinstance(background_window[sc], list) or \
+                        isinstance(background_window[sc][0], dt.datetime) or \
+                            isinstance(background_window[sc][1], dt.datetime):
+                                self.sc_data_bg[sc] = background_subtracting(self.sc_data.get(sc), background_window[sc])
+
+                    elif background_window[sc] is None:
                         self.sc_data_bg[sc] = background_subtracting(self.sc_data.get(sc), background_window[sc])
+
             else:
-                print("background_window has been provided in the incorrect format. Using default window of 2 hours before to 1 hour after given start time for all observers.")
-                background_window = [self.start - dt.timedelta(hours=2),
-                                     self.start + dt.timedelta(hours=1)]
-                for sc in self.spacecraft_list:
-                    self.sc_data_bg[sc] = background_subtracting(self.sc_data.get(sc), background_window)
+                print("background_window has been provided in the incorrect format. Please check and try again.")
+
 
             print("Background subtraction function complete.")
         else:
@@ -416,7 +454,9 @@ class SpatialEvent:
         bg_zone = []
         if 'background_window' in kwargs:
             bg_zone = kwargs['background_window']
-            if isinstance(bg_zone, list):
+            if bg_zone is None:
+                bg_zone = []
+            elif isinstance(bg_zone, list):
                 if len(bg_zone) not in [0, 2] or \
                     not isinstance(bg_zone[0], dt.datetime) or \
                         not isinstance(bg_zone[1], dt.datetime):
@@ -425,8 +465,9 @@ class SpatialEvent:
             elif isinstance(bg_zone, dict):
                 for sc in self.spacecraft_list:
                     if not isinstance(bg_zone[sc], list) or not isinstance(bg_zone[sc][0], dt.datetime) or not isinstance(bg_zone[sc][1], dt.datetime):
-                        print("Incorrect value type given to 'background_window'.")
-                        bg_zone = []
+                        if not bg_zone[sc][0] is None:
+                            print("Incorrect value type given to 'background_window'.")
+                            bg_zone[sc] = [None]
             else:
                 print("Incorrect value type given to 'background_window'.")
                 bg_zone = []
@@ -442,7 +483,7 @@ class SpatialEvent:
             scdata = self.sc_data
 
         if len(scdata) != 0:
-            plot_timeseries_result(scdata, self.out_path, [self.start, self.end], self.channel_labels, self.species, bg_zone)
+            plot_timeseries_result(scdata, self.out_path, [self.start, self.end], self.channel_labels, self.energy_range_label, self.species, bg_zone)
         else:
             print("Please run '*.load_spacecraft_data()' first.")
             return None, None
@@ -478,7 +519,7 @@ class SpatialEvent:
                 print("Please run '*.load_spacecraft_data() first.")
             else:
                 self._get_peak_fits(scdata, window_length=window_length)
-                plot_peak_intensity(scdata, self.out_path, self.start, self.peak_data, self.energy_range_label, self.species, self.reference, self.flare_loc, self.plot_foot_sep_limits, self.excluded_observers, window_length=window_length)
+                plot_peak_intensity(scdata, self.out_path, self.start, self.peak_data, self.energy_range_label, self.channel_labels, self.species, self.reference, self.flare_loc, self.plot_foot_sep_limits, self.excluded_observers, window_length=window_length)
 
     def _get_reference_point(self):
         """Function to find a reference point for the Gaussian calculations.
@@ -505,7 +546,7 @@ class SpatialEvent:
         self.sc_data_rs['Gauss'] = fit_gauss_curves_to_data(self.sc_data_rs, self.out_path,
                                                             self.reference, self.flare_loc,
                                                             self.peak_data, self.energy_range_label,
-                                                            self.species,
+                                                            self.species, self.channel_labels,
                                                             self.plot_foot_sep_limits,
                                                             self.excluded_observers)
 
@@ -516,7 +557,7 @@ class SpatialEvent:
         if len(self.sc_data_rs.get('Gauss')) == 0:
             self.calc_Gaussian_fit(self.excluded_observers)
 
-        fig, ax = plot_gauss_fits_timeseries(self.sc_data_rs, self.out_path, self.start, self.reference, self.channel_labels, self.species, self.flare_loc, self.excluded_observers)
+        fig, ax = plot_gauss_fits_timeseries(self.sc_data_rs, self.out_path, self.start, self.reference, self.channel_labels, self.energy_range_label, self.species, self.flare_loc, self.excluded_observers)
         return fig, ax
 
 
@@ -766,7 +807,7 @@ def find_obs_separation_values(obs_footlong, source_long):
 
 
 # Solar-MACH looping function out of use. Kept for archiving purposes.
-def solarmach_loop(observers, dates, data_path, resampling, source_loc, vsw_list=[], coord_sys='Stonyhurst'):
+def ARCHIVED_solarmach_loop(observers, dates, data_path, resampling, source_loc, vsw_list=[], coord_sys='Stonyhurst'):
     """Downloads the fleet location data between the given dates with the
         given 'resampling' interval."""
     filename = f'SolarMACH_{dates[0].strftime("%d%m%Y")}_loop.csv'
@@ -874,12 +915,6 @@ def move_along_parker_spiral(r_dist, loc, vsw, towards, err_calc):
                 newloc_tmp = np.radians(loc[0]) + Ov * (sun_radius - r_dist) * ( np.cos( np.deg2rad( loc[1] ) ) )
 
             newloc_t = float(np.degrees(newloc_tmp))
-
-            # Make sure it falls within the Stonyhurst restrictions
-            # if newloc_t > 180:
-            #     newloc_t = newloc_t - 360
-            # elif newloc_t < -180:
-            #     newloc_t = newloc_t + 360
 
             # Add to the array
             new_loc_arr.append(newloc_t)
@@ -1090,7 +1125,6 @@ def load_sc_data_proton(spacecraft, proton_channels, dates, data_path, resamplin
 
         bin_width = []
         energy_range = []
-        #soho_meta = soho_meta['channels_dict_df_p']
         for n in range(bin_list[0], bin_list[1]+1):
             bin_start = soho_meta.loc[n, 'lower_E']
             bin_end = soho_meta.loc[n, 'upper_E']
@@ -1145,7 +1179,6 @@ def load_sc_data_proton(spacecraft, proton_channels, dates, data_path, resamplin
 
         bin_width = []
         energy_range = []
-        #sta_meta = sta_meta['channels_dict_df_p']
         for n in range(bin_list[0], bin_list[1]+1):
             bin_start = sta_meta.loc[n, 'lower_E']
             bin_end = sta_meta.loc[n, 'upper_E']
@@ -1325,7 +1358,6 @@ def load_sc_data_proton(spacecraft, proton_channels, dates, data_path, resamplin
         energy_range_lbl = f"{energy_range[0]:.1f}-{energy_range[1]:.1f} MeV"
 
         # Merge the channels
-        print( bepi_df['Side1_P7'].head() )
         for vw in bin_width[bin_list[0]].keys(): # getting the sides
             bepi_df[f"{vw}_F_{bin_label}"] = weighted_bin_merge(bepi_df, 'bepi', 'p', bin_list, f"Side{vw}_{spec[0]}", bin_width, pa=vw)
             bepi_df[f"{vw}_Func_{bin_label}"] = weighted_bin_merge(bepi_df, 'bepi', 'p', bin_list, [f"Side{vw}_{spec[0]}", '_stat_err'], bin_width, pa=vw)
@@ -1361,13 +1393,10 @@ def load_sc_data_electron(spacecraft, electron_channels, dates, data_path, resam
         resampling = "15min"
 
     # Download the data and return the processed df with the energy_range_label
-    spacecraft = spacecraft.lower()
+    sc = spacecraft.lower()
 
     # PSP
-    if spacecraft == 'psp':
-
-        # For HET - JTL: to do
-        #psp_df, psp_meta = psp_isois_load(dataset="PSP_ISOIS-EPIHI_L2-HET-RATES60", startdate=dates[0], enddate=dates[1], path=data_path, resample=None, offline=offline)
+    if sc == 'psp':
 
         # For EPI-Lo
         psp_df, psp_meta = psp_isois_load(dataset="PSP_ISOIS-EPILO_L2-PE",
@@ -1380,12 +1409,7 @@ def load_sc_data_electron(spacecraft, electron_channels, dates, data_path, resam
 
 
         # Find channels and bin widths
-        bin_list = electron_channels['PSP']
-        # print(bin_list)
-        # print(psp_meta)
-        # ddf = pd.DataFrame.from_dict(psp_meta)
-        # ddf.to_csv(data_path+f"psp_epilo_meta_{dates[0].strftime('%d%b%Y')}.csv")
-        # psp_df.to_csv(data_path+"psp_epilo_data_26march2025.csv")
+        bin_list = electron_channels[spacecraft]
 
         if len(bin_list) == 1:
             bin_label = f"{bin_list[0]}"
@@ -1407,10 +1431,6 @@ def load_sc_data_electron(spacecraft, electron_channels, dates, data_path, resam
             avg_en = np.nanmean(all_pa_en)
             avg_min = np.nanmean(all_pa_min)
             avg_max = np.nanmean(all_pa_max)
-            # print(all_pa_en)
-            # print(avg_en)
-            # print(avg_min)
-            # print(avg_max)
 
             bin_width.append(avg_min+avg_max)
 
@@ -1418,7 +1438,7 @@ def load_sc_data_electron(spacecraft, electron_channels, dates, data_path, resam
                 energy_range_lbl = (avg_en - avg_min)*1e-3 # Given in keV
             elif n == bin_list[1]:
                 energy_range_lbl = f"{energy_range_lbl:.2f}-{(avg_en+avg_max)*1e-3:.2f} MeV"
-        # print(energy_range_lbl)
+
 
         # Merge the channels
         psp_dct = {}
@@ -1459,7 +1479,7 @@ def load_sc_data_electron(spacecraft, electron_channels, dates, data_path, resam
         return psp_df_final, energy_range_lbl
 
 
-    if spacecraft in ['soho', 'wind']:
+    if sc in ['soho', 'wind']:
         print("Using Wind-3DP data for low-energy electron data near Earth.")
 
         # Geometric factor for uncertainty calculations
@@ -1478,10 +1498,7 @@ def load_sc_data_electron(spacecraft, electron_channels, dates, data_path, resam
 
         bin_width, energy_range = ([] for i in range(2))
 
-        if 'Wind' in electron_channels.keys():
-            bin_list = electron_channels['Wind']
-        else:
-            bin_list = electron_channels['SOHO']
+        bin_list = electron_channels[spacecraft]
 
         if len(bin_list) == 1:
             bin_list.append(bin_list[0])
@@ -1532,7 +1549,7 @@ def load_sc_data_electron(spacecraft, electron_channels, dates, data_path, resam
 
 
 
-    if spacecraft == 'solar orbiter':
+    if sc == 'solar orbiter':
         df, df_rtn, df_hci, energy, meta = epd_load(sensor='ept',
                                                     level='l3',
                                                     startdate=dates[0],
@@ -1545,7 +1562,7 @@ def load_sc_data_electron(spacecraft, electron_channels, dates, data_path, resam
         df1 = df.resample('1min').mean()
 
         # Find channels and bin widths
-        bin_list = electron_channels['Solar Orbiter']
+        bin_list = electron_channels[spacecraft]
 
         if len(bin_list) == 1:
             bin_list.append(bin_list[0])
@@ -1608,7 +1625,7 @@ def load_sc_data_electron(spacecraft, electron_channels, dates, data_path, resam
         return solo_df0, energy_range_lbl
 
 
-    if spacecraft == 'stereo a':
+    if sc == 'stereo a':
         sta_views  = ['sun','asun','north','south']
 
         dct = {}
@@ -1626,7 +1643,7 @@ def load_sc_data_electron(spacecraft, electron_channels, dates, data_path, resam
             meta = meta['channels_dict_df_e']
 
             bin_width, energy_range = ([] for i in range(2))
-            bin_list = electron_channels['STEREO A']
+            bin_list = electron_channels[spacecraft]
 
             if len(bin_list) == 1:
                 bin_list.append(bin_list[0])
@@ -1678,7 +1695,7 @@ def load_sc_data_electron(spacecraft, electron_channels, dates, data_path, resam
 
         return df3, energy_range_lbl
 
-    if spacecraft == 'bepicolombo':
+    if sc == 'bepicolombo':
         df, meta = bepi_load(startdate=dates[0].strftime("%Y-%m-%d"),
                              enddate=dates[1].strftime("%Y-%m-%d"),
                              path=data_path)
@@ -1687,19 +1704,15 @@ def load_sc_data_electron(spacecraft, electron_channels, dates, data_path, resam
             print(f"Nothing downloaded for {spacecraft}.")
             return [], []
 
-        print("Bepi df:")
-        print(df)
         # Shorten the df to just the dates we want (provides the whole month)
         # and also remove the timezone
         start = dates[0].replace(tzinfo=dt.timezone.utc)
         end = dates[1].replace(tzinfo=dt.timezone.utc)
         df0 = df.loc[start:end]
 
-        print("\nAfter, bepi:")
-        print(df0)
 
         # Find channels and bin widths
-        bin_list = electron_channels['BepiColombo']
+        bin_list = electron_channels[spacecraft]
 
         if len(bin_list) == 1:
             bin_list.append(bin_list[0])
@@ -1814,12 +1827,7 @@ def radial_scaling_calculation(df0, scaling_values):
             if unc_fail: # JAX TO be notified if problem occurs
                 print("There's a problem with the limits")
                 jax=input("Please contact JT Lang.")
-                # print("OG flux: ", df.loc[t, 'Flux'])
-                # print("OG rad: ", df.loc[t, 'r_dist'])
-                # print("Scaled Flux: ", f_rscld)
-                # print("Unc plus: ", unc_limit_plus)
-                # print("Unc minus: ", unc_limit_minus)
-                # jax = input('Continue? ')
+
                 chosen_unc_limit = np.nan
 
             ## Find the calculated scaled uncertainty
@@ -1849,6 +1857,9 @@ def background_subtracting(df0, background_window):
             3. Return the updated df."""
 
     df = df0.copy(deep=True)
+
+    if background_window[0] is None: # just ignoring the rest of the function
+        return df
 
     # A list of just the values within the background window
     bg_flux = df['Flux'][background_window[0]:background_window[1]]
@@ -1927,7 +1938,6 @@ def odr_gauss_fit(dict_1timestep, prev_results={'A': np.nan, 'X0': np.nan, 'sigm
     Input: one timesteps worth of values, and the results of the previous timesteps fit."""
 
     df = pd.DataFrame(dict_1timestep)
-    # print(df)
 
     # Remove zero and nan values
     for i, row in df.iterrows():
@@ -1946,78 +1956,71 @@ def odr_gauss_fit(dict_1timestep, prev_results={'A': np.nan, 'X0': np.nan, 'sigm
         try:
             popt, pcov = curve_fit(log_gauss_function, df['x'], df['y'],
                                   p0=[max(df['y']), df['x'][ df['y'].idxmax() ], 20]) # max amplitude, position of the max amplitude, width
-            # print('the scipy results are: ')
-            # print(popt)
+
             prev_results = {'A': float(popt[0]), 'X0': float(popt[1]), 'sigma': float(popt[2])}
         except:
-            # print("No updated Gaussian parameters were found")
             prev_results = {'A': max(df['y']), 'X0': df['x'][ df['y'].idxmax() ], 'sigma': 20}
 
-    # Run the ODR functions
-    # print("The prev results are: ")
-    # print(prev_results)
-    # jax=input('yah')
-    if not use_old_odr_method: # Using new odrpack function
-        #print('Using odrpack, good?')
-        if np.isnan(df['yerr']).any(): # If there are any nans then it might break
-            out = odr_fit(log_gauss_function_beta_odrpack, # function
-                        df['x'], df['y'], # x and y arrays
-                        prev_results, # estimated parameters
-                        weight_x=((df['xerr'])**(-2) ) ) # uncertainty values
-        else:
-            out = odr_fit(log_gauss_function_beta_odrpack, # function
-                        df['x'], df['y'], # x and y arrays
-                        [prev_results['A'], prev_results['X0'], prev_results['sigma']], # estimated parameters
-                        weight_x=( (df['xerr'])**(-2) ), # uncertainty values
-                        weight_y=( (df['yerr'])**(-2) ) )
-        # print(out)
-        # print(out.beta[0])
-        if 'convergence' in out.stopreason:
-            if (abs(out.beta[1]) > 270) or (abs(out.beta[2]) > 180): #center is out of bounds; width is too large
-                out_dict = {'A': np.nan, 'X0': np.nan, 'sigma': np.nan,
-                            'A err': np.nan, 'X0 err': np.nan, 'sigma err': np.nan,
-                            'res':np.nan}
-            else:
-                out_dict = {'A': float(out.beta[0]), 'X0': float(out.beta[1]),
-                            'sigma': float(out.beta[2]), 'A err': float(out.sd_beta[0]),
-                            'X0 err': float(out.sd_beta[1]), 'sigma err': float(out.sd_beta[2]),
-                            'res': float(out.res_var)}
-        else:
+
+    # Using new odrpack function
+    if np.isnan(df['yerr']).any(): # If there are any nans then it might break
+        out = odr_fit(log_gauss_function_beta_odrpack, # function
+                      df['x'], df['y'], # x and y arrays
+                      prev_results, # estimated parameters
+                      weight_x=((df['xerr'])**(-2) ) ) # uncertainty values
+    else:
+        out = odr_fit(log_gauss_function_beta_odrpack, # function
+                      df['x'], df['y'], # x and y arrays
+                      [prev_results['A'], prev_results['X0'], prev_results['sigma']], # estimated parameters
+                      weight_x=( (df['xerr'])**(-2) ), # uncertainty values
+                      weight_y=( (df['yerr'])**(-2) ) )
+
+    if 'convergence' in out.stopreason:
+        if (abs(out.beta[1]) > 270) or (abs(out.beta[2]) > 180): #center is out of bounds; width is too large
             out_dict = {'A': np.nan, 'X0': np.nan, 'sigma': np.nan,
                         'A err': np.nan, 'X0 err': np.nan, 'sigma err': np.nan,
                         'res':np.nan}
-    ########################################
-    ## DEPRECIATED CODE. Kept for historical purposes.
-    else:
-        #jax=input('Using scipy.odr, good?')
-        odr_model = odr.Model(log_gauss_function_beta)
-        if np.isnan(df['yerr']).any(): # If there are any nan's then it won't calculate properly
-            odr_data = odr.RealData(x=df['x'], y=df['y'], sx=df['xerr'])
-        else:
-            odr_data = odr.RealData(x=df['x'], y=df['y'], sx=df['xerr'], sy=df['yerr'])
-
-        odr_setup = odr.ODR(odr_data, odr_model, beta0=[prev_results['A'], prev_results['X0'], prev_results['sigma']])
-        out = odr_setup.run()
-
-        # Confirm that ODR found a fitted curve
-        stopreason = []
-        for reasons in out.stopreason:
-            if 'convergence' in reasons:
-                if (abs(out.beta[1]) > 270) or (abs(out.beta[2]) > 180): # X0 > 360 or sigma >180
-                    stopreason.append('fail')
-                else:
-                    stopreason.append('pass')
-            else:
-                stopreason.append('fail')
-
-        if 'pass' not in stopreason:
-            out_dict = {'A': np.nan, 'X0': np.nan, 'sigma': np.nan,
-                    'A err': np.nan, 'X0 err': np.nan, 'sigma err': np.nan, 'res':np.nan}
         else:
             out_dict = {'A': float(out.beta[0]), 'X0': float(out.beta[1]),
                         'sigma': float(out.beta[2]), 'A err': float(out.sd_beta[0]),
                         'X0 err': float(out.sd_beta[1]), 'sigma err': float(out.sd_beta[2]),
                         'res': float(out.res_var)}
+    else:
+        out_dict = {'A': np.nan, 'X0': np.nan, 'sigma': np.nan,
+                    'A err': np.nan, 'X0 err': np.nan, 'sigma err': np.nan,
+                    'res':np.nan}
+    ########################################
+    ## DEPRECIATED CODE. Kept for historical purposes.
+    # else:
+    #     #jax=input('Using scipy.odr, good?')
+    #     odr_model = odr.Model(log_gauss_function_beta)
+    #     if np.isnan(df['yerr']).any(): # If there are any nan's then it won't calculate properly
+    #         odr_data = odr.RealData(x=df['x'], y=df['y'], sx=df['xerr'])
+    #     else:
+    #         odr_data = odr.RealData(x=df['x'], y=df['y'], sx=df['xerr'], sy=df['yerr'])
+    #
+    #     odr_setup = odr.ODR(odr_data, odr_model, beta0=[prev_results['A'], prev_results['X0'], prev_results['sigma']])
+    #     out = odr_setup.run()
+    #
+    #     # Confirm that ODR found a fitted curve
+    #     stopreason = []
+    #     for reasons in out.stopreason:
+    #         if 'convergence' in reasons:
+    #             if (abs(out.beta[1]) > 270) or (abs(out.beta[2]) > 180): # X0 > 360 or sigma >180
+    #                 stopreason.append('fail')
+    #             else:
+    #                 stopreason.append('pass')
+    #         else:
+    #             stopreason.append('fail')
+    #
+    #     if 'pass' not in stopreason:
+    #         out_dict = {'A': np.nan, 'X0': np.nan, 'sigma': np.nan,
+    #                 'A err': np.nan, 'X0 err': np.nan, 'sigma err': np.nan, 'res':np.nan}
+    #     else:
+    #         out_dict = {'A': float(out.beta[0]), 'X0': float(out.beta[1]),
+    #                     'sigma': float(out.beta[2]), 'A err': float(out.sd_beta[0]),
+    #                     'X0 err': float(out.sd_beta[1]), 'sigma err': float(out.sd_beta[2]),
+    #                     'res': float(out.res_var)}
     ########################################
 
 
@@ -2025,8 +2028,9 @@ def odr_gauss_fit(dict_1timestep, prev_results={'A': np.nan, 'X0': np.nan, 'sigm
 
 
 
-def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data, energy_range_label, species, plot_foot_sep_limits, excluded_observers):
+def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data, energy_range_label, species, channel_labels, plot_foot_sep_limits, excluded_observers):
     """Read in the full df, calculate the curve at each timestep, save the results to new columns."""
+
     # Create a folder to save the gaussian timestep figures in
     try:
         os.makedirs(data_path+f'Gauss_fits{os.sep}')
@@ -2089,7 +2093,7 @@ def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data
 
         # Plot the fit for this timestep
         if not np.isnan(x).any() and not np.isnan(gauss_results['X0']):
-            plot_curve_and_timeseries(gauss_results, timestep_dict, sc_dict, data_path+f'Gauss_fits{os.sep}', i, reference, flare_loc, energy_range_label, species, plot_foot_sep_limits, excl_dict)
+            plot_curve_and_timeseries(gauss_results, timestep_dict, sc_dict, data_path+f'Gauss_fits{os.sep}', i, reference, flare_loc, energy_range_label, channel_labels, species, plot_foot_sep_limits, excl_dict)
 
         prev_gauss = gauss_results
 
@@ -2134,7 +2138,7 @@ def fit_gauss_curves_to_data(sc_dict, data_path, reference, flare_loc, peak_data
 ## Plotters
 ################################################
 
-def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, species, background_window=[]):
+def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, energy_range_label, species, background_window=[]):
     """Plots the time series for each observer."""
     # Determine how many subplots are needed
     obs = list(sc_dict.keys())
@@ -2144,12 +2148,11 @@ def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, species, b
     fig.subplots_adjust(hspace=0.02)
 
     # Title
-    ax[0].set_title(dates[0].strftime("%H:%M - %d %b, %Y"), pad=9, loc='left')
-    fig.supylabel(f'Intensity (s sr cm{SQUARED_TEXT} MeV){NEGPOWER_TEXT}', x=-0.04)
+    ax[0].set_title(f"{energy_range_label} {species}",
+                    pad=9, loc='left')
+    fig.supylabel(f'Intensity {PFU_TEXT}', x=-0.04)
 
 
-    # max_Ylim = 0
-    # min_Ylim = 1e9
     xmin = dates[0] - dt.timedelta(hours=5)
     xmax = dates[1] + dt.timedelta(hours=22)
 
@@ -2159,46 +2162,60 @@ def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, species, b
 
         # Show the event start time
         if n == 0:
-            ax[n].axvline(x=dates[0], color='k', linestyle='dashed', linewidth=0.5, label=f"Event start at: {dates[0].strftime('%H:%M %d %b, %Y')}")
+            ax[n].axvline(x=dates[0], color='k', linestyle='dashed', linewidth=0.5, label=dates[0].strftime('%H:%M UTC %d %b, %Y'))
         else:
             ax[n].axvline(x=dates[0], color='k', linestyle='dashed', linewidth=0.5)
 
         # Show the background window
         if isinstance(background_window, dict):
-            ax[n].axvspan(background_window[sc][0], background_window[sc][1],
-                          alpha=0.2, color='grey')
-            if background_window[sc][0].date == background_window[sc][1].date:
-                bg_txt = f"Background window:\n{background_window[sc][0].strftime('%H:%M')} - {background_window[sc][1].strftime('%H:%M %d %b, %Y')}"
-            else:
-                bg_txt = f"Background window:\n{background_window[sc][0].strftime('%H:%M %d %b, %Y')} - {background_window[sc][1].strftime('%H:%M %d %b, %Y')}"
-            box_obj = AnchoredText(bg_txt, frameon=True, loc='lower right',
-                                   pad=0.5, prop={'size':6})
-            plt.setp(box_obj.patch, facecolor='grey', alpha=0.9)
-            ax[n].add_artist(box_obj)
+            if not background_window[sc][0] is None:
+                ax[n].axvspan(background_window[sc][0], background_window[sc][1],
+                            alpha=0.2, color='grey')
+                if background_window[sc][0].date() == background_window[sc][1].date():
+                    bg_txt = f"Background window:\n{background_window[sc][0].strftime('%H:%M')} - {background_window[sc][1].strftime('%H:%M %d %b, %Y')}"
+                else:
+                    bg_txt = f"Background window:\n{background_window[sc][0].strftime('%H:%M %d %b, %Y')} - {background_window[sc][1].strftime('%H:%M %d %b, %Y')}"
+                box_obj = AnchoredText(bg_txt, frameon=True, loc='lower right',
+                                    pad=0.5, prop={'size':5})
+                plt.setp(box_obj.patch, facecolor='grey', alpha=0.9)
+                ax[n].add_artist(box_obj)
+
+                # Show what the average value is in the background
+                bg_flx = sc_dict[sc]['Flux'][background_window[sc][0]:background_window[sc][1]]
+                f_bg_av = float(np.nanmean(bg_flx))
+                ax[n].hlines(y=f_bg_av,
+                            xmin=dates[0] - dt.timedelta(days=1),
+                            xmax=dates[1] + dt.timedelta(days=1),
+                            label=f'Background = {f_bg_av:.2e} PFU',
+                            linewidth = 1.2,
+                            color='dimgrey', linestyle='dashed')
+
         elif isinstance(background_window, list) and len(background_window) > 1:
             ax[n].axvspan(background_window[0], background_window[1], alpha=0.2, color='grey')
-            if background_window[0].date == background_window[1].date:
+            if background_window[0].date() == background_window[1].date():
                 bg_txt = f'Background window:\n{background_window[0].strftime("%H:%M")} - {background_window[1].strftime("%H:%M %d %b, %Y")}'
             else:
                 bg_txt = f'Background window:\n{background_window[0].strftime("%H:%M %d %b, %Y")} - {background_window[1].strftime("%H:%M %d %b, %Y")}'
             box_obj = AnchoredText(bg_txt, frameon=True, loc='lower right',
-                                   pad=0.5, prop={'size':7})
+                                   pad=0.5, prop={'size':6})
             plt.setp(box_obj.patch, facecolor='grey', alpha=0.9)
             ax[0].add_artist(box_obj)
 
             # Show what the average value is in the background
-            # bg_flx = sc_dict[sc]['Flux'][background_window[0]:background_window[1]]
-            # f_bg_av = float(np.nanmean(bg_flx))
-            # ax[n].hlines(y=f_bg_av,
-            #              xmin=dates[0].date,
-            #              xmax=dates[1].date,
-            #              label='Background avg', color='orange', linestyle='dashed')
+            bg_flx = sc_dict[sc]['Flux'][background_window[0]:background_window[1]]
+            f_bg_av = float(np.nanmean(bg_flx))
+            ax[n].hlines(y=f_bg_av,
+                         xmin=dates[0] - dt.timedelta(days=1),
+                         xmax=dates[1] + dt.timedelta(days=1),
+                         label=f'Background = {f_bg_av:.2e} PFU',
+                         linewidth = 1.2,
+                         color='dimgrey', linestyle='dashed')
 
         # Plot the data
         scdfTmp = sc_dict[sc].loc[xmin:xmax]
         ax[n].semilogy(scdfTmp['Flux'], #sc_dict[sc]['Flux'],
                        color=mrkr['color'],
-                       label=f"{mrkr['label'][species[0].lower()]} ({channel_labels[sc]})", linestyle='solid')
+                       label=f"{mrkr['label'][species[0].lower()]}: {channel_labels[sc]}", linestyle='solid')
         ax[n].fill_between(x = scdfTmp.index, #sc_dict[sc].index,
                            y1= scdfTmp['Flux'] - scdfTmp['Uncertainty'],
                            y2= scdfTmp['Flux'] + scdfTmp['Uncertainty'],
@@ -2207,14 +2224,13 @@ def plot_timeseries_result(sc_dict, data_path, dates, channel_labels, species, b
         ax[n].yaxis.set_major_locator(mpl.ticker.LogLocator(base=10, numticks=3))
         ax[n].minorticks_on()
 
-    # xmin = dates[0] - dt.timedelta(hours=5)
-    # xmax = dates[1] + dt.timedelta(hours=22)
+
     ax[0].set_xlim(left=xmin)#,xmax])
     locator = mpl.dates.AutoDateLocator(minticks=3, maxticks=6)
     ax[n-1].xaxis.set(major_locator=locator, )
     ax[n-1].xaxis.set_major_formatter(mpl.dates.ConciseDateFormatter(locator, show_offset=False))
 
-    label=''
+
     plt.savefig(data_path+'Spatial_Intensities.png')
     plt.show()
 
@@ -2250,15 +2266,14 @@ def find_peak_intensity(sc_dict, data_path, date, excluded_observers, window_len
                       'xerr': peak_xerr,
                       'xreal': peak_xreal}
     peak_fit_results = odr_gauss_fit(peak_data_dict)
-    # The function finds an initial estimate for the parameters so we don't need to pass one
-    # print(peak_fit_results)
+
 
     peak_data_results = peak_data_dict | peak_fit_results #combine the results to the given values.
 
 
     return peak_data_results
 
-def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_range_label, species, reference, flare_loc, plot_foot_sep_limits, excluded_observers, window_length=10):
+def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_range_label, channel_labels, species, reference, flare_loc, plot_foot_sep_limits, excluded_observers, window_length=10):
     """Plotting the results of the find_peak_intensity function."""
 
     # Plot
@@ -2270,7 +2285,7 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
     gauss_ax = fig.add_subplot(grid[0,0])
     tseries_ax = fig.add_subplot(grid[0,1:], sharey=gauss_ax)
 
-    gauss_ax.set_ylabel(f'Intensity (s sr cm{SQUARED_TEXT} MeV){NEGPOWER_TEXT}', fontsize=9)
+    gauss_ax.set_ylabel(f'Intensity {PFU_TEXT}', fontsize=9)
     if plot_foot_sep_limits:
         gauss_ax.set_xlabel(f'Footpoint Separation ({DEGREE_TEXT})', fontsize=9)
         x_col_label = 'long_sep'
@@ -2284,7 +2299,7 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
     tseries_ax.set_xlabel('Time & Date', fontsize=9)
 
     # Add a text box with the energy and species
-    box_obj = AnchoredText(f'Peak Fits\n{energy_range_label} Protons',
+    box_obj = AnchoredText(f'Peak Fits\n{energy_range_label} {species}',
                            frameon=True, loc='lower right', pad=0.5, prop={'size':9})
     plt.setp(box_obj.patch, facecolor='grey', alpha=0.9)
     tseries_ax.add_artist(box_obj)
@@ -2309,7 +2324,7 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
 
         tseries_ax.plot(peak_data_results['times'][n], 10**(peak_data_results['y'][n]),
                         color=mrkr['color'], marker=mrkr['marker'],
-                        label=f"{mrkr['label'][species[0].lower()]} ({peak_data_results['times'][n].strftime('%H:%M %d %b. %y')})")
+                        label=f"{mrkr['label'][species[0].lower()]}: {channel_labels[sc]} ({peak_data_results['times'][n].strftime('%H:%M UTC')})") # '%H:%M %d %b. %y'
 
         # Plot the full time series
         tseries_ax.semilogy(sc_dict[sc]['Flux'], color=mrkr['color'])
@@ -2337,7 +2352,7 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
                           marker=mrkr['marker'])
         tseries_ax.plot(pk_i, pk_y, mec=mrkr['color'], mfc='white',
                         marker=mrkr['marker'], mew=1.2,
-                        label=f"{mrkr['label'][species[0].lower()]} excl. ({pk_i.strftime('%H:%M %d %b. %y')})")
+                        label=f"{mrkr['label'][species[0].lower()]} : {channel_labels[sc]} [excl.] ({pk_i.strftime('%H:%M UTC')})")
 
         # Plot the full time series
         tseries_ax.semilogy(sc_dict[sc]['Flux'], color=mrkr['color'], linestyle='dotted')
@@ -2359,8 +2374,8 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
                     xmax=(peak_data_results['X0']+flarelong),
                     color='blue', linewidth=1.2, alpha=0.8)
 
-    # Provide error range
 
+    # Provide error range
     yerr_curve = log_gauss_error_range_calc(x_curve, y_curve, peak_data_results, flarelong)
     gauss_ax.fill_between(x_curve, y_curve-yerr_curve, y_curve+yerr_curve, alpha=0.7, color='peachpuff')
 
@@ -2370,7 +2385,7 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
         gauss_ax.axvline(x=flarelong, color='k', linestyle='dashed',
                          linewidth=0.5, alpha=0.9,
                          label=f"Reference at {flare_loc[0]}{DEGREE_TEXT}")
-        gauss_text = f"Reference at [{flare_loc[0]}, {flare_loc[1]}]{DEGREE_TEXT}\n"
+        gauss_text = f"Reference at {flare_loc[0]}{DEGREE_TEXT}\n"
 
     # Add the text
     gauss_text = f"{gauss_text}{X0_TEXT} = {peak_data_results['X0']+flarelong:.1f}{DEGREE_TEXT}\n"
@@ -2382,7 +2397,7 @@ def plot_peak_intensity(sc_dict, data_path, date, peak_data_results, energy_rang
 
     gauss_ax.set_xlim([xlimits[0]-40, xlimits[1]+40])
     gauss_ax.set_ylim([ylimits[0]*0.8, ylimits[1]*15])
-    tseries_ax.set_xlim(left=(date - dt.timedelta(hours=1)) )#, date + dt.timedelta(hours=20))
+    tseries_ax.set_xlim(left=(date - dt.timedelta(hours=1)), right=(date+dt.timedelta(hours=window_length+5)) )
     tseries_ax.xaxis.set_major_formatter(
         mpl.dates.ConciseDateFormatter(tseries_ax.xaxis.get_major_locator(),
                                        show_offset=False))
@@ -2414,7 +2429,7 @@ def log_gauss_error_range_calc(x_arr, y_arr, peak_fit, flarelong):
     return y_err
 
 
-def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep, reference, flare_loc, energy_range_label, species, plot_foot_sep_limits, excl_dict):
+def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep, reference, flare_loc, energy_range_label, channel_labels, species, plot_foot_sep_limits, excl_dict):
     """Plotting two subplots, left the fitted gaussian curve, right the time series."""
 
     fig = plt.figure(figsize=[10,3], dpi=250)
@@ -2425,7 +2440,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
     gauss_ax = fig.add_subplot(grid[0,0])
     tseries_ax = fig.add_subplot(grid[0,1:], sharey=gauss_ax)
 
-    gauss_ax.set_ylabel(f'Intensity (s sr cm{SQUARED_TEXT} MeV){NEGPOWER_TEXT}')
+    gauss_ax.set_ylabel(f'Intensity {PFU_TEXT}')
     tseries_ax.set_xlabel('Time & Date')
 
     if plot_foot_sep_limits:
@@ -2452,7 +2467,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
 
 
     # Add a text box with the energy and species
-    box_obj = AnchoredText(f'{energy_range_label} Protons\n'+timestep.strftime("%H:%M %d %b %Y"),
+    box_obj = AnchoredText(f'{energy_range_label} {species}\n'+timestep.strftime("%H:%M %d %b %Y"),
                            frameon=True, loc='lower right', pad=0.5, prop={'size':9})
     plt.setp(box_obj.patch, facecolor='grey', alpha=0.9)
     tseries_ax.add_artist(box_obj)
@@ -2466,7 +2481,6 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
         gauss_ax.axvline(x=flarelong, color='k', linestyle='dashed', linewidth=0.5, alpha=0.9, label=f'Reference at {flare_loc[0]}{DEGREE_TEXT}')
 
     # Add the Gauss results text
-    #gauss_values['X0'] = gauss_values['X0']+flarelong
     gauss_text = f"{gauss_text}{X0_TEXT}: {gauss_values['X0']+flarelong:.2f}{DEGREE_TEXT}\n"
     gauss_text = f"{gauss_text}{SIGMA_TEXT}: {gauss_values['sigma']:.2f}{DEGREE_TEXT}"
     box_obj = AnchoredText(gauss_text, frameon=True, loc='upper left', pad=0.5, prop={'size':9})
@@ -2497,13 +2511,11 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
     # Show the obs markers
     for n in range(len(sc_df['sc'])):
         markers = marker_settings[sc_df['sc'][n]]
-        # gauss_ax.semilogy(sc_df[gauss_xlabel][n], 10**(sc_df['y'][n]), label=sc_df['sc'][n],
-        #                   marker=markers['marker'], color=markers['color'])
         gauss_ax.errorbar(sc_df[gauss_xlabel][n],
                           10**(sc_df['y'][n]),
                           xerr=sc_df['xerr'][n],
                           yerr=10**(sc_df['yerr'][n]),
-                          label=markers['label'][species[0].lower()], #sc_df['sc'][n],
+                          label=f"{markers['label'][species[0].lower()]}: {channel_labels[sc]}", #sc_df['sc'][n],
                           marker=markers['marker'],
                           color=markers['color'], ecolor=markers['color'])
 
@@ -2521,7 +2533,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
                               10**(excl_dict[sc]['y']),
                               xerr=excl_dict[sc]['xerr'],
                               yerr=10**(excl_dict[sc]['yerr']),
-                              label=mrkr['label'][species[0].lower()]+' (excl)',
+                              label=f"{markers['label'][species[0].lower()]}: {channel_labels[sc]} (excl)",
                               marker=mrkr['marker'], ecolor=mrkr['color'],
                               mec=mrkr['color'], mfc='white', mew=1.2)
             tseries_ax.semilogy(full_df[sc]['Flux'], linestyle='dotted',
@@ -2533,8 +2545,7 @@ def plot_curve_and_timeseries(gauss_values, sc_df, full_df, data_path, timestep,
 
 
 
-    gauss_ax.legend(loc='upper left', bbox_to_anchor=(0.02,1.15), ncols=6, fontsize=8)
-    #bbox_to_anchor=(0.2, 1.03, 1.0, 0.1), loc='upper left', ncols=6, fontsize=9)
+    gauss_ax.legend(loc='upper left', bbox_to_anchor=(0.02,1.18), ncols=3, fontsize=8)
 
     gauss_ax.set_xlim(xlimits[0]-20, xlimits[1]+20)
     tseries_ax.set_ylim(ylimits[0]*0.5, ylimits[1]*2)
@@ -2555,14 +2566,14 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
     fig, ax = plt.subplots(1,1, figsize=[3,3], dpi=300)
 
     # ax.set_title(timestep.strftime("%H:%M UTC - %d %b, %Y"), pad=5, loc='left')
-    box_obj1 = AnchoredText(timestep.strftime("%H:%M UTC\n%d %b, %Y")+f"\n{energy_range_label} protons",
+    box_obj1 = AnchoredText(timestep.strftime("%H:%M UTC %d %b %Y")+f"\n{energy_range_label} {species}",
                             frameon=True, loc='lower right', pad=0.5, prop={'size':7.5})
     box_obj1.txt._text.set_ha('right')
     box_obj1.txt._text.set_multialignment('right')
     plt.setp(box_obj1.patch, facecolor='lemonchiffon', alpha=0.9)
     ax.add_artist(box_obj1)
 
-    ax.set_ylabel(f'Intensity (s sr cm{SQUARED_TEXT} MeV){NEGPOWER_TEXT}', fontsize=9)
+    ax.set_ylabel(f'Intensity {PFU_TEXT}', fontsize=9)
     if foot_sep_limits_bool:
         ax.set_xlabel(f'Footpoint Separation ({DEGREE_TEXT})', fontsize=9)
         x_col_label = 'long_sep'
@@ -2580,14 +2591,14 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
         if sc=='Gauss':
             continue
         mrkr = marker_settings[sc]
+        label = f"{mrkr['label'][species[0].lower()]}: {channel_labels[sc]}"
         if sc in excluded_observers:
             mfc = 'white'
             mew = 1.2
-            label = mrkr['label'][species[0].lower()] + ' (excl.)'
+            label = f"{label} (excl.)"
         else:
             mfc = mrkr['color']
             mew = 0
-            label = mrkr['label'][species[0].lower()]
         ax.errorbar(sdf.loc[timestep, x_col_label],
                     sdf.loc[timestep, 'Flux'],
                     xerr=sdf.loc[timestep, 'foot_long_error'],
@@ -2636,7 +2647,7 @@ def plot_one_timestep_curve(sc_dict, data_path, timestep, channel_labels, flare_
     if not pd.isna(flare_loc[0]):
         ax.axvline(x=flarelong, color='k', linestyle='dashed',
                     linewidth=0.5, alpha=0.9,
-                    label=f"Reference at [{flare_loc[0]}, {flare_loc[1]}]{DEGREE_TEXT}")
+                    label=f"Reference at {flare_loc[0]}{DEGREE_TEXT}")
 
     ax.legend(#bbox_to_anchor=(1., 0.9, 0.5, 0.1), loc='upper left',
                 loc='upper left', ncols=1, fontsize=5)
@@ -2681,16 +2692,21 @@ def copy_fig_axs(fig): # Taken from multi_inst_plots
 
 
 
-def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, species, flare_loc, excluded_observers, **kwargs):
+def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, energy_range_label, species, flare_loc, excluded_observers, **kwargs):
     """Plots the following time series: intensity, gauss center, and gauss sigma."""
 
     fig, ax = plt.subplots(3, 1, figsize=[6,6], dpi=300, sharex=True)
     plt.subplots_adjust(hspace=0.02)
 
     ax[0].set_title(date.strftime("%H:%M - %d %b, %Y"), pad=23, loc='left')
-    ax[0].set_ylabel(f'Intensity (s sr cm{SQUARED_TEXT} MeV){NEGPOWER_TEXT}')
-    ax[1].set_ylabel(r'Gauss $X_0$')
-    ax[2].set_ylabel(r'Gauss $\sigma$')
+    ax[0].set_ylabel(f'Intensity {PFU_TEXT}')
+    ax[1].set_ylabel(r'Gauss $X_0$'+f"({DEGREE_TEXT})")
+    ax[2].set_ylabel(r'Gauss $\sigma$'+f"({DEGREE_TEXT})")
+
+    box_obj = AnchoredText(f'{energy_range_label} {species}',
+                           frameon=True, loc='lower right', pad=0.5, prop={'size':9})
+    plt.setp(box_obj.patch, facecolor='whitesmoke', alpha=0.9)
+    ax[0].add_artist(box_obj)
 
 
     # Define the limits to be adjusted along the way
@@ -2711,7 +2727,7 @@ def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, sp
             lstyle='solid'
             ecolor = mrkr['color']
         ax[0].semilogy(s_df['Flux'], color=mrkr['color'], linestyle=lstyle,
-                       label=f"{mrkr['label'][species[0].lower()]} ({channel_labels[sc]})")
+                       label=f"{mrkr['label'][species[0].lower()]}: {channel_labels[sc]}")
         ax[0].fill_between(x=s_df.index,
                            y1=s_df['Flux'] - s_df['Uncertainty'],
                            y2=s_df['Flux'] + s_df['Uncertainty'],
@@ -2727,7 +2743,7 @@ def plot_gauss_fits_timeseries(sc_dict, data_path, date, ref, channel_labels, sp
     if not np.isnan(flare_loc[0]):
         ax[1].axhline(y=flare_loc[0],
                       linestyle='dashed', color='k', alpha=0.9, linewidth=0.5,
-                      label=f"Reference at [{flare_loc[0]}, {flare_loc[1]}]{DEGREE_TEXT}")
+                      label=f"Reference at {flare_loc[0]}{DEGREE_TEXT}")
         ax[1].legend(fontsize=8)
 
     # Plot the Gaussian results
