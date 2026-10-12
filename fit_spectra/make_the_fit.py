@@ -88,7 +88,8 @@ def check_redchi(
     gamma1=-1,
     gamma2=-2,
     gamma3=-4,
-    c1=1000,
+    I_0=1000,
+    E_0 = 0.1,
     alpha=10,
     beta=10,
     E_break_low=0.06,
@@ -110,8 +111,10 @@ def check_redchi(
         Uncertainties in energy and flux, respectively.
     gamma1, gamma2, gamma3 : float, optional
         Initial guesses for the power-law indices.
-    c1 : float, optional
+    I_0 : float, optional
         Initial guess for the normalization.
+    E_0 : float, optional
+        Normalization energy, defaults to 0.1 MeV
     alpha, beta : float, optional
         Initial guesses for the smoothness parameters.
     E_break_low, E_break_high : float, optional
@@ -164,7 +167,8 @@ def check_redchi(
             gamma1=gamma1,
             gamma2=gamma2,
             gamma3=gamma3,
-            c1=c1,
+            I_0=I_0,
+            E_0 = E_0,
             alpha=alpha,
             beta=beta,
             E_break_low=E_break_low,
@@ -195,7 +199,8 @@ def check_redchi(
             yerr=flux_err,
             gamma1=gamma1,
             gamma2=gamma2,
-            c1=c1,
+            I_0=I_0,
+            E_0 = E_0,
             alpha=alpha,
             E_break=E_break_low,
             E_cut=E_cut,
@@ -223,7 +228,8 @@ def check_redchi(
             xerr=e_err,
             yerr=flux_err,
             gamma1=gamma1,
-            c1=c1,
+            I_0=I_0,
+            E_0 = E_0,
             E_cut=E_cut,
             exponent=exponent,
             maxit=maxit,
@@ -245,7 +251,8 @@ def check_redchi(
             yerr=flux_err,
             gamma1=gamma1,
             gamma2=gamma2,
-            c1=c1,
+            I_0=I_0,
+            E_0 = E_0,
             alpha=alpha,
             E_break=E_break_low,
             maxit=maxit,
@@ -264,7 +271,8 @@ def check_redchi(
             xerr=e_err,
             yerr=flux_err,
             gamma1=gamma1,
-            c1=c1,
+            I_0=I_0,
+            E_0 = E_0,
             )
 
         if _is_valid_fit(result_single_pl):
@@ -401,7 +409,8 @@ def check_redchi(
             gamma1=gamma1,
             gamma2=gamma2,
             gamma3=gamma3,
-            c1=c1,
+            I_0=I_0,
+            E_0 = E_0,
             alpha=alpha,
             beta=beta,
             E_break_low=E_break_low,
@@ -449,7 +458,8 @@ def check_redchi(
             yerr=flux_err,
             gamma1=gamma1,
             gamma2=gamma2,
-            c1=c1,
+            I_0=I_0,
+            E_0 = E_0,
             alpha=alpha,
             E_break=E_break_low,
             E_cut=E_cut,
@@ -499,7 +509,8 @@ def check_redchi(
             xerr=e_err,
             yerr=flux_err,
             gamma1=gamma1,
-            c1=c1,
+            I_0=I_0,
+            E_0 = E_0,
             )
 
         result_double = pl_fit.double_pl_fit(
@@ -509,7 +520,8 @@ def check_redchi(
             yerr=flux_err,
             gamma1=gamma1,
             gamma2=gamma2,
-            c1=c1,
+            I_0=I_0,
+            E_0 = E_0,
             alpha=alpha,
             E_break=E_break_low,
             maxit=maxit,
@@ -562,7 +574,8 @@ def check_redchi(
             xerr=e_err,
             yerr=flux_err,
             gamma1=gamma1,
-            c1=c1,
+            I_0=I_0,
+            E_0 = E_0,
             E_cut=E_cut,
             exponent=exponent,
             maxit=maxit,
@@ -575,7 +588,8 @@ def check_redchi(
             yerr=flux_err,
             gamma1=gamma1,
             gamma2=gamma2,
-            c1=c1,
+            I_0=I_0,
+            E_0 = E_0,
             alpha=alpha,
             E_break=E_break_low,
             maxit=maxit,
@@ -642,7 +656,8 @@ def check_redchi(
             xerr=e_err,
             yerr=flux_err,
             gamma1=gamma1,
-            c1=c1,
+            I_0=I_0,
+            E_0 = E_0,
             E_cut=E_cut,
             exponent=exponent,
             maxit=maxit,
@@ -680,7 +695,8 @@ def check_redchi(
             yerr=flux_err,
             gamma1=gamma1,
             gamma2=gamma2,
-            c1=c1,
+            I_0=I_0,
+            E_0 = E_0,
             alpha=alpha,
             E_break=E_break_low,
             maxit=maxit,
@@ -710,7 +726,8 @@ def check_redchi(
             xerr=e_err,
             yerr=flux_err,
             gamma1=gamma1,
-            c1=c1,
+            I_0=I_0,
+            E_0 = E_0,
         )
 
         # Check ODR convergence.
@@ -740,8 +757,9 @@ def _update_result_dataframe(
     result_dataframe,
     *,
     redchi,
-    c1,
-    c1_err,
+    I_0,
+    I0_err,
+    E_0,
     gamma1,
     gamma1_err,
     gamma2=None,
@@ -770,8 +788,10 @@ def _update_result_dataframe(
 
     result_dataframe["Reduced chi sq"] = redchi
 
-    result_dataframe["c1"] = c1
-    result_dataframe["c1 err"] = c1_err
+    result_dataframe["I_0"] = I_0
+    result_dataframe["I_0 err"] = I0_err
+
+    result_dataframe["E_0"] = E_0 
 
     result_dataframe["Gamma1"] = gamma1
     result_dataframe["Gamma1 err"] = gamma1_err
@@ -905,7 +925,7 @@ def _reorder_triple_gammas(
 
     The plotted function must therefore continue to use:
 
-        pl_fit.triple_pl_func(result.beta, xplot)
+        pl_fit.triple_pl_func(xplot, result.beta, E_0)
 
     and NOT the reordered Gamma1/Gamma2/Gamma3.
     """
@@ -1048,7 +1068,8 @@ def MAKE_THE_FIT(
     break_low_guess=0.065,
     break_high_guess=0.12,
     cut_guess=0.12,
-    c1_guess=None,
+    I0_guess=None,
+    E_0 = 0.1,
     exponent_guess=2,
     use_random=False,
     iterations=10,
@@ -1098,10 +1119,10 @@ def MAKE_THE_FIT(
     if e_max is None:
         e_max = spec_e[-1]
 
-    if c1_guess is None:
+    if I0_guess is None:
         absolute_val_array = np.abs(spec_e - 1)
         smallest_difference_index = absolute_val_array.argmin()
-        c1_guess = spec_flux[smallest_difference_index]
+        I0_guess = spec_flux[smallest_difference_index]
 
     # ========================================================================
     # 2. Generate random-search arrays
@@ -1133,10 +1154,10 @@ def MAKE_THE_FIT(
             np.arange(g3_start_value, g3_end_value, g3_step),
             g3_guess)
 
-        c1_array = np.arange(
-            c1_guess / 100.0,
-            c1_guess * 100.0,
-            c1_guess / 500.0)
+        I0_array = np.arange(
+            I0_guess / 100.0,
+            I0_guess * 100.0,
+            I0_guess / 500.0)
 
         a1_array = np.arange(0.01, 0.1, 0.01)
         a2_array = np.arange(0.1, 1.0, 0.05)
@@ -1236,7 +1257,8 @@ def MAKE_THE_FIT(
             spec_flux,
             e_err,
             flux_err,
-            c1=c1_guess,
+            I_0=I0_guess,
+            E_0 = E_0,
             alpha=alpha_guess,
             beta=beta_guess,
             gamma1=g1_guess,
@@ -1278,14 +1300,15 @@ def MAKE_THE_FIT(
                     break_high_random = b
 
                 cut_random = np.random.choice(cut_array, 1)[0]
-                c1_random = np.random.choice(c1_array, 1)[0]
+                I0_random = np.random.choice(I0_array, 1)[0]
 
                 which_fit_random = check_redchi(
                     spec_e,
                     spec_flux,
                     e_err,
                     flux_err,
-                    c1=c1_random,
+                    I_0=I0_random,
+                    E_0 = E_0,
                     alpha=alpha_random,
                     beta=beta_random,
                     gamma1=g1_random,
@@ -1325,7 +1348,8 @@ def MAKE_THE_FIT(
             spec_flux,
             e_err,
             flux_err,
-            c1=c1_guess,
+            I_0=I0_guess,
+            E_0 = E_0,
             alpha=alpha_guess,
             beta=beta_guess,
             gamma1=g1_guess,
@@ -1364,14 +1388,15 @@ def MAKE_THE_FIT(
                     break_high_random = b
 
                 cut_random = np.random.choice(cut_array, 1)[0]
-                c1_random = np.random.choice(c1_array, 1)[0]
+                I0_random = np.random.choice(I0_array, 1)[0]
 
                 which_fit_random = check_redchi(
                     spec_e,
                     spec_flux,
                     e_err,
                     flux_err,
-                    c1=c1_random,
+                    I_0=I0_random,
+                    E_0 = E_0,
                     alpha=alpha_random,
                     beta=beta_random,
                     gamma1=g1_random,
@@ -1410,7 +1435,8 @@ def MAKE_THE_FIT(
             spec_flux,
             e_err,
             flux_err,
-            c1=c1_guess,
+            I_0=I0_guess,
+            E_0 = E_0,
             alpha=alpha_guess,
             gamma1=g1_guess,
             gamma2=g2_guess,
@@ -1438,14 +1464,15 @@ def MAKE_THE_FIT(
                 alpha_random = np.random.choice(alpha_array, 1)[0]
                 break_low_random = np.random.choice(break_array_low, 1)[0]
                 cut_random = np.random.choice(cut_array, 1)[0]
-                c1_random = np.random.choice(c1_array, 1)[0]
+                I0_random = np.random.choice(I0_array, 1)[0]
 
                 which_fit_random = check_redchi(
                     spec_e,
                     spec_flux,
                     e_err,
                     flux_err,
-                    c1=c1_random,
+                    I_0=I0_random,
+                    E_0 = E_0,
                     alpha=alpha_random,
                     gamma1=g1_random,
                     gamma2=g2_random,
@@ -1481,7 +1508,8 @@ def MAKE_THE_FIT(
             spec_flux,
             e_err,
             flux_err,
-            c1=c1_guess,
+            I_0=I0_guess,
+            E_0 = E_0,
             alpha=alpha_guess,
             gamma1=g1_guess,
             gamma2=g2_guess,
@@ -1506,14 +1534,15 @@ def MAKE_THE_FIT(
                 g2_random = np.random.choice(gamma2_array, 1)[0]
                 alpha_random = np.random.choice(alpha_array, 1)[0]
                 break_low_random = np.random.choice(break_array_low, 1)[0]
-                c1_random = np.random.choice(c1_array, 1)[0]
+                I0_random = np.random.choice(I0_array, 1)[0]
 
                 which_fit_random = check_redchi(
                     spec_e,
                     spec_flux,
                     e_err,
                     flux_err,
-                    c1=c1_random,
+                    I_0=I0_random,
+                    E_0 = E_0,
                     alpha=alpha_random,
                     gamma1=g1_random,
                     gamma2=g2_random,
@@ -1546,7 +1575,8 @@ def MAKE_THE_FIT(
             spec_flux,
             e_err,
             flux_err,
-            c1=c1_guess,
+            I_0=I0_guess,
+            E_0 = E_0,
             alpha=alpha_guess,
             gamma1=g1_guess,
             gamma2=g2_guess,
@@ -1573,14 +1603,15 @@ def MAKE_THE_FIT(
                 alpha_random = np.random.choice(alpha_array, 1)[0]
                 break_low_random = np.random.choice(break_array_low, 1)[0]
                 cut_random = np.random.choice(cut_array, 1)[0]
-                c1_random = np.random.choice(c1_array, 1)[0]
+                I0_random = np.random.choice(I0_array, 1)[0]
 
                 which_fit_random = check_redchi(
                     spec_e,
                     spec_flux,
                     e_err,
                     flux_err,
-                    c1=c1_random,
+                    I_0=I0_random,
+                    E_0 = E_0,
                     alpha=alpha_random,
                     gamma1=g1_random,
                     gamma2=g2_random,
@@ -1616,7 +1647,8 @@ def MAKE_THE_FIT(
             spec_flux,
             e_err,
             flux_err,
-            c1=c1_guess,
+            I_0=I0_guess,
+            E_0 = E_0,
             alpha=alpha_guess,
             gamma1=g1_guess,
             gamma2=g2_guess,
@@ -1641,14 +1673,15 @@ def MAKE_THE_FIT(
                 g2_random = np.random.choice(gamma2_array, 1)[0]
                 alpha_random = np.random.choice(alpha_array, 1)[0]
                 break_low_random = np.random.choice(break_array_low, 1)[0]
-                c1_random = np.random.choice(c1_array, 1)[0]
+                I0_random = np.random.choice(I0_array, 1)[0]
 
                 which_fit_random = check_redchi(
                     spec_e,
                     spec_flux,
                     e_err,
                     flux_err,
-                    c1=c1_random,
+                    I_0=I0_random,
+                    E_0 = E_0,
                     alpha=alpha_random,
                     gamma1=g1_random,
                     gamma2=g2_random,
@@ -1682,7 +1715,8 @@ def MAKE_THE_FIT(
             spec_flux,
             e_err,
             flux_err,
-            c1=c1_guess,
+            I_0=I0_guess,
+            E_0 = E_0,
             gamma1=g1_guess,
             E_cut=cut_guess,
             exponent=exponent_guess,
@@ -1703,14 +1737,15 @@ def MAKE_THE_FIT(
 
                 g1_random = np.random.choice(gamma1_array, 1)[0]
                 cut_random = np.random.choice(cut_array, 1)[0]
-                c1_random = np.random.choice(c1_array, 1)[0]
+                I0_random = np.random.choice(I0_array, 1)[0]
 
                 which_fit_random = check_redchi(
                     spec_e,
                     spec_flux,
                     e_err,
                     flux_err,
-                    c1=c1_random,
+                    I_0=I0_random,
+                    E_0 = E_0,
                     gamma1=g1_random,
                     E_cut=cut_random,
                     exponent=exponent_guess,
@@ -1743,7 +1778,8 @@ def MAKE_THE_FIT(
             spec_flux,
             e_err,
             flux_err,
-            c1=c1_guess,
+            I_0=I0_guess,
+            E_0 = E_0,
             gamma1=g1_guess,
             fit="single",
             maxit=maxit,
@@ -1761,14 +1797,15 @@ def MAKE_THE_FIT(
             for i in range(iterations):
 
                 g1_random = np.random.choice(gamma1_array, 1)[0]
-                c1_random = np.random.choice(c1_array, 1)[0]
+                I0_random = np.random.choice(I0_array, 1)[0]
 
                 which_fit_random = check_redchi(
                     spec_e,
                     spec_flux,
                     e_err,
                     flux_err,
-                    c1=c1_random,
+                    I_0=I0_random,
+                    E_0 = E_0,
                     gamma1=g1_random,
                     fit="single",
                     maxit=maxit,
@@ -1810,7 +1847,7 @@ def MAKE_THE_FIT(
         result_single_pl = result_final
         redchi_single = result_single_pl.res_var
 
-        c1 = result_single_pl.beta[0]
+        I_0 = result_single_pl.beta[0]
         gamma1 = result_single_pl.beta[1]
 
         errors = _get_fit_errors(result_single_pl)
@@ -1832,12 +1869,12 @@ def MAKE_THE_FIT(
             ax.plot([], [], " ",
                 label=(
                     r"$\mathregular{I_0=}$"
-                    + f"{c1:.2e}"
+                    + f"{I_0:.2e}"
                     + "/(s cm² sr MeV)"
                 ),
                 )
 
-        fit_plot = pl_fit.simple_pl([c1, gamma1], xplot)
+        fit_plot = pl_fit.simple_pl(xplot, [I_0, gamma1], E_0)
 
         ax.plot(
             xplot,
@@ -1862,8 +1899,9 @@ def MAKE_THE_FIT(
         _update_result_dataframe(
             result_dataframe,
             redchi=redchi_single,
-            c1=c1,
-            c1_err=errors[0],
+            I_0=I_0,
+            I0_err=errors[0],
+            E_0 = E_0,
             gamma1=gamma1,
             gamma1_err=gamma1_err,
             e_min=e_min,
@@ -1880,7 +1918,7 @@ def MAKE_THE_FIT(
 
         breakp_1 = result_double.beta[4]
         alpha = result_double.beta[3]
-        c1 = result_double.beta[0]
+        I_0 = result_double.beta[0]
 
         redchi_double = result_double.res_var
 
@@ -1923,10 +1961,7 @@ def MAKE_THE_FIT(
 
         # IMPORTANT:
         # The plot uses the ORIGINAL ODR parameter vector.
-        fit_plot = pl_fit.double_pl_func(
-            result_double.beta,
-            xplot,
-            )
+        fit_plot = pl_fit.double_pl_func(xplot, result_double.beta, E_0)
 
         fit_plot[fit_plot == 0] = np.nan
 
@@ -1945,7 +1980,7 @@ def MAKE_THE_FIT(
             ax.plot([], [], " ",
                 label=(
                     r"$\mathregular{I_0=}$"
-                    + f"{c1:.2e}"
+                    + f"{I_0:.2e}"
                     + "/(s cm² sr MeV)"
                 ),
                 )
@@ -1981,8 +2016,9 @@ def MAKE_THE_FIT(
         _update_result_dataframe(
             result_dataframe,
             redchi=redchi_double,
-            c1=c1,
-            c1_err=errors[0],
+            I_0=I_0,
+            I0_err=errors[0],
+            E_0 = E_0,
             gamma1=gamma1,
             gamma1_err=gamma1_err,
             gamma2=gamma2,
@@ -2007,14 +2043,14 @@ def MAKE_THE_FIT(
 
         errors = _get_fit_errors(result_cut)
 
-        c1 = result_cut.beta[0]
+        I_0 = result_cut.beta[0]
         gamma1 = result_cut.beta[1]
 
         gamma1_err = errors[1]
         cut_err = errors[2]
         exponent = result_cut.beta[3]
 
-        fit_plot = pl_fit.cut_pl_func(result_cut.beta, xplot)
+        fit_plot = pl_fit.cut_pl_func(xplot, result_cut.beta, E_0)
 
         fit_plot[fit_plot == 0] = np.nan
 
@@ -2041,7 +2077,7 @@ def MAKE_THE_FIT(
             ax.plot([], [], " ",
                 label=(
                     r"$\mathregular{I_0=}$"
-                    + f"{c1:.2e}"
+                    + f"{I_0:.2e}"
                     + "/(s cm² sr MeV)"
                 ),
                 )
@@ -2069,8 +2105,9 @@ def MAKE_THE_FIT(
         _update_result_dataframe(
             result_dataframe,
             redchi=redchi_cut,
-            c1=c1,
-            c1_err=errors[0],
+            I_0=I_0,
+            I0_err=errors[0],
+            E_0 = E_0,
             gamma1=gamma1,
             gamma1_err=gamma1_err,
             cutoff=cut,
@@ -2099,7 +2136,7 @@ def MAKE_THE_FIT(
         breakp_1_err = errors[4]
         cut_err = errors[5]
 
-        c1 = result_cut.beta[0]
+        I_0 = result_cut.beta[0]
         exponent = result_cut.beta[6]
 
         # ------------------------------------------------------------
@@ -2133,10 +2170,7 @@ def MAKE_THE_FIT(
 
         # IMPORTANT:
         # Use raw ODR parameters for the mathematical function.
-        fit_plot = pl_fit.cut_break_pl_func(
-            result_cut.beta,
-            xplot,
-            )
+        fit_plot = pl_fit.cut_break_pl_func(xplot, result_cut.beta, E_0)
 
         fit_plot[fit_plot == 0] = np.nan
 
@@ -2163,7 +2197,7 @@ def MAKE_THE_FIT(
             ax.plot([], [], " ",
                 label=(
                     r"$\mathregular{I_0=}$"
-                    + f"{c1:.2e}"
+                    + f"{I_0:.2e}"
                     + "/(s cm² sr MeV)"
                 ),
                 )
@@ -2207,8 +2241,9 @@ def MAKE_THE_FIT(
         _update_result_dataframe(
             result_dataframe,
             redchi=redchi_cut,
-            c1=c1,
-            c1_err=errors[0],
+            I_0=I_0,
+            I0_err=errors[0],
+            E_0 = E_0,
             gamma1=gamma1,
             gamma1_err=gamma1_err,
             gamma2=gamma2,
@@ -2244,7 +2279,7 @@ def MAKE_THE_FIT(
         breakp_1_err = errors[6]
         breakp_2_err = errors[7]
 
-        c1 = result_triple.beta[0]
+        I_0 = result_triple.beta[0]
 
         # ================================================================
         # RAW MATHEMATICAL GAMMAS
@@ -2321,7 +2356,7 @@ def MAKE_THE_FIT(
         # The plotted function is the actual ODR mathematical model.
         # ================================================================
 
-        fit_plot = pl_fit.triple_pl_func(result_triple.beta, xplot,)
+        fit_plot = pl_fit.triple_pl_func(xplot, result_triple.beta, E_0)
 
         fit_plot[fit_plot == 0] = np.nan
 
@@ -2340,7 +2375,7 @@ def MAKE_THE_FIT(
             ax.plot([], [], " ",
                 label=(
                     r"$\mathregular{I_0=}$"
-                    + f"{c1:.2e}"
+                    + f"{I_0:.2e}"
                     + "/(s cm² sr MeV)"
                 ),
                 )
@@ -2392,8 +2427,9 @@ def MAKE_THE_FIT(
         _update_result_dataframe(
             result_dataframe,
             redchi=redchi_triple,
-            c1=c1,
-            c1_err=errors[0],
+            I_0=I_0,
+            I0_err=errors[0],
+            E_0 = E_0,
             gamma1=gamma1,
             gamma1_err=gamma1_err,
             gamma2=gamma2,

@@ -1,50 +1,30 @@
 import numpy as np
 from odrpack import odr_fit
 
-
 def check_odr_output(result, printing=False):
-    """Check whether an ODR fit converged successfully.
+    """Return True only for clean ODR convergence."""
 
-    Parameters
-    ----------
-    result : odrpack.OdrResult
-        ODR fit result containing the ``stopreason`` attribute.
-    printing : bool, default=False
-        If ``True``, print the convergence status.
+    # These are the ONLY acceptable ODRPACK return codes.
+    converged = result.info in (1, 2, 3)
 
-    Returns
-    -------
-    bool
-        ``True`` if the fit converged according to one of the recognised
-        ODR convergence messages, otherwise ``False``.
-    """
-    success_messages = [
-        "Sum of squares convergence",
-        "Parameter convergence",
-        "Sum of squares and parameter convergence",
-    ]
-
-    converged = any(
-        message in result.stopreason
-        for message in success_messages
-    )
-
-    if not converged and printing:
-        print(f"Fit failed or did not converge: {result.stopreason}")
-        print("Re-running the fit...")
-    elif converged and printing:
-        print("Fit converged successfully.")
+    if printing:
+        if converged:
+            print("Fit converged successfully.")
+        else:
+            print(f"Fit rejected: {result.stopreason}")
+            print(f"ODR info code: {result.info}")
 
     return converged
 
-def simple_pl(p, x):
+
+def simple_pl(x, p, E_0):
     """Evaluate a simple power-law model.
 
     Parameters
     ----------
     p : sequence of float
-        Model parameters ``(c1, gamma1)``, where ``c1`` is the
-        normalization at ``x = 0.1`` and ``gamma1`` is the power-law
+        Model parameters ``(I_0, gamma1)``, where ``I_0`` is the
+        normalization at ``x = E_0`` and ``gamma1`` is the power-law
         index.
     x : float or array-like
         Independent variable.
@@ -52,13 +32,13 @@ def simple_pl(p, x):
     Returns
     -------
     float or array-like
-        Model value calculated as ``c1 * (x / 0.1) ** gamma1``.
+        Model value calculated as ``I_0 * (x / E_0) ** gamma1``.
     """
-    c1, gamma1 = p
-    return c1 * (x / 0.1) ** gamma1
+    I_0, gamma1 = p
+    return I_0 * (x / E_0) ** gamma1
 
 
-def power_law_fit(x, y, xerr, yerr, gamma1=-1.8, c1=None, print_report=False):
+def power_law_fit(x, y, xerr, yerr, gamma1=-1.8, I_0=None, E_0 = 0.1, print_report=False):
     """Fit a power-law model to data using odrpack.
 
     Parameters
@@ -69,7 +49,7 @@ def power_law_fit(x, y, xerr, yerr, gamma1=-1.8, c1=None, print_report=False):
         Uncertainties in ``x`` and ``y``, respectively.
     gamma1 : float, default=-1.8
         Initial guess for the power-law index.
-    c1 : float or None, default=None
+    I_0 : float or None, default=None
         Initial guess for the normalization. If ``None``, the last
         value of ``y`` is used.
     print_report : bool, default=False
@@ -80,22 +60,26 @@ def power_law_fit(x, y, xerr, yerr, gamma1=-1.8, c1=None, print_report=False):
     OdrResult
         The result returned by the ODR fit.
     """
-    c1 = y[-1] if c1 is None else c1
+    I_0 = y[-1] if I_0 is None else I_0
 
     # odrpack expects the model signature f(x, beta), whereas
     # simple_pl uses the original f(beta, x) signature.
-    def plmodel(x, beta):
-        return simple_pl(beta, x)
+    #def plmodel(x, beta):
+    #    return simple_pl(beta, x)
 
+    
     # Convert standard deviations to ODR weights.
     weight_x = 1 / np.asarray(xerr) ** 2
     weight_y = 1 / np.asarray(yerr) ** 2
+
+    beta0=[I_0, gamma1]
+    plmodel = lambda x, p: simple_pl(x, p, E_0)
 
     result = odr_fit(
         plmodel,
         x,
         y,
-        beta0=[c1, gamma1],
+        beta0=beta0,
         weight_x=weight_x,
         weight_y=weight_y,
         report="short" if print_report else "none",
@@ -107,7 +91,7 @@ def power_law_fit(x, y, xerr, yerr, gamma1=-1.8, c1=None, print_report=False):
             plmodel,
             x,
             y,
-            beta0=[c1, gamma1],
+            beta0=beta0,
             weight_x=weight_x,
             weight_y=weight_y,
             report="short" if print_report else "none",
@@ -116,7 +100,7 @@ def power_law_fit(x, y, xerr, yerr, gamma1=-1.8, c1=None, print_report=False):
 
     return result
 
-def double_pl_func(p, x):
+def double_pl_func(x, p, E_0):
     """Evaluate a smoothly broken double power-law model.
 
     This is based on function 25 from Prinsloo (2019), without the
@@ -125,7 +109,7 @@ def double_pl_func(p, x):
     Parameters
     ----------
     p : sequence of float
-        Model parameters ``(c1, gamma1, gamma2, alpha, E_break)``.
+        Model parameters ``(I_0, gamma1, gamma2, alpha, E_break)``.
     x : float or array-like
         Independent variable.
 
@@ -134,11 +118,11 @@ def double_pl_func(p, x):
     float or array-like
         Model value.
     """
-    c1, gamma1, gamma2, alpha, E_break = p
+    I_0, gamma1, gamma2, alpha, E_break = p
 
-    y = (c1 * (x / 0.1) ** gamma1 
+    y = (I_0 * (x / E_0) ** gamma1 
          * ((x**alpha + E_break**alpha)
-         / (0.1**alpha + E_break**alpha)) ** ((gamma2 - gamma1) / alpha))
+         / (E_0**alpha + E_break**alpha)) ** ((gamma2 - gamma1) / alpha))
 
     return y
 
@@ -149,7 +133,8 @@ def double_pl_fit(
     yerr,
     gamma1=-1.8,
     gamma2=-2,
-    c1=None,
+    I_0=None,
+    E_0 = 0.1,
     alpha=None,
     E_break=0.1,
     print_report=False,
@@ -167,7 +152,7 @@ def double_pl_fit(
         Initial guess for the first power-law index.
     gamma2 : float, default=-2
         Initial guess for the second power-law index.
-    c1 : float or None, default=None
+    I_0 : float or None, default=None
         Initial guess for the normalization. If ``None``, the fourth
         value of ``y`` is used.
     alpha : float or None, default=None
@@ -185,19 +170,21 @@ def double_pl_fit(
     OdrResult
         The result returned by the ODR fit.
     """
-    c1 = y[3] if c1 is None else c1
+    I_0 = y[3] if I_0 is None else I_0
     alpha = 0.1 if alpha is None else alpha
 
     # odrpack expects the model signature f(x, beta), whereas
     # double_pl_func uses the original f(beta, x) signature.
-    def plmodel(x, beta):
-        return double_pl_func(beta, x)
+    #def plmodel(x, beta):
+    #    return double_pl_func(beta, x)
 
     # Convert standard deviations to ODR weights.
     weight_x = 1 / np.asarray(xerr) ** 2
     weight_y = 1 / np.asarray(yerr) ** 2
+    
 
-    beta0 = [c1, gamma1, gamma2, alpha, E_break]
+    beta0 = [I_0, gamma1, gamma2, alpha, E_break]
+    plmodel = lambda x, p: double_pl_func(x, p, E_0)
 
     result = odr_fit(
         plmodel,
@@ -226,14 +213,14 @@ def double_pl_fit(
 
     return result
 
-def triple_pl_func(p, x):
+def triple_pl_func(x, p, E_0):
     """Evaluate a triple power-law model.
 
     Parameters
     ----------
     p : sequence of float
         Model parameters
-        ``(c1, gamma1, gamma2, gamma3, alpha, beta,
+        ``(I_0, gamma1, gamma2, gamma3, alpha, beta,
         E_break_low, E_break_high)``.
     x : float or array-like
         Independent variable.
@@ -243,14 +230,14 @@ def triple_pl_func(p, x):
     float or array-like
         Model value.
     """
-    c1, gamma1, gamma2, gamma3, alpha, beta, E_break_low, E_break_high = p
+    I_0, gamma1, gamma2, gamma3, alpha, beta, E_break_low, E_break_high = p
 
-    y = (c1
-        * (x / 0.1) ** gamma1
+    y = (I_0
+        * (x / E_0) ** gamma1
         * ((x**alpha + E_break_low**alpha)
-            / (0.1**alpha + E_break_low**alpha)) ** ((gamma2 - gamma1) / alpha)
+            / (E_0**alpha + E_break_low**alpha)) ** ((gamma2 - gamma1) / alpha)
         * ((x**beta + E_break_high**beta)
-            / (0.1**beta + E_break_high**beta)) ** ((gamma3 - gamma2) / beta))
+            / (E_0**beta + E_break_high**beta)) ** ((gamma3 - gamma2) / beta))
     
     return y
 
@@ -262,7 +249,8 @@ def triple_pl_fit(
     gamma1=-1.8,
     gamma2=-2,
     gamma3=-3,
-    c1=None,
+    I_0=None,
+    E_0 = 0.1,
     alpha=None,
     beta=None,
     E_break_low=0.06,
@@ -284,7 +272,7 @@ def triple_pl_fit(
         Initial guess for the second power-law index.
     gamma3 : float, default=-3
         Initial guess for the third power-law index.
-    c1 : float or None, default=None
+    I_0 : float or None, default=None
         Initial guess for the normalization. If ``None``, the fourth
         value of ``y`` is used.
     alpha : float or None, default=None
@@ -307,29 +295,21 @@ def triple_pl_fit(
     OdrResult
         The result returned by the ODR fit.
     """
-    c1 = y[3] if c1 is None else c1
+    I_0 = y[3] if I_0 is None else I_0
     alpha = 0.1 if alpha is None else alpha
     beta = 0.1 if beta is None else beta
 
     # odrpack expects the model signature f(x, beta), whereas
     # triple_pl_func uses the original f(beta, x) signature.
-    def plmodel(x, beta):
-        return triple_pl_func(beta, x)
+    #def plmodel(x, beta):
+    #    return triple_pl_func(beta, x)
 
     # Convert standard deviations to ODR weights.
     weight_x = 1 / np.asarray(xerr) ** 2
     weight_y = 1 / np.asarray(yerr) ** 2
 
-    beta0 = [
-        c1,
-        gamma1,
-        gamma2,
-        gamma3,
-        alpha,
-        beta,
-        E_break_low,
-        E_break_high,
-    ]
+    beta0 = [I_0, gamma1, gamma2, gamma3, alpha, beta, E_break_low, E_break_high]
+    plmodel = lambda x, p: triple_pl_func(x, p, E_0)
 
     result = odr_fit(
         plmodel,
@@ -357,13 +337,15 @@ def triple_pl_fit(
         convergence = check_odr_output(result)
 
     return result
-def cut_pl_func(p, x):
+
+
+def cut_pl_func(x, p, E_0):
     """Evaluate a power law with an exponential cut-off.
 
     Parameters
     ----------
     p : sequence of float
-        Model parameters ``(c1, gamma1, E_cut, exponent)``.
+        Model parameters ``(I_0, gamma1, E_cut, exponent)``.
     x : float or array-like
         Independent variable.
 
@@ -372,9 +354,9 @@ def cut_pl_func(p, x):
     float or array-like
         Model value.
     """
-    c1, gamma1, E_cut, exponent = p
+    I_0, gamma1, E_cut, exponent = p
 
-    y = c1 * (x / 0.1) ** gamma1 * np.exp(-(x / E_cut) ** exponent)
+    y = I_0 * (x / E_0) ** gamma1 * np.exp(-(x / E_cut) ** exponent)
 
     return y
 
@@ -385,7 +367,8 @@ def cut_pl_fit(
     xerr,
     yerr,
     gamma1=-1.8,
-    c1=None,
+    I_0=None,
+    E_0 = 0.1,
     E_cut=0.35,
     exponent=2,
     print_report=False,
@@ -401,7 +384,7 @@ def cut_pl_fit(
         Uncertainties in ``x`` and ``y``, respectively.
     gamma1 : float, default=-1.8
         Initial guess for the power-law index.
-    c1 : float or None, default=None
+    I_0 : float or None, default=None
         Initial guess for the normalization. If ``None``, the fifth
         value of ``y`` is used.
     E_cut : float, default=0.35
@@ -418,18 +401,19 @@ def cut_pl_fit(
     OdrResult
         The result returned by the ODR fit.
     """
-    c1 = y[4] if c1 is None else c1
+    I_0 = y[4] if I_0 is None else I_0
 
     # odrpack expects the model signature f(x, beta), whereas
     # cut_pl_func uses the original f(beta, x) signature.
-    def plmodel(x, beta):
-        return cut_pl_func(beta, x)
+    #def plmodel(x, beta):
+    #    return cut_pl_func(beta, x)
 
     # Convert standard deviations to ODR weights.
     weight_x = 1 / np.asarray(xerr) ** 2
     weight_y = 1 / np.asarray(yerr) ** 2
 
-    beta0 = [c1, gamma1, E_cut, exponent]
+    beta0 = [I_0, gamma1, E_cut, exponent]
+    plmodel = lambda x, p: cut_pl_func(x, p, E_0)
 
     result = odr_fit(
         plmodel,
@@ -458,14 +442,14 @@ def cut_pl_fit(
 
     return result
 
-def cut_break_pl_func(p, x):
+def cut_break_pl_func(x, p, E_0):
     """Evaluate a smoothly broken power law with an exponential cut-off.
 
     Parameters
     ----------
     p : sequence of float
         Model parameters
-        ``(c1, gamma1, gamma2, alpha, E_break, E_cut, exponent)``.
+        ``(I_0, gamma1, gamma2, alpha, E_break, E_cut, exponent)``.
     x : float or array-like
         Independent variable.
 
@@ -474,12 +458,12 @@ def cut_break_pl_func(p, x):
     float or array-like
         Model value.
     """
-    c1, gamma1, gamma2, alpha, E_break, E_cut, exponent = p
+    I_0, gamma1, gamma2, alpha, E_break, E_cut, exponent = p
 
-    y = (c1
-        * (x / 0.1) ** gamma1
+    y = (I_0
+        * (x / E_0) ** gamma1
         * ((x**alpha + E_break**alpha)
-            / (0.1**alpha + E_break**alpha)) ** ((gamma2 - gamma1) / alpha)
+            / (E_0**alpha + E_break**alpha)) ** ((gamma2 - gamma1) / alpha)
         * np.exp(-(x / E_cut) ** exponent))
 
     return y
@@ -492,7 +476,8 @@ def cut_break_pl_fit(
     yerr,
     gamma1=-1.8,
     gamma2=-2,
-    c1=None,
+    I_0=None,
+    E_0 = 0.1,
     alpha=None,
     E_break=0.1,
     E_cut=0.35,
@@ -512,7 +497,7 @@ def cut_break_pl_fit(
         Initial guess for the first power-law index.
     gamma2 : float, default=-2
         Initial guess for the second power-law index.
-    c1 : float or None, default=None
+    I_0 : float or None, default=None
         Initial guess for the normalization. If ``None``, the fifth
         value of ``y`` is used.
     alpha : float or None, default=None
@@ -534,27 +519,20 @@ def cut_break_pl_fit(
     OdrResult
         The result returned by the ODR fit.
     """
-    c1 = y[4] if c1 is None else c1
+    I_0 = y[4] if I_0 is None else I_0
     alpha = 0.1 if alpha is None else alpha
 
     # odrpack expects the model signature f(x, beta), whereas
     # cut_break_pl_func uses the original f(beta, x) signature.
-    def plmodel(x, beta):
-        return cut_break_pl_func(beta, x)
+    #def plmodel(x, beta):
+    #    return cut_break_pl_func(beta, x)
 
     # Convert standard deviations to ODR weights.
     weight_x = 1 / np.asarray(xerr) ** 2
     weight_y = 1 / np.asarray(yerr) ** 2
 
-    beta0 = [
-        c1,
-        gamma1,
-        gamma2,
-        alpha,
-        E_break,
-        E_cut,
-        exponent,
-    ]
+    beta0 = [I_0, gamma1, gamma2, alpha, E_break, E_cut, exponent]
+    plmodel = lambda x, p: cut_break_pl_func(x, p, E_0)
 
     result = odr_fit(
         plmodel,

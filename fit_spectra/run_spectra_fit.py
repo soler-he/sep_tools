@@ -7,12 +7,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as pltt
 # from sunpy.coordinates import get_horizons_coord
-import fit_spectra.make_the_fit as fitting
+import make_the_fit_tripl as fitting
 # from make_the_fit_tripl import  MAKE_THE_FIT
 # from make_the_fit import closest_values
 # from make_the_fit import find_I0
 # from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
-import fit_spectra.functions_for_spectra_fit as sf
+import functions_for_spectra_fit as sf
 import os
 from pathlib import Path
 
@@ -21,9 +21,11 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
                 plot_title = '', x_label = 'Intensity', y_label = 'Energy', 
                 legend_title = '', data_label_for_legend = 'data', which_fit = 'best', 
                 e_min = None, e_max = None, g1_guess = -1.9, g2_guess = -2.5, g3_guess = -4., 
-                I0_guess = 1000, E_0=0.1, alpha_guess = 10, beta_guess = 10, break_guess_low = 0.6, 
-                break_guess_high = 1.2, cut_guess = 1.2, exponent_guess = 2, use_random = True, 
-                iterations = 20 , legend_details = False, energy_unit="MeV", intensity_unit=r"1/(cm$^2$ sr s MeV)"):
+                I0_guess = 1000, E_0=0.1, alpha_guess = 10, beta_guess = 10, 
+                break_guess_low = 0.6, break_guess_high = 1.2, cut_guess = 1.2, 
+                exponent_guess = 2, use_random = True, 
+                iterations = 20 , legend_details = False, energy_unit="MeV", 
+                intensity_unit=r"1/(cm$^2$ sr s MeV)"):
     """This function calls the make_the_fit functoin that creates the fit. It plots and saves the results of the fit.
 
     Args:
@@ -49,9 +51,9 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
 		e_max (float, optional): The upper energy limit for the fit. Defaults to None.
         g1_guess (float, optional): The slope of the single pl fit or the first part of a double/triple pl fit. Defaults to -1.9.
 		g2_guess (float, optional): The slope of the second part of a double/triple pl fit. gamma2 < gamma1. Defaults to -2.5. 
-		g3_guess (int, optional): The slope of the third part of a double/triple pl fit. gamma3 < gamma2 < gamma1. Defaults to -4.
-		I0_guess (int, optional): The intensity/flux value at 0.1 MeV. Defaults to 1000.
-        E_0 (float, optional): The energy that corresponds to intensity at I_0. Defaults to E_0=0.1 (MeV).
+		g3_guess (float, optional): The slope of the third part of a double/triple pl fit. gamma3 < gamma2 < gamma1. Defaults to -4.
+		I0_guess (float, optional): The intensity/flux value at E_0. Defaults to 1000.
+        E_0 (float, optional): The energy (in MeV) that corresponds to intensity at I_0. Defaults to E_0=0.1 (MeV).
 		alpha_guess (int, optional): The smoothness of the transition between gamma1 and gamma2. Defaults to 10.
 		beta_guess (int, optional): The smoothness of the transition between gamma3 and gamma2. Defaults to 10.
 		break_guess_low (float, optional): Guess value for the energy correponding to the break in the double pl and first break for the triple pl. Input in MeV. Defaults to 0.6.
@@ -60,7 +62,7 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
 		use_random (bool, optional): If True the fitting function will, in addition to the guess values, choose random values from a predifined list of values for each variable. 
 					These values are chosen close to the guess values. Defaults to True.
 		iterations (int, optional): The number of times the function will choose random values to use in the fit to the data. Defaults to 20.
-        legend_details (bool?)
+        legend_details (bool): if True the legend will include all details related to the fit.
         energy_unit (str, optional): The unit of energy for the x-axis. Defaults to 'MeV'.
         intensity_unit (str, optional): The unit of intensity for the y-axis. Defaults to r"1/(cm$^2$ sr s MeV)")
     """
@@ -79,13 +81,14 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
         name_string = plot_title.replace(" ", "_")
 
     fit_var_path = folder_path+'/'+file_name+'_'+name_string+'_fit-result-variables_'+which_fit+'.csv'
-
+    xerr = None
     # TODO: update!
     # The spectra tool returns not anymore a single error column for energy, but two columns: E_err_minus and E_err_plus.
     # Until this if fully implemented here, we calculate the old E_err here as it has been done before in the spectra tool.
     # This is not ideal, but provides a working code for now.
     if 'E_err_minus' in data and 'E_err_plus' in data:
         data['E_err'] = (data['E_err_plus'] + data['E_err_minus'])/2.
+        xerr = [data['E_err_plus'], data['E_err_minus']]
 
     all_data = data
 
@@ -105,26 +108,28 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
 
     if 'E_err' in dataframe_to_fit:
         x_err = dataframe_to_fit['E_err']
+        xerr = x_err
         # checking if uncertainties for energy and intensity are NaNs
         if x_err.isnull().all():
             x_err = None
+            xerr = x_err
 
     if 'I_err' in dataframe_to_fit:
         y_err = dataframe_to_fit['I_err'] 
         if y_err.isnull().all():
             y_err = None
-
+    
     f, ax = plt.subplots(1, figsize=(6, 5), dpi = 300)
 
     fit = fitting.MAKE_THE_FIT(x_data, y_data, x_err, y_err, ax, direction='sun', e_min = e_min, e_max = e_max, 
                                which_fit=which_fit, g1_guess=g1_guess, g2_guess=g2_guess, g3_guess = g3_guess, 
                                alpha_guess=alpha_guess, beta_guess = beta_guess, break_low_guess=break_guess_low, 
-                               break_high_guess = break_guess_high, cut_guess = cut_guess, c1_guess = I0_guess, 
+                               break_high_guess = break_guess_high, cut_guess = cut_guess, c1_guess = I0_guess, E_0 = E_0,
                                exponent_guess = exponent_guess, use_random = use_random, iterations = iterations, 
                                path = None, path2 = fit_var_path, detailed_legend = legend_details)
 
 
-    ax.errorbar(x_data, y_data, xerr = x_err, yerr=y_err, marker='o', markersize= 3 , linestyle='', color='red', alpha = 0.5, label=data_label_for_legend, zorder = -1)
+    ax.errorbar(x_data, y_data, xerr = xerr, yerr=y_err, marker='o', markersize= 3 , linestyle='', color='red', alpha = 0.5, label=data_label_for_legend, zorder = -1)
     if channels_to_exclude != None:
         ax.errorbar(dataframe_to_exclude['Energy'], dataframe_to_exclude['Intensity'], xerr = dataframe_to_exclude['E_err'], yerr=dataframe_to_exclude['I_err'], marker='o', markersize= 3 , linestyle='', color='gray', alpha = 0.5, label='excluded channels', zorder = -1)
 
