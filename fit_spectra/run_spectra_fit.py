@@ -7,12 +7,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as pltt
 # from sunpy.coordinates import get_horizons_coord
-import make_the_fit_tripl as fitting
+import fit_spectra.make_the_fit as fitting
 # from make_the_fit_tripl import  MAKE_THE_FIT
 # from make_the_fit import closest_values
 # from make_the_fit import find_I0
 # from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
-import functions_for_spectra_fit as sf
+import fit_spectra.functions_for_spectra_fit as sf
 import os
 from pathlib import Path
 
