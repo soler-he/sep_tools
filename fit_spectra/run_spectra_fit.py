@@ -40,10 +40,10 @@ def run_the_fit(path, data, save, use_filename_as_title = False, channels_to_exc
         legend_title (str, optional): title for the legend. Defaults to ''.
         which_fit (str, optional): which_fit options: 'single' will force a single pl fit to the data
 		  			'double' will force a double pl fit to the data but ONLY if the break point is within the energy range otherwise a sigle pl fit will be produced instead
-		  			'best_sb' will choose automatically the best fit type between single and double by comparing the redchis of the fits
+		  			'best_sd' will choose automatically the best fit type between single and double by comparing the redchis of the fits
 		    		'cut' will produce a single pl fit with an exponential cutoff point. If the cutoff point is outside of the energy range a double or single pl will be fit instead
 			  		'double_cut' will produce a double pl fit with an exponential cutoff point. If the cutoff point is outside of the energy range a double or single pl will be fit instead
-				  	'best_cb'. Defaults to 'best'.
+				  	'best_cd'. Defaults to 'best'.
 					'triple' will force a triple pl fit. If this is not possible, the function will check which is the next best option.
 					'best' will choose automatically the best fit type by comparing the redchis of the fits
                     Defaults to 'best'
