@@ -470,7 +470,7 @@ def check_redchi(
 
         # Check ODR convergence BEFORE accessing result parameters.
         if not _is_valid_fit(result_cut_break):
-            fit = "best_cb"
+            fit = "best_cd"
         else:
             redchi_cut_break = result_cut_break.res_var
             breakp_cut = result_cut_break.beta[4]
@@ -493,10 +493,10 @@ def check_redchi(
                     return [ "double_cut", redchi_cut_break, result_cut_break]
 
                 else:
-                    fit = "best_cb"
+                    fit = "best_cd"
 
             else:
-                fit = "best_cb"
+                fit = "best_cd"
 
 
     # ------------------------------------------------------------------
@@ -567,7 +567,7 @@ def check_redchi(
     # ------------------------------------------------------------------
     # Select between a single PL + exp cutoff and double power law
     # ------------------------------------------------------------------
-    if fit == "best_cb":
+    if fit == "best_cd":
         result_cut = pl_fit.cut_pl_fit(
             x=spec_e,
             y=spec_flux,
@@ -1425,10 +1425,10 @@ def MAKE_THE_FIT(
                     which_fit_final = which_fit_random[0]
 
     # ========================================================================
-    # 7. BEST_CB
+    # 7. BEST_CD
     # ========================================================================
 
-    if which_fit == "best_cb":
+    if which_fit == "best_cd":
 
         which_fit_guess = check_redchi(
             spec_e,
@@ -1443,7 +1443,7 @@ def MAKE_THE_FIT(
             E_break_low=break_low_guess,
             E_cut=cut_guess,
             exponent=exponent_guess,
-            fit="best_cb",
+            fit="best_cd",
             maxit=maxit,
             e_min=e_min,
             e_max=e_max,
@@ -1479,7 +1479,7 @@ def MAKE_THE_FIT(
                     E_break_low=break_low_random,
                     E_cut=cut_random,
                     exponent=exponent_guess,
-                    fit="best_cb",
+                    fit="best_cd",
                     maxit=maxit,
                     e_min=e_min,
                     e_max=e_max,
