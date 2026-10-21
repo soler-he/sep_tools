@@ -1570,7 +1570,7 @@ def MAKE_THE_FIT(
 
     if which_fit == "double_cut":
 
-        result_cut_guess = check_redchi(
+        which_fit_guess = check_redchi(
             spec_e,
             spec_flux,
             e_err,
@@ -1589,7 +1589,7 @@ def MAKE_THE_FIT(
             e_max=e_max,
             )
         
-        if result_cut_guess is not None:
+        if which_fit_guess is not None:
             redchi_final = which_fit_guess[1]
             which_fit_final = which_fit_guess[0]
             result_final = which_fit_guess[2]
@@ -1642,7 +1642,7 @@ def MAKE_THE_FIT(
 
     if which_fit == "double":
 
-        result_double_guess = check_redchi(
+        which_fit_guess = check_redchi(
             spec_e,
             spec_flux,
             e_err,
@@ -1660,10 +1660,10 @@ def MAKE_THE_FIT(
             e_max=e_max,
         )
 
-        if result_double_guess is not None:
-            redchi_final = result_double_guess[1]
-            which_fit_final = result_double_guess[0]
-            result_final = result_double_guess[2]
+        if which_fit_guess is not None:
+            redchi_final = which_fit_guess[1]
+            which_fit_final = which_fit_guess[0]
+            result_final = which_fit_guess[2]
 
         if use_random:
 
@@ -1710,7 +1710,7 @@ def MAKE_THE_FIT(
 
     if which_fit == "cut":
 
-        result_cut_guess = check_redchi(
+        which_fit_guess = check_redchi(
             spec_e,
             spec_flux,
             e_err,
@@ -1726,10 +1726,10 @@ def MAKE_THE_FIT(
             e_max=e_max,
             )
 
-        if result_cut_guess is not None:
-            redchi_final = result_cut_guess[1]
-            which_fit_final = result_cut_guess[0]
-            result_final = result_cut_guess[2]
+        if which_fit_guess is not None:
+            redchi_final = which_fit_guess[1]
+            which_fit_final = which_fit_guess[0]
+            result_final = which_fit_guess[2]
 
         if use_random:
 
@@ -1773,7 +1773,7 @@ def MAKE_THE_FIT(
 
     if which_fit == "single":
 
-        result_single_guess = check_redchi(
+        which_fit_guess = check_redchi(
             spec_e,
             spec_flux,
             e_err,
@@ -1787,10 +1787,10 @@ def MAKE_THE_FIT(
             e_max=e_max,
             )
 
-        if result_single_guess is not None:
-            redchi_final = result_single_guess[1]
-            which_fit_final = result_single_guess[0]
-            result_final = result_single_guess[2]
+        if which_fit_guess is not None:
+            redchi_final = which_fit_guess[1]
+            which_fit_final = which_fit_guess[0]
+            result_final = which_fit_guess[2]
 
         if use_random:
 
