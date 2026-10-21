@@ -21,10 +21,10 @@ pytest -ra --mpl --mpl-baseline-path=baseline --mpl-baseline-relative --mpl-gene
 @pytest.mark.parametrize("which_fit, use_random",
                          [('single', False),
                           ('double', False),
-                          ('best_sb', False),
+                          ('best_sd', False),
                           ('cut', False),
                           ('double_cut', False),
-                          ('best_cb', False),
+                          ('best_cd', False),
                           ('triple', False),
                           ('best', False)
                           ])
@@ -40,7 +40,7 @@ def test_SEP_Fit_Spectra(which_fit, use_random):
     plot_spectrum(data)  # deactivate here because it's mixing up with the result plot
 
     # set by function call:
-    # which_fit = 'single'  # single`, `double`, `best_sb`, `cut`, `double_cut`, `best_cb`, `triple`, `best`
+    # which_fit = 'single'  # single`, `double`, `best_sd`, `cut`, `double_cut`, `best_cd`, `triple`, `best`
     # use_random = False  # defined
 
     # initial guesses:
